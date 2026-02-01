@@ -62,4 +62,4 @@ const TermsSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("Terms", TermsSchema);
+export default mongoose.models["Terms"] || mongoose.model("Terms", TermsSchema);

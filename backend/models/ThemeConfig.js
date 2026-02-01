@@ -43,4 +43,4 @@ const ThemeConfigSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("ThemeConfig", ThemeConfigSchema);
+export default mongoose.models["ThemeConfig"] || mongoose.model("ThemeConfig", ThemeConfigSchema);

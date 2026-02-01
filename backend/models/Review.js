@@ -68,4 +68,4 @@ ReviewSchema.index(
   }
 );
 
-export default mongoose.model("Review", ReviewSchema);
+export default mongoose.models["Review"] || mongoose.model("Review", ReviewSchema);

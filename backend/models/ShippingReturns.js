@@ -134,4 +134,4 @@ const ShippingReturnsSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("ShippingReturns", ShippingReturnsSchema);
+export default mongoose.models["ShippingReturns"] || mongoose.model("ShippingReturns", ShippingReturnsSchema);

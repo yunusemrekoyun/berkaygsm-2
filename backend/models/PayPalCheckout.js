@@ -101,4 +101,4 @@ const PayPalCheckoutSchema = new mongoose.Schema(
 PayPalCheckoutSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 PayPalCheckoutSchema.index({ paypalOrderId: 1 }, { unique: true });
 
-export default mongoose.model("PayPalCheckout", PayPalCheckoutSchema);
+export default mongoose.models["PayPalCheckout"] || mongoose.model("PayPalCheckout", PayPalCheckoutSchema);

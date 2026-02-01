@@ -93,4 +93,4 @@ CategorySchema.virtual("isLeaf").get(function () {
   return this.level === 2;
 });
 
-export default mongoose.model("Category", CategorySchema);
+export default mongoose.models["Category"] || mongoose.model("Category", CategorySchema);

@@ -163,4 +163,4 @@ const AboutSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("About", AboutSchema);
+export default mongoose.models["About"] || mongoose.model("About", AboutSchema);

@@ -110,4 +110,4 @@ ProductSchema.pre("validate", async function (next) {
   next();
 });
 
-export default mongoose.model("Product", ProductSchema);
+export default mongoose.models["Product"] || mongoose.model("Product", ProductSchema);

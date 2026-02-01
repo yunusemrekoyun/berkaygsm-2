@@ -67,4 +67,4 @@ const PrivacyPolicySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("PrivacyPolicy", PrivacyPolicySchema);
+export default mongoose.models["PrivacyPolicy"] || mongoose.model("PrivacyPolicy", PrivacyPolicySchema);

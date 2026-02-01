@@ -83,4 +83,4 @@ SetSchema.pre("validate", async function (next) {
   next();
 });
 
-export default mongoose.model("Set", SetSchema);
+export default mongoose.models["Set"] || mongoose.model("Set", SetSchema);

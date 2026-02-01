@@ -103,4 +103,4 @@ StockItemSchema.pre("save", function (next) {
   next();
 });
 
-export default mongoose.model("StockItem", StockItemSchema);
+export default mongoose.models["StockItem"] || mongoose.model("StockItem", StockItemSchema);

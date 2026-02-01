@@ -33,4 +33,4 @@ ShippingConfigSchema.statics.getSingleton = async function () {
   return this.create({});
 };
 
-export default mongoose.model("ShippingConfig", ShippingConfigSchema);
+export default mongoose.models["ShippingConfig"] || mongoose.model("ShippingConfig", ShippingConfigSchema);

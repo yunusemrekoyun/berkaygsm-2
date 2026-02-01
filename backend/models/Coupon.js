@@ -15,4 +15,4 @@ const CouponSchema = new mongoose.Schema(
 
 CouponSchema.index({ active: 1 });
 
-export default mongoose.model("Coupon", CouponSchema);
+export default mongoose.models["Coupon"] || mongoose.model("Coupon", CouponSchema);

@@ -22,6 +22,8 @@ backend/build
 frontend/dist
 frontend/build
 frontend/public
+.next
+out
 
 # Cache ve geçici dosyalar
 .cache

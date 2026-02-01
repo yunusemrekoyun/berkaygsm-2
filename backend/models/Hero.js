@@ -97,4 +97,4 @@ HeroSchema.pre("validate", function (next) {
   next();
 });
 
-export default mongoose.model("Hero", HeroSchema);
+export default mongoose.models["Hero"] || mongoose.model("Hero", HeroSchema);

@@ -25,4 +25,4 @@ const ContactMessageSchema = new mongoose.Schema(
 
 ContactMessageSchema.index({ createdAt: -1 });
 
-export default mongoose.model("ContactMessage", ContactMessageSchema);
+export default mongoose.models["ContactMessage"] || mongoose.model("ContactMessage", ContactMessageSchema);

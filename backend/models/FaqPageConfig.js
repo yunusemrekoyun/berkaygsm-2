@@ -119,4 +119,4 @@ const FaqPageConfigSchema = new mongoose.Schema(
 // İsteğe bağlı indexler
 FaqPageConfigSchema.index({ isActive: 1, updatedAt: -1 });
 
-export default mongoose.model("FaqPageConfig", FaqPageConfigSchema);
+export default mongoose.models["FaqPageConfig"] || mongoose.model("FaqPageConfig", FaqPageConfigSchema);

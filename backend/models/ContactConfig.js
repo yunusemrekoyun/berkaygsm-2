@@ -94,4 +94,4 @@ const ContactConfigSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("ContactConfig", ContactConfigSchema);
+export default mongoose.models["ContactConfig"] || mongoose.model("ContactConfig", ContactConfigSchema);

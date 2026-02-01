@@ -40,4 +40,4 @@ DiscountSchema.index({ active: 1, "appliesTo.products": 1 });
 DiscountSchema.index({ active: 1, "appliesTo.sets": 1 });
 DiscountSchema.index({ active: 1, "appliesTo.categories": 1 });
 
-export default mongoose.model("Discount", DiscountSchema);
+export default mongoose.models["Discount"] || mongoose.model("Discount", DiscountSchema);
