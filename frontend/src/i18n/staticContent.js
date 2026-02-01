@@ -1,0 +1,1585 @@
+import { useCallback } from "react";
+import { DEFAULT_LANG } from "../constants/lang.js";
+import { useStorefrontLang } from "../context/LangContext.jsx";
+
+const STATIC_CONTENT = {
+  en: {
+    breadcrumbs: {
+      home: "Home",
+      about: "About",
+      cart: "Cart",
+      shop: "Shop",
+      sets: "Sets",
+      contact: "Contact",
+      faq: "FAQ",
+      shippingReturns: "Shipping & Returns",
+      privacy: "Privacy Policy",
+      terms: "Terms of Service",
+      checkout: "Checkout",
+      success: "Order Complete",
+    },
+    header: {
+      searchPlaceholder: "Search",
+      searchLabel: "Search",
+      loadingCategories: "Loading...",
+      categoriesUnavailable: "Categories unavailable",
+      sale: "Sale",
+      saleCtaTitle: "Shop limited-time deals",
+      saleCtaDescription: "Exclusive discounts and bundles curated for you.",
+      home: "Home",
+      categories: "Categories",
+      wishlist: "Wishlist",
+      account: "Account",
+      cart: "Cart",
+      categoriesHint: "Select a main category to explore its sub-sections.",
+      closeMenu: "Close menu",
+      expand: "Expand",
+      collapse: "Collapse",
+      mainCategories: "Main Categories",
+      subCategories: "Subcategories",
+      subLevel: "Detailed list",
+      viewAll: "View all",
+      subcount: "{count} subcategories",
+      seeProducts: "See products",
+      noSubcategories: "No subcategories.",
+      noThirdLevel: "No further sections here. You can still browse the products.",
+      selectCategory: "Select a category.",
+      goToCategory: "View all {name} products",
+    },
+    footer: {
+      links: {
+        about: "About Us",
+        contact: "Contact",
+        faq: "FAQ",
+        shippingReturns: "Shipping & Returns",
+        privacy: "Privacy Policy",
+        terms: "Terms of Service",
+      },
+      copyright: "© {year} Ayyıldız İç Giyim. All rights reserved.",
+    },
+    homePage: {
+      heroFallback: [
+        {
+          id: "f1",
+          title: "Celebrate Your Moments in Style",
+          subtitle: "Discover our exclusive collection.",
+          buttonText: "Shop Now",
+          image: { url: "/hero-1.jpg" },
+          video: null,
+          computedLink: "/shop",
+        },
+        {
+          id: "f2",
+          title: "Elegance for Every Day",
+          subtitle: "Timeless pieces for your wardrobe.",
+          buttonText: "Explore",
+          image: { url: "/hero-2.jpg" },
+          video: null,
+          computedLink: "/shop",
+        },
+      ],
+      fallbackCampaigns: [
+        {
+          image: "/cmp-1.jpg",
+          title: "Autumn Bedding Event",
+          subtitle: "Up to 30% off on premium duvet & sheet sets.",
+          badge: "Limited",
+          to: "/campaign/autumn-bedding",
+          variant: "big",
+        },
+        {
+          image: "/cmp-2.jpg",
+          title: "Bridal Lingerie Picks",
+          subtitle: "Elegant designs for your special day.",
+          badge: "Top Picks",
+          to: "/campaign/bridal-lingerie",
+          variant: "wide",
+        },
+        {
+          image: "/cmp-3.jpg",
+          title: "Home Towels Bundle",
+          subtitle: "Egyptian cotton towels bundle prices.",
+          to: "/campaign/towels-bundle",
+          variant: "small",
+        },
+        {
+          image: "/cmp-4.jpg",
+          title: "Trousseau Essentials",
+          subtitle: "Complete wedding trousseau sets.",
+          to: "/campaign/trousseau-essentials",
+          variant: "small",
+        },
+      ],
+      fallbackComments: [
+        {
+          name: "Ayla",
+          quote:
+            "I absolutely love the quality and elegance of the lingerie I purchased. It’s perfect for my special day!",
+          rating: 5,
+          avatar: "/c1.png",
+        },
+        {
+          name: "Elif",
+          quote:
+            "The home textiles are so soft and luxurious. They add a touch of elegance to my bedroom.",
+          rating: 5,
+          avatar: "/c2.png",
+        },
+        {
+          name: "Fatma",
+          quote:
+            "The wedding set is stunning! Exactly what I was looking for and the quality is exceptional.",
+          rating: 5,
+          avatar: "/c3.png",
+        },
+      ],
+      sections: {
+        newArrivalsTitle: "New Arrivals",
+        bestsellersTitle: "Bestsellers",
+        setsTitle: "Trousseau Packages",
+        setsSubtitle: "Curated collections for your perfect wedding trousseau",
+        untitledSet: "Untitled Set",
+        includesMore: "+{count}",
+      },
+    },
+    homeProducts: {
+      empty: "Products coming soon.",
+    },
+    homeSets: {
+      tabsAll: "All",
+      viewAll: "View all",
+      viewAllPackages: "View all packages",
+      noResults: "No packages match this filter.",
+    },
+    homeContact: {
+      title: "Visit Our Store",
+      description:
+        "Experience our collections in person at our flagship store in Berlin. Our friendly staff will be delighted to assist you in finding the perfect pieces for your trousseau.",
+      storeName: "Evim & Stil Berlin",
+      address: "Kurfürstendamm 123, 10711 Berlin, Germany",
+      hoursLabel: "Opening Hours:",
+      hours: [
+        { k: "Mon - Sat", v: "10:00 - 20:00" },
+        { k: "Sun", v: "Closed" },
+      ],
+    },
+    homeComments: {
+      title: "What Our Customers Say",
+    },
+    homeCampaigns: {
+      cta: "Shop Now",
+      fallbackTitle: "Campaign",
+    },
+    productDetailPage: {
+      notFound: "Product not found.",
+      loadError: "Unable to load product details.",
+    },
+    productDetail: {
+      fallbackName: "Product",
+      descriptionFallback: "No description provided.",
+      colorLabel: "Colour",
+      sizeLabel: "Size",
+      optionLabel: "Option",
+      addToCart: "Add to Cart",
+      addedToCart: "Added to cart.",
+      careTitle: "Care",
+      detailsTitle: "Details",
+      quantityLabel: "Quantity",
+      stock: {
+        variantDependent: "Stock depends on selected options.",
+        inStock: "In stock",
+        inStockCount: "{count} in stock",
+        outOfStock: "Out of stock",
+      },
+    },
+    setDetailPage: {
+      notFound: "Set not found.",
+      loadError: "Unable to load set details.",
+    },
+    setDetail: {
+      fallbackName: "Set",
+      productFallback: "Product",
+      includesLabel: "Includes:",
+      qtyLabel: "Qty",
+      noImage: "No image",
+      noImagesAvailable: "No images available",
+      close: "Close",
+      slider: {
+        prev: "Previous image",
+        next: "Next image",
+        goTo: "Go to image {index}",
+      },
+      stock: {
+        variantDependent: "Stock depends on selections.",
+        inStockCount: "In stock: {count}",
+        infinite: "In stock",
+        outOfStock: "Out of stock",
+      },
+      summary: {
+        quantityLabel: "Quantity",
+        totalLabel: "Total {amount}",
+        addToCart: "Add to cart",
+        addedToCart: "Set added to cart.",
+      },
+      similarHeading: "You might also like",
+    },
+    similarProducts: {
+      heading: "Similar Products",
+    },
+    similarSets: {
+      heading: "You might also like",
+    },
+    favorites: {
+      add: "Add to favorites",
+      remove: "Remove from favorites",
+    },
+    reviews: {
+      heading: "Customer reviews",
+      subheading: "Share your experience with {target}.",
+      loadError: "Unable to load reviews for this item.",
+      emptyPrompt: "There are no reviews yet. Be the first to share your thoughts!",
+      loadMore: "Load more reviews",
+      countLabel: "({count} reviews)",
+      displayName: {
+        product: "this product",
+        set: "this set",
+        item: "this item",
+      },
+      list: {
+        anonymous: "Customer",
+      },
+      form: {
+        title: "Write a review",
+        ratingLabel: "Rating",
+        titleLabel: "Title",
+        titleOptional: "(optional)",
+        titlePlaceholder: "Summarise your experience",
+        reviewLabel: "Review",
+        reviewPlaceholder: "Tell us what you liked about {target}...",
+        submit: "Submit review",
+        submitted: "Review submitted",
+        success: "Thank you! Your review has been sent for approval.",
+        loginPrompt: "Please sign in to leave a review.",
+        loginCta: "Sign in",
+      },
+      errors: {
+        notAuthenticated: "Please sign in to submit a review.",
+        shortBody: "Please share at least 10 characters in your review.",
+        invalidRating: "Rating must be between 1 and 5.",
+      },
+    },
+    contactPage: {
+      heroFallback: {
+        title: "We're here to help",
+        subtitle:
+          "Our customer care team is available Monday to Friday, 09:00–18:00 CET. Send us a note and we'll respond within one business day.",
+      },
+      defaultBlocks: {
+        addressTitle: "Visit our European studio",
+        addressLines: [
+          "Kurfürstendamm 45, 10719 Berlin",
+          "Showroom & click-and-collect (appointment recommended)",
+        ],
+        hoursTitle: "Opening hours (CET)",
+        hoursLines: [
+          "Mon – Fri: 09:00 – 18:00",
+          "Sat: 10:00 – 16:00",
+          "Sun & public holidays: closed",
+        ],
+        emailTitle: "Customer service",
+        emailLines: [
+          "support@evimstil.com",
+          "Average response time: < 24 h",
+        ],
+        phoneTitle: "Phone",
+        phoneLines: [
+          "+49 (0) 30 234 567 89",
+          "WhatsApp & Signal available on the same number",
+        ],
+      },
+      form: {
+        title: "Send us a message",
+        disabled: "Our contact form is temporarily unavailable. Please reach us via the email or phone numbers listed on this page.",
+        fields: {
+          nameLabel: "Full name",
+          namePlaceholder: "Jane Doe",
+          emailLabel: "Email",
+          emailPlaceholder: "you@example.com",
+          phoneLabel: "Phone (optional)",
+          phonePlaceholder: "+49 170 123 4567",
+          subjectLabel: "Subject",
+          subjectPlaceholder: "How can we support you?",
+          messageLabel: "Message",
+          messagePlaceholder: "Tell us a little more about your question, order or project.",
+        },
+        submit: "Send message",
+        submitting: "Sending…",
+        success: "Thank you for your message. We will reply via e-mail shortly.",
+        policyNote:
+          "By submitting this form you acknowledge that we will process your data to answer your enquiry in line with our",
+        loadError: "We were unable to load the contact information.",
+      },
+    },
+    shopPage: {
+      title: "Shop Our Collection",
+      subtitle:
+        "Browse curated products uploaded via the admin panel. Filter by category, colour, size and price to find your perfect match.",
+      noProducts: "No products found for selected filters.",
+      matchingSets: {
+        title: "Matching Sets",
+        subtitle: "Results for “{query}” across trousseau packages.",
+        empty: "No sets match this search.",
+      },
+      campaignBanner: {
+        prefix: "Showing campaign",
+        clear: "Clear",
+        errorAction: "Clear campaign filter",
+      },
+    },
+    shopFilters: {
+      title: "Filters",
+      reset: "Reset",
+      categories: "Categories",
+      allProducts: "All products",
+      size: "Size",
+      color: "Color",
+      price: "Price Range",
+      expand: "Expand",
+      collapse: "Collapse",
+      searchPlaceholder: "Search products",
+      searchButton: "Search",
+      clearSearch: "Clear",
+      quickCategories: "Quick categories",
+    },
+    setsPage: {
+      breadcrumb: "Trousseau Packages",
+      title: "Trousseau Packages",
+      subtitle:
+        "Curated collections for your perfect wedding trousseau — discover elegant bridal, bedroom and bathroom packages crafted to match your style.",
+      listTitle: "Explore the Collections",
+      listSubtitle:
+        "Use the filters to browse our Bridal, Bedroom and Bathroom packages.",
+      tabsAll: "All",
+      campaignBanner: {
+        prefix: "Showing campaign",
+        clear: "Clear",
+        errorAction: "Clear campaign filter",
+      },
+      cta: {
+        heading: "Need help choosing a set?",
+        text: "Our stylists can help you build the perfect trousseau package.",
+        button: "Talk to a Stylist",
+      },
+      cards: {
+        includes: "Includes:",
+        includesMore: "+{count}",
+        viewDetails: "View details →",
+        untitled: "Untitled Set",
+      },
+      grid: {
+        empty: "No packages match this filter.",
+      },
+    },
+    userAccount: {
+      sidebar: {
+        logout: "Logout",
+        tabs: {
+          Overview: "Overview",
+          Orders: "Orders",
+          Addresses: "Addresses",
+          Wishlist: "Wishlist",
+        },
+      },
+      overview: {
+        heading: "Account Overview",
+        description: "Update your personal info and profile picture.",
+        success: "Profile updated",
+        fields: {
+          firstName: "First Name",
+          lastName: "Last Name",
+          email: "Email",
+          emailHelp: "Changing email may require verification later.",
+          phone: "Phone",
+          customerFallback: "Customer",
+        },
+        avatar: {
+          title: "Profile Photo",
+          helper: "JPG/PNG only. We compress uploads automatically.",
+          remove: "Remove",
+          removeActive: "Will remove",
+          upload: "Upload",
+          removeFile: "Remove file",
+        },
+        buttons: {
+          save: "Save changes",
+        },
+      },
+      orders: {
+        heading: "Orders",
+        empty: "You don't have any orders yet.",
+        orderLabel: "Order #{number}",
+        totalLabel: "Total",
+        shippingLabel: "Shipping",
+        shippingLine: "Shipping: {name} (€{amount})",
+        viewDetails: "View details",
+        status: {
+          created: "Created",
+          pending: "Pending",
+          paid: "Paid",
+          processing: "Processing",
+          shipped: "Shipped",
+          completed: "Completed",
+          cancelled: "Cancelled",
+        },
+      },
+      addresses: {
+        heading: "Addresses",
+        addNew: "Add New",
+        empty: "No saved addresses.",
+        badgeDefault: "Default",
+        edit: "Edit",
+        delete: "Delete",
+        fields: {
+          fullName: "Full Name",
+          phone: "Phone",
+          address1: "Address Line 1",
+          address2: "Address Line 2",
+          city: "City",
+          state: "State",
+          postalCode: "Postal Code",
+          country: "Country",
+        },
+        buttons: {
+          cancel: "Cancel",
+          saving: "Saving...",
+          save: "Save address",
+        },
+        banners: {
+          added: "Address added",
+          updated: "Address updated",
+          removed: "Address removed",
+        },
+      },
+      wishlist: {
+        heading: "Wishlist",
+        empty: "Your wishlist is empty for now.",
+        noImage: "No image",
+        remove: "Remove from wishlist",
+      },
+    },
+    heroComponent: {
+      noMedia: "No media",
+      prev: "Previous",
+      next: "Next",
+      goToSlide: "Go to slide {index}",
+    },
+    categoriesComponent: {
+      title: "Featured Categories",
+      prev: "Previous categories",
+      next: "Next categories",
+    },
+    cart: {
+      emptyTitle: "Your cart is empty",
+      emptySubtitle:
+        "Discover our latest arrivals and curated trousseau packages.",
+      continueShopping: "Continue Shopping",
+      heading: "Shopping Cart",
+      couponPlaceholder: "Enter coupon code",
+      apply: "Apply",
+      clear: "Clear",
+      appliedLabel: "Applied: {code} ({percentage}% off)",
+      orderSummary: "Order Summary",
+      freeShippingUnlocked: "You’ve unlocked Free Shipping 🎉",
+      freeShippingHint: "Spend {amount} more to get Free Shipping",
+      rows: {
+        subtotal: "Subtotal",
+        discount: "Discount",
+        shipping: "Shipping",
+        free: "Free",
+        total: "Total",
+      },
+      checkoutCta: "Proceed to Checkout",
+      continueShoppingLink: "Continue Shopping",
+      unitLabel: "Unit",
+      totalLabel: "Total",
+      selectionsLabel: "Selections",
+      options: {
+        color: "Color",
+        size: "Size",
+        option: "Option",
+      },
+      remove: "Remove",
+      itemFallback: "Item",
+    },
+  },
+  tr: {
+    breadcrumbs: {
+      home: "Ana Sayfa",
+      about: "Hakkımızda",
+      cart: "Sepet",
+      shop: "Mağaza",
+      sets: "Setler",
+      contact: "İletişim",
+      faq: "SSS",
+      shippingReturns: "Kargo & İade",
+      privacy: "Gizlilik Politikası",
+      terms: "Kullanım Koşulları",
+      checkout: "Ödeme",
+      success: "Sipariş Tamamlandı",
+    },
+    header: {
+      searchPlaceholder: "Ara",
+      searchLabel: "Ara",
+      loadingCategories: "Kategoriler yükleniyor...",
+      categoriesUnavailable: "Kategoriler yüklenemedi",
+      sale: "İndirim",
+      saleCtaTitle: "Güncel indirimleri keşfet",
+      saleCtaDescription: "Sana özel seçilmiş fırsatları kaçırma.",
+      home: "Ana Sayfa",
+      categories: "Kategoriler",
+      wishlist: "Favoriler",
+      account: "Hesabım",
+      cart: "Sepet",
+      categoriesHint: "Ana kategoriyi seç, alt başlıkları keşfet.",
+      closeMenu: "Kapat",
+      expand: "Genişlet",
+      collapse: "Daralt",
+      mainCategories: "Ana Kategoriler",
+      subCategories: "Alt Kategoriler",
+      subLevel: "Detaylı Liste",
+      viewAll: "Tümü",
+      subcount: "{count} alt kategori",
+      seeProducts: "Ürünleri görüntüle",
+      noSubcategories: "Alt kategori yok.",
+      noThirdLevel: "Bu kategoride başka alt bölüm yok. Yine de ürünleri inceleyebilirsin.",
+      selectCategory: "Bir kategori seçin.",
+      goToCategory: "{name} ürünlerini görüntüle",
+    },
+    footer: {
+      links: {
+        about: "Hakkımızda",
+        contact: "İletişim",
+        faq: "SSS",
+        shippingReturns: "Kargo & İade",
+        privacy: "Gizlilik Politikası",
+        terms: "Kullanım Koşulları",
+      },
+      copyright: "© {year} Ayyıldız İç Giyim. Tüm hakları saklıdır.",
+    },
+    homePage: {
+      heroFallback: [
+        {
+          id: "f1",
+          title: "Anlarınızı Şıklıkla Kutlayın",
+          subtitle: "Özel koleksiyonumuzu keşfedin.",
+          buttonText: "Alışverişe Başla",
+          image: { url: "/hero-1.jpg" },
+          video: null,
+          computedLink: "/shop",
+        },
+        {
+          id: "f2",
+          title: "Her Gün İçin Zarafet",
+          subtitle: "Gardırobunuz için zamansız parçalar.",
+          buttonText: "Keşfet",
+          image: { url: "/hero-2.jpg" },
+          video: null,
+          computedLink: "/shop",
+        },
+      ],
+      fallbackCampaigns: [
+        {
+          image: "/cmp-1.jpg",
+          title: "Sonbahar Nevresim Etkinliği",
+          subtitle: "Premium nevresim ve çarşaf setlerinde %30’a varan indirim.",
+          badge: "Sınırlı",
+          to: "/campaign/autumn-bedding",
+          variant: "big",
+        },
+        {
+          image: "/cmp-2.jpg",
+          title: "Gelin İç Giyim Seçkisi",
+          subtitle: "Özel gününüz için zarif tasarımlar.",
+          badge: "Favoriler",
+          to: "/campaign/bridal-lingerie",
+          variant: "wide",
+        },
+        {
+          image: "/cmp-3.jpg",
+          title: "Havlu Paketleri",
+          subtitle: "Mısır pamuğu havlularda set fiyatları.",
+          to: "/campaign/towels-bundle",
+          variant: "small",
+        },
+        {
+          image: "/cmp-4.jpg",
+          title: "Çeyiz Temel Parçaları",
+          subtitle: "Tamamlayıcı çeyiz setleri.",
+          to: "/campaign/trousseau-essentials",
+          variant: "small",
+        },
+      ],
+      fallbackComments: [
+        {
+          name: "Ayla",
+          quote:
+            "Satın aldığım iç giyim ürünlerinin kalitesine ve zarafetine bayıldım. Özel günüm için mükemmel!",
+          rating: 5,
+          avatar: "/c1.png",
+        },
+        {
+          name: "Elif",
+          quote:
+            "Ev tekstilleri yumuşacık ve çok lüks. Yatak odamı gerçekten şık gösteriyor.",
+          rating: 5,
+          avatar: "/c2.png",
+        },
+        {
+          name: "Fatma",
+          quote:
+            "Gelin seti harika! Aradığım tam olarak buydu ve kalitesi kusursuz.",
+          rating: 5,
+          avatar: "/c3.png",
+        },
+      ],
+      sections: {
+        newArrivalsTitle: "Yeni Gelenler",
+        bestsellersTitle: "En Çok Satanlar",
+        setsTitle: "Çeyiz Paketleri",
+        setsSubtitle: "Mükemmel çeyiziniz için küratörlü koleksiyonlar",
+        untitledSet: "İsimsiz Set",
+        includesMore: "+{count}",
+      },
+    },
+    homeProducts: {
+      empty: "Ürünler yakında eklenecek.",
+    },
+    homeSets: {
+      tabsAll: "Tümü",
+      viewAll: "Tümünü Gör",
+      viewAllPackages: "Tüm paketleri gör",
+      noResults: "Bu filtreye uygun paket bulunamadı.",
+    },
+    homeContact: {
+      title: "Mağazamızı Ziyaret Edin",
+      description:
+        "Berlin’deki amiral mağazamızda koleksiyonlarımızı yakından keşfedin. Ekibimiz çeyiziniz için en uygun parçaları bulmanızda size yardımcı olmaktan memnuniyet duyar.",
+      storeName: "Evim & Stil Berlin",
+      address: "Kurfürstendamm 123, 10711 Berlin, Almanya",
+      hoursLabel: "Çalışma Saatleri:",
+      hours: [
+        { k: "Pzt - Cmt", v: "10:00 - 20:00" },
+        { k: "Paz", v: "Kapalı" },
+      ],
+    },
+    homeComments: {
+      title: "Müşterilerimiz Ne Diyor?",
+    },
+    homeCampaigns: {
+      cta: "Alışverişe Başla",
+      fallbackTitle: "Kampanya",
+    },
+    productDetailPage: {
+      notFound: "Ürün bulunamadı.",
+      loadError: "Ürün detayları yüklenemedi.",
+    },
+    productDetail: {
+      fallbackName: "Ürün",
+      descriptionFallback: "Ürün açıklaması bulunmuyor.",
+      colorLabel: "Renk",
+      sizeLabel: "Beden",
+      optionLabel: "Seçenek",
+      addToCart: "Sepete Ekle",
+      addedToCart: "Ürün sepete eklendi.",
+      careTitle: "Bakım",
+      detailsTitle: "Detaylar",
+      quantityLabel: "Adet",
+      stock: {
+        variantDependent: "Stok, seçilen varyantlara göre değişir.",
+        inStock: "Stokta",
+        inStockCount: "{count} adet stokta",
+        outOfStock: "Stokta yok",
+      },
+    },
+    setDetailPage: {
+      notFound: "Set bulunamadı.",
+      loadError: "Set detayları yüklenemedi.",
+    },
+    setDetail: {
+      fallbackName: "Set",
+      productFallback: "Ürün",
+      includesLabel: "İçindekiler:",
+      qtyLabel: "Adet",
+      noImage: "Görsel yok",
+      noImagesAvailable: "Görsel bulunmuyor",
+      close: "Kapat",
+      slider: {
+        prev: "Önceki görsel",
+        next: "Sonraki görsel",
+        goTo: "{index}. görsele git",
+      },
+      stock: {
+        variantDependent: "Stok, seçilen parçalara göre değişir.",
+        inStockCount: "Stokta: {count}",
+        infinite: "Stokta",
+        outOfStock: "Stokta yok",
+      },
+      summary: {
+        quantityLabel: "Adet",
+        totalLabel: "Toplam {amount}",
+        addToCart: "Sepete ekle",
+        addedToCart: "Set sepete eklendi.",
+      },
+      similarHeading: "Bunları da sevebilirsiniz",
+    },
+    similarProducts: {
+      heading: "Benzer Ürünler",
+    },
+    similarSets: {
+      heading: "Bunları da sevebilirsiniz",
+    },
+    favorites: {
+      add: "Favorilere ekle",
+      remove: "Favorilerden çıkar",
+    },
+    reviews: {
+      heading: "Müşteri yorumları",
+      subheading: "Deneyimlerinizi {target} ile paylaşın.",
+      loadError: "Bu içerik için yorumlar yüklenemedi.",
+      emptyPrompt: "Henüz yorum yok. Görüşünüzü ilk paylaşan siz olun!",
+      loadMore: "Daha fazla yorum göster",
+      countLabel: "({count} yorum)",
+      displayName: {
+        product: "bu ürün",
+        set: "bu set",
+        item: "bu öğe",
+      },
+      list: {
+        anonymous: "Müşteri",
+      },
+      form: {
+        title: "Yorum yaz",
+        ratingLabel: "Puan",
+        titleLabel: "Başlık",
+        titleOptional: "(opsiyonel)",
+        titlePlaceholder: "Deneyiminizi özetleyin",
+        reviewLabel: "Yorum",
+        reviewPlaceholder: "{target} hakkında beğendiğiniz noktaları anlatın...",
+        submit: "Yorumu gönder",
+        submitted: "Yorum gönderildi",
+        success: "Teşekkürler! Yorumunuz onay için gönderildi.",
+        loginPrompt: "Yorum bırakmak için lütfen giriş yapın.",
+        loginCta: "Giriş yapın",
+      },
+      errors: {
+        notAuthenticated: "Yorum göndermek için lütfen giriş yapın.",
+        shortBody: "Lütfen yorumunuzda en az 10 karakter paylaşın.",
+        invalidRating: "Puan 1 ile 5 arasında olmalıdır.",
+      },
+    },
+    contactPage: {
+      heroFallback: {
+        title: "Size yardımcı olmak için buradayız",
+        subtitle:
+          "Müşteri destek ekibimiz hafta içi 09:00–18:00 saatleri arasında hizmet verir. Mesajınızı iletin, en geç bir iş günü içinde dönüş yapalım.",
+      },
+      defaultBlocks: {
+        addressTitle: "Avrupa stüdyomuzu ziyaret edin",
+        addressLines: [
+          "Kurfürstendamm 45, 10719 Berlin",
+          "Showroom & click-and-collect (randevu önerilir)",
+        ],
+        hoursTitle: "Çalışma saatleri",
+        hoursLines: [
+          "Pzt – Cum: 09:00 – 18:00",
+          "Cmt: 10:00 – 16:00",
+          "Pazartesi ve resmi tatiller: kapalı",
+        ],
+        emailTitle: "Müşteri hizmetleri",
+        emailLines: [
+          "support@evimstil.com",
+          "Ortalama dönüş süresi: < 24 saat",
+        ],
+        phoneTitle: "Telefon",
+        phoneLines: [
+          "+49 (0) 30 234 567 89",
+          "Aynı numaradan WhatsApp & Signal",
+        ],
+      },
+      form: {
+        title: "Bize yazın",
+        disabled: "İletişim formumuz geçici olarak kullanılamıyor. Lütfen sayfadaki e-posta ya da telefon üzerinden bize ulaşın.",
+        fields: {
+          nameLabel: "Ad Soyad",
+          namePlaceholder: "Ayşe Yılmaz",
+          emailLabel: "E-posta",
+          emailPlaceholder: "ornek@eposta.com",
+          phoneLabel: "Telefon (opsiyonel)",
+          phonePlaceholder: "+90 532 000 0000",
+          subjectLabel: "Konu",
+          subjectPlaceholder: "Size nasıl yardımcı olabiliriz?",
+          messageLabel: "Mesaj",
+          messagePlaceholder: "Sorununuzu, siparişinizi veya projenizi kısaca anlatın.",
+        },
+        submit: "Mesajı gönder",
+        submitting: "Gönderiliyor…",
+        success: "Teşekkürler. Size en kısa sürede e-posta ile dönüş yapacağız.",
+        policyNote:
+          "Bu formu göndererek talebinizi yanıtlamak için verilerinizi politikamız doğrultusunda işleyeceğimizi kabul etmiş olursunuz",
+        loadError: "İletişim bilgileri yüklenemedi.",
+      },
+    },
+    shopPage: {
+      title: "Koleksiyonumuzu Keşfedin",
+      subtitle:
+        "Admin panelinden yüklenen küratörlü ürünleri inceleyin. Kategori, renk, beden ve fiyata göre filtreleyerek sizin için ideal parçayı bulun.",
+      noProducts: "Seçili filtrelere uygun ürün bulunamadı.",
+      matchingSets: {
+        title: "Eşleşen Setler",
+        subtitle: "“{query}” için çeyiz paketleri.",
+        empty: "Bu aramaya uygun set yok.",
+      },
+      campaignBanner: {
+        prefix: "Gösterilen kampanya",
+        clear: "Temizle",
+        errorAction: "Kampanya filtresini temizle",
+      },
+    },
+    shopFilters: {
+      title: "Filtreler",
+      reset: "Sıfırla",
+      categories: "Kategoriler",
+      allProducts: "Tüm ürünler",
+      size: "Beden",
+      color: "Renk",
+      price: "Fiyat Aralığı",
+      expand: "Aç",
+      collapse: "Kapat",
+      searchPlaceholder: "Ürün ara",
+      searchButton: "Ara",
+      clearSearch: "Temizle",
+      quickCategories: "Hızlı kategoriler",
+    },
+    setsPage: {
+      breadcrumb: "Çeyiz Paketleri",
+      title: "Çeyiz Paketleri",
+      subtitle:
+        "Tarzınıza uygun gelin, yatak odası ve banyo paketlerini keşfedin.",
+      listTitle: "Koleksiyonları keşfedin",
+      listSubtitle: "Gelin, yatak odası ve banyo paketlerini filtreleyerek inceleyin.",
+      tabsAll: "Tümü",
+      campaignBanner: {
+        prefix: "Gösterilen kampanya",
+        clear: "Temizle",
+        errorAction: "Kampanya filtresini temizle",
+      },
+      cta: {
+        heading: "Set seçerken yardıma mı ihtiyacınız var?",
+        text: "Stylist ekibimiz mükemmel çeyiz paketini oluşturmanıza yardımcı olur.",
+        button: "Stylist ile görüş",
+      },
+      cards: {
+        includes: "İçindekiler:",
+        includesMore: "+{count}",
+        viewDetails: "Detayları gör →",
+        untitled: "İsimsiz Set",
+      },
+      grid: {
+        empty: "Bu filtreye uygun set bulunamadı.",
+      },
+    },
+    userAccount: {
+      sidebar: {
+        logout: "Çıkış yap",
+        tabs: {
+          Overview: "Genel Bakış",
+          Orders: "Siparişler",
+          Addresses: "Adresler",
+          Wishlist: "Favoriler",
+        },
+      },
+      overview: {
+        heading: "Hesap Özeti",
+        description: "Kişisel bilgilerinizi ve profil fotoğrafınızı güncelleyin.",
+        success: "Profil güncellendi",
+        fields: {
+          firstName: "Ad",
+          lastName: "Soyad",
+          email: "E-posta",
+          emailHelp: "E-posta değişikliği sonrasında doğrulama gerekebilir.",
+          phone: "Telefon",
+          customerFallback: "Müşteri",
+        },
+        avatar: {
+          title: "Profil fotoğrafı",
+          helper: "Sadece JPG/PNG. Yüklemeler otomatik sıkıştırılır.",
+          remove: "Kaldır",
+          removeActive: "Kaldırılacak",
+          upload: "Yükle",
+          removeFile: "Dosyayı kaldır",
+        },
+        buttons: {
+          save: "Değişiklikleri kaydet",
+        },
+      },
+      orders: {
+        heading: "Siparişler",
+        empty: "Henüz bir siparişiniz yok.",
+        orderLabel: "Sipariş #{number}",
+        totalLabel: "Toplam",
+        shippingLabel: "Kargo",
+        shippingLine: "Kargo: {name} (€{amount})",
+        viewDetails: "Detayları gör",
+        status: {
+          created: "Oluşturuldu",
+          pending: "Beklemede",
+          paid: "Ödendi",
+          processing: "Hazırlanıyor",
+          shipped: "Kargoda",
+          completed: "Tamamlandı",
+          cancelled: "İptal edildi",
+        },
+      },
+      addresses: {
+        heading: "Adresler",
+        addNew: "Yeni adres ekle",
+        empty: "Kayıtlı adres yok.",
+        badgeDefault: "Varsayılan",
+        edit: "Düzenle",
+        delete: "Sil",
+        fields: {
+          fullName: "Ad Soyad",
+          phone: "Telefon",
+          address1: "Adres Satırı 1",
+          address2: "Adres Satırı 2",
+          city: "Şehir",
+          state: "İl/İlçe",
+          postalCode: "Posta Kodu",
+          country: "Ülke",
+        },
+        buttons: {
+          cancel: "Vazgeç",
+          saving: "Kaydediliyor...",
+          save: "Adresi kaydet",
+        },
+        banners: {
+          added: "Adres eklendi",
+          updated: "Adres güncellendi",
+          removed: "Adres silindi",
+        },
+      },
+      wishlist: {
+        heading: "Favoriler",
+        empty: "Favori listeniz şimdilik boş.",
+        noImage: "Görsel yok",
+        remove: "Favorilerden çıkar",
+      },
+    },
+    heroComponent: {
+      noMedia: "Medya yok",
+      prev: "Önceki",
+      next: "Sonraki",
+      goToSlide: "{index}. slayta git",
+    },
+    categoriesComponent: {
+      title: "Öne Çıkan Kategoriler",
+      prev: "Önceki kategoriler",
+      next: "Sonraki kategoriler",
+    },
+    cart: {
+      emptyTitle: "Sepetiniz boş",
+      emptySubtitle:
+        "En yeni ürünlerimizi ve özenle seçilmiş çeyiz paketlerini keşfedin.",
+      continueShopping: "Alışverişe Devam Et",
+      heading: "Alışveriş Sepeti",
+      couponPlaceholder: "Kupon kodu girin",
+      apply: "Uygula",
+      clear: "Temizle",
+      appliedLabel: "Uygulandı: {code} (%{percentage} indirim)",
+      orderSummary: "Sipariş Özeti",
+      freeShippingUnlocked: "Ücretsiz kargoyu kazandınız 🎉",
+      freeShippingHint: "Ücretsiz kargo için {amount} daha harcayın",
+      rows: {
+        subtotal: "Ara Toplam",
+        discount: "İndirim",
+        shipping: "Kargo",
+        free: "Ücretsiz",
+        total: "Toplam",
+      },
+      checkoutCta: "Ödemeye Geç",
+      continueShoppingLink: "Alışverişe Devam Et",
+      unitLabel: "Birim",
+      totalLabel: "Toplam",
+      selectionsLabel: "Seçimler",
+      options: {
+        color: "Renk",
+        size: "Beden",
+        option: "Seçenek",
+      },
+      remove: "Kaldır",
+      itemFallback: "Ürün",
+    },
+  },
+  de: {
+    breadcrumbs: {
+      home: "Startseite",
+      about: "Über uns",
+      cart: "Warenkorb",
+      shop: "Shop",
+      sets: "Sets",
+      contact: "Kontakt",
+      faq: "FAQ",
+      shippingReturns: "Versand & Rückgabe",
+      privacy: "Datenschutz",
+      terms: "AGB",
+      checkout: "Kasse",
+      success: "Bestellung abgeschlossen",
+    },
+    header: {
+      searchPlaceholder: "Suchen",
+      searchLabel: "Suchen",
+      loadingCategories: "Kategorien werden geladen...",
+      categoriesUnavailable: "Kategorien nicht verfügbar",
+      sale: "Sale",
+      home: "Startseite",
+      categories: "Kategorien",
+      wishlist: "Favoriten",
+      account: "Konto",
+      cart: "Warenkorb",
+      categoriesHint: "Wählen Sie eine Hauptkategorie, um Unterbereiche zu entdecken.",
+      closeMenu: "Schließen",
+      expand: "Erweitern",
+      collapse: "Einklappen",
+      mainCategories: "Hauptkategorien",
+      subCategories: "Unterkategorien",
+      subLevel: "Detailierte Liste",
+      viewAll: "Alle anzeigen",
+      subcount: "{count} Unterkategorien",
+      seeProducts: "Produkte ansehen",
+      noSubcategories: "Keine Unterkategorien.",
+      noThirdLevel: "Keine weitere Ebene. Sie können trotzdem alle Produkte ansehen.",
+      selectCategory: "Bitte eine Kategorie wählen.",
+      goToCategory: "Alle {name}-Produkte anzeigen",
+    },
+    footer: {
+      links: {
+        about: "Über uns",
+        contact: "Kontakt",
+        faq: "FAQ",
+        shippingReturns: "Versand & Rückgabe",
+        privacy: "Datenschutz",
+        terms: "AGB",
+      },
+      copyright: "© {year} Ayyıldız İç Giyim. Alle Rechte vorbehalten.",
+    },
+    homePage: {
+      heroFallback: [
+        {
+          id: "f1",
+          title: "Feiern Sie Ihre Momente mit Stil",
+          subtitle: "Entdecken Sie unsere exklusive Kollektion.",
+          buttonText: "Jetzt shoppen",
+          image: { url: "/hero-1.jpg" },
+          video: null,
+          computedLink: "/shop",
+        },
+        {
+          id: "f2",
+          title: "Eleganz für jeden Tag",
+          subtitle: "Zeitlose Stücke für Ihre Garderobe.",
+          buttonText: "Entdecken",
+          image: { url: "/hero-2.jpg" },
+          video: null,
+          computedLink: "/shop",
+        },
+      ],
+      fallbackCampaigns: [
+        {
+          image: "/cmp-1.jpg",
+          title: "Herbstliche Bettwäsche-Aktion",
+          subtitle:
+            "Bis zu 30 % Rabatt auf Premium-Bettdecken und Bettwäsche.",
+          badge: "Limitiert",
+          to: "/campaign/autumn-bedding",
+          variant: "big",
+        },
+        {
+          image: "/cmp-2.jpg",
+          title: "Brautdessous-Empfehlungen",
+          subtitle: "Elegante Designs für Ihren besonderen Tag.",
+          badge: "Top-Auswahl",
+          to: "/campaign/bridal-lingerie",
+          variant: "wide",
+        },
+        {
+          image: "/cmp-3.jpg",
+          title: "Handtuch-Bundle für Zuhause",
+          subtitle: "Ägyptische Baumwolltücher zum Setpreis.",
+          to: "/campaign/towels-bundle",
+          variant: "small",
+        },
+        {
+          image: "/cmp-4.jpg",
+          title: "Aussteuer-Basics",
+          subtitle: "Komplette Aussteuer-Sets.",
+          to: "/campaign/trousseau-essentials",
+          variant: "small",
+        },
+      ],
+      fallbackComments: [
+        {
+          name: "Ayla",
+          quote:
+            "Ich liebe die Qualität und Eleganz der Dessous – perfekt für meinen besonderen Tag!",
+          rating: 5,
+          avatar: "/c1.png",
+        },
+        {
+          name: "Elif",
+          quote:
+            "Die Heimtextilien sind so weich und luxuriös. Sie verleihen meinem Schlafzimmer Eleganz.",
+          rating: 5,
+          avatar: "/c2.png",
+        },
+        {
+          name: "Fatma",
+          quote:
+            "Das Braut-Set ist atemberaubend! Genau das, was ich gesucht habe – und die Qualität ist hervorragend.",
+          rating: 5,
+          avatar: "/c3.png",
+        },
+      ],
+      sections: {
+        newArrivalsTitle: "Neuheiten",
+        bestsellersTitle: "Bestseller",
+        setsTitle: "Aussteuer-Pakete",
+        setsSubtitle: "Kurierte Kollektionen für eine perfekte Aussteuer",
+        untitledSet: "Namenloses Set",
+        includesMore: "+{count}",
+      },
+    },
+    homeProducts: {
+      empty: "Produkte folgen in Kürze.",
+    },
+    homeSets: {
+      tabsAll: "Alle",
+      viewAll: "Alle ansehen",
+      viewAllPackages: "Alle Pakete ansehen",
+      noResults: "Keine Pakete passen zu diesem Filter.",
+    },
+    homeContact: {
+      title: "Besuchen Sie unser Geschäft",
+      description:
+        "Erleben Sie unsere Kollektionen persönlich in unserem Flagship-Store in Berlin. Unser Team hilft Ihnen gerne dabei, die perfekten Stücke für Ihre Aussteuer zu finden.",
+      storeName: "Evim & Stil Berlin",
+      address: "Kurfürstendamm 123, 10711 Berlin, Deutschland",
+      hoursLabel: "Öffnungszeiten:",
+      hours: [
+        { k: "Mo - Sa", v: "10:00 - 20:00" },
+        { k: "So", v: "Geschlossen" },
+      ],
+    },
+    homeComments: {
+      title: "Was unsere Kundinnen sagen",
+    },
+    homeCampaigns: {
+      cta: "Jetzt shoppen",
+      fallbackTitle: "Kampagne",
+    },
+    productDetailPage: {
+      notFound: "Produkt nicht gefunden.",
+      loadError: "Produktdetails konnten nicht geladen werden.",
+    },
+    productDetail: {
+      fallbackName: "Produkt",
+      descriptionFallback: "Keine Beschreibung vorhanden.",
+      colorLabel: "Farbe",
+      sizeLabel: "Größe",
+      optionLabel: "Option",
+      addToCart: "In den Warenkorb",
+      addedToCart: "Zum Warenkorb hinzugefügt.",
+      careTitle: "Pflege",
+      detailsTitle: "Details",
+      quantityLabel: "Menge",
+      stock: {
+        variantDependent: "Bestand hängt von den gewählten Optionen ab.",
+        inStock: "Auf Lager",
+        inStockCount: "{count} Stück auf Lager",
+        outOfStock: "Nicht auf Lager",
+      },
+    },
+    setDetailPage: {
+      notFound: "Set nicht gefunden.",
+      loadError: "Set-Details konnten nicht geladen werden.",
+    },
+    setDetail: {
+      fallbackName: "Set",
+      productFallback: "Produkt",
+      includesLabel: "Enthält:",
+      qtyLabel: "Menge",
+      noImage: "Kein Bild",
+      noImagesAvailable: "Keine Bilder vorhanden",
+      close: "Schließen",
+      slider: {
+        prev: "Vorheriges Bild",
+        next: "Nächstes Bild",
+        goTo: "Zu Bild {index}",
+      },
+      stock: {
+        variantDependent: "Bestand hängt von den Auswahlen ab.",
+        inStockCount: "Auf Lager: {count}",
+        infinite: "Auf Lager",
+        outOfStock: "Nicht auf Lager",
+      },
+      summary: {
+        quantityLabel: "Menge",
+        totalLabel: "Gesamt {amount}",
+        addToCart: "In den Warenkorb",
+        addedToCart: "Set zum Warenkorb hinzugefügt.",
+      },
+      similarHeading: "Das könnte Ihnen auch gefallen",
+    },
+    similarProducts: {
+      heading: "Ähnliche Produkte",
+    },
+    similarSets: {
+      heading: "Das könnte Ihnen auch gefallen",
+    },
+    favorites: {
+      add: "Zu Favoriten hinzufügen",
+      remove: "Aus Favoriten entfernen",
+    },
+    reviews: {
+      heading: "Kundenbewertungen",
+      subheading: "Teilen Sie Ihre Erfahrung mit {target}.",
+      loadError: "Bewertungen konnten nicht geladen werden.",
+      emptyPrompt: "Es gibt noch keine Bewertungen. Seien Sie die Erste!",
+      loadMore: "Weitere Bewertungen laden",
+      countLabel: "({count} Bewertungen)",
+      displayName: {
+        product: "diesem Produkt",
+        set: "diesem Set",
+        item: "diesem Artikel",
+      },
+      list: {
+        anonymous: "Kundin",
+      },
+      form: {
+        title: "Bewertung schreiben",
+        ratingLabel: "Bewertung",
+        titleLabel: "Titel",
+        titleOptional: "(optional)",
+        titlePlaceholder: "Fassen Sie Ihre Erfahrung zusammen",
+        reviewLabel: "Bewertungstext",
+        reviewPlaceholder: "Erzählen Sie uns, was Ihnen an {target} gefallen hat...",
+        submit: "Bewertung senden",
+        submitted: "Bewertung gesendet",
+        success: "Vielen Dank! Ihre Bewertung wurde zur Freigabe eingereicht.",
+        loginPrompt: "Bitte melden Sie sich an, um eine Bewertung zu schreiben.",
+        loginCta: "Anmelden",
+      },
+      errors: {
+        notAuthenticated: "Bitte melden Sie sich an, um eine Bewertung zu senden.",
+        shortBody: "Ihre Bewertung sollte mindestens 10 Zeichen enthalten.",
+        invalidRating: "Die Bewertung muss zwischen 1 und 5 liegen.",
+      },
+    },
+    contactPage: {
+      heroFallback: {
+        title: "Wir sind für Sie da",
+        subtitle:
+          "Unser Support-Team ist Montag bis Freitag von 09:00–18:00 Uhr erreichbar. Schreiben Sie uns – wir antworten innerhalb eines Werktags.",
+      },
+      defaultBlocks: {
+        addressTitle: "Besuchen Sie unser europäisches Studio",
+        addressLines: [
+          "Kurfürstendamm 45, 10719 Berlin",
+          "Showroom & Click-and-Collect (Termin empfohlen)",
+        ],
+        hoursTitle: "Öffnungszeiten",
+        hoursLines: [
+          "Mo – Fr: 09:00 – 18:00",
+          "Sa: 10:00 – 16:00",
+          "So & Feiertage: geschlossen",
+        ],
+        emailTitle: "Kundendienst",
+        emailLines: [
+          "support@evimstil.com",
+          "Durchschnittliche Antwortzeit: < 24 h",
+        ],
+        phoneTitle: "Telefon",
+        phoneLines: [
+          "+49 (0) 30 234 567 89",
+          "WhatsApp & Signal unter derselben Nummer",
+        ],
+      },
+      form: {
+        title: "Schreiben Sie uns",
+        disabled: "Unser Kontaktformular ist vorübergehend deaktiviert. Bitte nutzen Sie die untenstehenden E-Mail- oder Telefonnummern.",
+        fields: {
+          nameLabel: "Vollständiger Name",
+          namePlaceholder: "Maria Schmidt",
+          emailLabel: "E-Mail",
+          emailPlaceholder: "sie@example.com",
+          phoneLabel: "Telefon (optional)",
+          phonePlaceholder: "+49 170 123 4567",
+          subjectLabel: "Betreff",
+          subjectPlaceholder: "Wie können wir helfen?",
+          messageLabel: "Nachricht",
+          messagePlaceholder: "Beschreiben Sie kurz Ihre Frage, Bestellung oder Ihr Projekt.",
+        },
+        submit: "Nachricht senden",
+        submitting: "Wird gesendet…",
+        success: "Vielen Dank! Wir melden uns in Kürze per E-Mail.",
+        policyNote:
+          "Mit dem Absenden stimmen Sie der Verarbeitung Ihrer Daten zur Beantwortung Ihrer Anfrage gemäß unserer",
+        loadError: "Kontaktinformationen konnten nicht geladen werden.",
+      },
+    },
+    shopPage: {
+      title: "Unsere Kollektion",
+      subtitle:
+        "Entdecken Sie sorgfältig kuratierte Produkte. Filtern Sie nach Kategorie, Farbe, Größe und Preis, um Ihr perfektes Stück zu finden.",
+      noProducts: "Keine Produkte für diese Filter gefunden.",
+      matchingSets: {
+        title: "Passende Sets",
+        subtitle: "Ergebnisse für „{query}“ in den Aussteuer-Paketen.",
+        empty: "Keine Sets passen zu dieser Suche.",
+      },
+      campaignBanner: {
+        prefix: "Aktive Kampagne",
+        clear: "Zurücksetzen",
+        errorAction: "Kampagnenfilter entfernen",
+      },
+    },
+    shopFilters: {
+      title: "Filter",
+      reset: "Zurücksetzen",
+      categories: "Kategorien",
+      allProducts: "Alle Produkte",
+      size: "Größe",
+      color: "Farbe",
+      price: "Preisspanne",
+      expand: "Aufklappen",
+      collapse: "Zuklappen",
+      searchPlaceholder: "Produkte suchen",
+      searchButton: "Suchen",
+      clearSearch: "Löschen",
+      quickCategories: "Schnellkategorien",
+    },
+    setsPage: {
+      breadcrumb: "Aussteuer-Pakete",
+      title: "Aussteuer-Pakete",
+      subtitle:
+        "Entdecken Sie elegante Pakete für Braut, Schlafzimmer und Bad – zusammengestellt, um Ihren Stil zu unterstreichen.",
+      listTitle: "Kollektionen entdecken",
+      listSubtitle:
+        "Nutzen Sie die Filter, um Braut-, Schlafzimmer- und Badezimmer-Pakete zu durchsuchen.",
+      tabsAll: "Alle",
+      campaignBanner: {
+        prefix: "Aktive Kampagne",
+        clear: "Zurücksetzen",
+        errorAction: "Kampagnenfilter entfernen",
+      },
+      cta: {
+        heading: "Hilfe bei der Set-Auswahl?",
+        text: "Unser Styling-Team hilft Ihnen, das perfekte Aussteuer-Paket zusammenzustellen.",
+        button: "Mit Stylist sprechen",
+      },
+      cards: {
+        includes: "Enthält:",
+        includesMore: "+{count}",
+        viewDetails: "Details ansehen →",
+        untitled: "Namenloses Set",
+      },
+      grid: {
+        empty: "Keine Pakete passen zu diesem Filter.",
+      },
+    },
+    userAccount: {
+      sidebar: {
+        logout: "Abmelden",
+        tabs: {
+          Overview: "Übersicht",
+          Orders: "Bestellungen",
+          Addresses: "Adressen",
+          Wishlist: "Wunschliste",
+        },
+      },
+      overview: {
+        heading: "Kontenübersicht",
+        description: "Aktualisieren Sie Ihre persönlichen Daten und Ihr Profilfoto.",
+        success: "Profil aktualisiert",
+        fields: {
+          firstName: "Vorname",
+          lastName: "Nachname",
+          email: "E-Mail",
+          emailHelp: "Eine geänderte E-Mail kann eine spätere Verifizierung erfordern.",
+          phone: "Telefon",
+          customerFallback: "Kundin",
+        },
+        avatar: {
+          title: "Profilfoto",
+          helper: "Nur JPG/PNG. Uploads werden automatisch komprimiert.",
+          remove: "Entfernen",
+          removeActive: "Wird entfernt",
+          upload: "Hochladen",
+          removeFile: "Datei entfernen",
+        },
+        buttons: {
+          save: "Änderungen speichern",
+        },
+      },
+      orders: {
+        heading: "Bestellungen",
+        empty: "Sie haben noch keine Bestellungen.",
+        orderLabel: "Bestellung #{number}",
+        totalLabel: "Gesamt",
+        shippingLabel: "Versand",
+        shippingLine: "Versand: {name} (€{amount})",
+        viewDetails: "Details anzeigen",
+        status: {
+          created: "Erstellt",
+          pending: "Ausstehend",
+          paid: "Bezahlt",
+          processing: "In Bearbeitung",
+          shipped: "Versandt",
+          completed: "Abgeschlossen",
+          cancelled: "Storniert",
+        },
+      },
+      addresses: {
+        heading: "Adressen",
+        addNew: "Neue Adresse",
+        empty: "Keine gespeicherten Adressen.",
+        badgeDefault: "Standard",
+        edit: "Bearbeiten",
+        delete: "Löschen",
+        fields: {
+          fullName: "Vollständiger Name",
+          phone: "Telefon",
+          address1: "Adresszeile 1",
+          address2: "Adresszeile 2",
+          city: "Stadt",
+          state: "Bundesland/Region",
+          postalCode: "PLZ",
+          country: "Land",
+        },
+        buttons: {
+          cancel: "Abbrechen",
+          saving: "Speichern...",
+          save: "Adresse speichern",
+        },
+        banners: {
+          added: "Adresse gespeichert",
+          updated: "Adresse aktualisiert",
+          removed: "Adresse entfernt",
+        },
+      },
+      wishlist: {
+        heading: "Wunschliste",
+        empty: "Ihre Wunschliste ist derzeit leer.",
+        noImage: "Kein Bild",
+        remove: "Von Wunschliste entfernen",
+      },
+    },
+    heroComponent: {
+      noMedia: "Kein Medium",
+      prev: "Zurück",
+      next: "Weiter",
+      goToSlide: "Zur Folie {index}",
+    },
+    categoriesComponent: {
+      title: "Fokussierte Kategorien",
+      prev: "Vorherige Kategorien",
+      next: "Nächste Kategorien",
+    },
+    cart: {
+      emptyTitle: "Ihr Warenkorb ist leer",
+      emptySubtitle:
+        "Entdecken Sie unsere Neuheiten und liebevoll kuratierten Aussteuer-Pakete.",
+      continueShopping: "Weiter einkaufen",
+      heading: "Warenkorb",
+      couponPlaceholder: "Gutscheincode eingeben",
+      apply: "Anwenden",
+      clear: "Löschen",
+      appliedLabel: "Aktiv: {code} ({percentage}% Rabatt)",
+      orderSummary: "Bestellübersicht",
+      freeShippingUnlocked: "Kostenloser Versand freigeschaltet 🎉",
+      freeShippingHint:
+        "Geben Sie {amount} mehr aus, um kostenlosen Versand zu erhalten",
+      rows: {
+        subtotal: "Zwischensumme",
+        discount: "Rabatt",
+        shipping: "Versand",
+        free: "Kostenlos",
+        total: "Gesamt",
+      },
+      checkoutCta: "Zur Kasse",
+      continueShoppingLink: "Weiter einkaufen",
+      unitLabel: "Einzelpreis",
+      totalLabel: "Summe",
+      selectionsLabel: "Auswahl",
+      options: {
+        color: "Farbe",
+        size: "Größe",
+        option: "Option",
+      },
+      remove: "Entfernen",
+      itemFallback: "Artikel",
+    },
+  },
+};
+
+function cloneValue(value) {
+  if (value === null || typeof value !== "object") return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+function getValue(obj, path) {
+  if (!obj || !path) return undefined;
+  return path
+    .split(".")
+    .reduce(
+      (acc, key) =>
+        acc && Object.prototype.hasOwnProperty.call(acc, key) ? acc[key] : undefined,
+      obj
+    );
+}
+
+function formatTemplate(template, replacements = {}) {
+  if (typeof template !== "string") return template;
+  return template.replace(/\{(\w+)\}/g, (_, key) =>
+    replacements[key] !== undefined ? replacements[key] : ""
+  );
+}
+
+export function formatStaticText(template, replacements) {
+  return formatTemplate(template, replacements);
+}
+
+export function useStaticTranslation() {
+  const { lang } = useStorefrontLang();
+
+  return useCallback(
+    (path, replacements) => {
+      const active = STATIC_CONTENT[lang] || STATIC_CONTENT[DEFAULT_LANG] || {};
+      const fallback = STATIC_CONTENT[DEFAULT_LANG] || {};
+
+      const activeValue = getValue(active, path);
+      const fallbackValue = getValue(fallback, path);
+      const resolved = activeValue !== undefined ? activeValue : fallbackValue;
+
+      if (resolved === undefined) return undefined;
+      if (typeof resolved === "string") {
+        return replacements ? formatTemplate(resolved, replacements) : resolved;
+      }
+      return cloneValue(resolved);
+    },
+    [lang]
+  );
+}
+
+export function getStaticContent(lang = DEFAULT_LANG) {
+  return STATIC_CONTENT[lang] || STATIC_CONTENT[DEFAULT_LANG] || {};
+}

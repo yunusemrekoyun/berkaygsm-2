@@ -1,0 +1,39 @@
+// src/components/home-campaigns/HomeCampaigns.jsx
+import HomeCampaignItem from "./HomeCampaignItem";
+
+export default function HomeCampaigns({ items = [], loading = false }) {
+  if (!items.length && !loading) return null;
+
+  const fallbackVariant = (index) => {
+    if (index === 0) return "big";
+    if (index === 1) return "wide";
+    return "small";
+  };
+
+  return (
+    <section className="app-section">
+      <div className="grid auto-rows-[minmax(220px,1fr)] grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4 md:grid-rows-2 md:auto-rows-[210px]">
+        {loading && items.length === 0
+          ? Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className={`min-h-[220px] rounded-2xl bg-[var(--color-bg-card)]/60 ${
+                  fallbackVariant(index) === "big"
+                    ? "md:col-span-2 md:row-span-2"
+                    : fallbackVariant(index) === "wide"
+                    ? "md:col-span-2 md:row-span-1"
+                    : "md:col-span-1 md:row-span-1"
+                } animate-pulse`}
+              />
+            ))
+          : items.map((item, index) => (
+              <HomeCampaignItem
+                key={item.id || `${item.to}-${index}`}
+                {...item}
+                variant={item.variant || fallbackVariant(index)}
+              />
+            ))}
+      </div>
+    </section>
+  );
+}

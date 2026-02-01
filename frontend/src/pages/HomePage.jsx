@@ -1,0 +1,335 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+// src/pages/HomePage.jsx
+import { useEffect, useMemo, useState } from "react";
+import Hero from "../components/Hero";
+import Categories from "../components/categories/Categories";
+import HomeProducts from "../components/home-products/HomeProducts";
+import HomeProductComments from "../components/home-comments/HomeProductComments";
+import HomeCampaigns from "../components/home-campaigns/HomeCampaigns";
+import HomeContact from "../components/home-contact/HomeContact";
+import HomeSets from "../components/home-sets/HomeSets";
+import { productApi } from "../api/products";
+import { setApi } from "../api/sets";
+import { heroApi } from "../api/heroes";
+import { campaignApi } from "../api/campaigns";
+import { reviewApi } from "../api/reviews";
+import { useStorefrontLang } from "../context/LangContext.jsx";
+import { useStaticTranslation } from "../i18n/staticContent.js";
+
+export default function HomePage() {
+  // HERO (dinamik)
+  const [heroes, setHeroes] = useState([]);
+  const [loadingHeroes, setLoadingHeroes] = useState(true);
+
+  // Products
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
+  // Sets
+  const [sets, setSets] = useState([]);
+  const [loadingSets, setLoadingSets] = useState(true);
+
+  // Campaigns
+  const [campaigns, setCampaigns] = useState([]);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(true);
+
+  // Reviews
+  const [homeReviews, setHomeReviews] = useState([]);
+  // eslint-disable-next-line no-unused-vars
+  const [loadingHomeReviews, setLoadingHomeReviews] = useState(true);
+
+  // error
+  const [error, setError] = useState(null);
+  const { lang } = useStorefrontLang();
+  const t = useStaticTranslation();
+  const fallbackCampaigns = t("homePage.fallbackCampaigns") || [];
+  const fallbackComments = t("homePage.fallbackComments") || [];
+  const heroFallback = t("homePage.heroFallback") || [];
+  const sectionCopy = t("homePage.sections") || {};
+  const allTabLabel = t("homeSets.tabsAll") || "All";
+  const campaignCopy = t("homeCampaigns") || {};
+
+  // HERO fetch
+  useEffect(() => {
+    let mounted = true;
+    setLoadingHeroes(true);
+    (async () => {
+      try {
+        const list = await heroApi.list({}, lang);
+        if (!mounted) return;
+        setHeroes(list || []);
+      } catch (err) {
+        if (mounted) setError(extractMessage(err));
+      } finally {
+        if (mounted) setLoadingHeroes(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [lang]);
+
+  // Products fetch
+  useEffect(() => {
+    let mounted = true;
+    setLoadingProducts(true);
+    (async () => {
+      try {
+        const data = await productApi.list({ limit: 12 }, lang);
+        if (!mounted) return;
+        setFeaturedProducts(data.products || []);
+      } catch (err) {
+        if (mounted) setError(extractMessage(err));
+      } finally {
+        if (mounted) setLoadingProducts(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [lang]);
+
+  // Sets fetch
+  useEffect(() => {
+    let mounted = true;
+    setLoadingSets(true);
+    (async () => {
+      try {
+        const data = await setApi.list({}, lang);
+        const rawSets = Array.isArray(data) ? data : data?.sets || [];
+        if (!mounted) return;
+        setSets(
+          mapSetsToCards(rawSets, {
+            untitledSet: sectionCopy.untitledSet,
+            includesMoreLabel: sectionCopy.includesMore,
+          })
+        );
+      } catch (e) {
+        if (mounted) setError(extractMessage(e));
+      } finally {
+        if (mounted) setLoadingSets(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [lang]);
+
+  // Campaign fetch
+  useEffect(() => {
+    let mounted = true;
+    setLoadingCampaigns(true);
+    (async () => {
+      try {
+        const list = await campaignApi.listHome(lang);
+        if (!mounted) return;
+        setCampaigns(list || []);
+      } catch (err) {
+        if (mounted) {
+          setError((prev) => prev || extractMessage(err));
+        }
+      } finally {
+        if (mounted) setLoadingCampaigns(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [lang]);
+
+  // Home Reviews fetch
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const list = await reviewApi.homeFeatured(3); // 3 kart
+        if (!mounted) return;
+        setHomeReviews(list || []);
+      } catch (err) {
+        console.error(err);
+
+        // hata bandını bozmayalım; zaten başka yerlerde error gösteriyorsun
+      } finally {
+        if (mounted) setLoadingHomeReviews(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const commentsToRender = useMemo(() => {
+    const list =
+      Array.isArray(homeReviews) && homeReviews.length
+        ? homeReviews
+        : fallbackComments;
+    return list.slice(0, 3);
+  }, [homeReviews, fallbackComments]);
+
+  const newArrivalCards = useMemo(
+    () => mapProductsToHomeCards(featuredProducts.slice(0, 3)),
+    [featuredProducts]
+  );
+  const bestsellerCards = useMemo(
+    () => mapProductsToHomeCards(featuredProducts.slice(3, 6)),
+    [featuredProducts]
+  );
+  const setTabs = useMemo(() => {
+    const tagSet = new Set();
+    (sets || []).forEach((s) => (s.tags || []).forEach((tag) => tagSet.add(tag)));
+    return [allTabLabel, ...Array.from(tagSet)];
+  }, [sets, allTabLabel]);
+
+  const campaignItems = useMemo(() => {
+    if (!campaigns.length) return [];
+    return mapCampaignsToHomeCards(campaigns.slice(0, 4), {
+      fallbackTitle: campaignCopy.fallbackTitle,
+      fallbackCta: campaignCopy.cta,
+    });
+  }, [campaigns, campaignCopy.fallbackTitle, campaignCopy.cta]);
+
+  const campaignsToRender =
+    campaignItems.length > 0 ? campaignItems : fallbackCampaigns;
+
+  // Hero slaytlarına fallback
+  const heroSlides = heroes.length ? heroes : heroFallback;
+
+  return (
+    <>
+      {/* Hata bandı (error state'i aktif kullanımı) */}
+      {error && (
+        <div className="app-section app-section--tight pt-6">
+          <div
+            role="alert"
+            className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          >
+            {error}
+          </div>
+        </div>
+      )}
+      {/* Dinamik HERO */}
+      <Hero slides={heroSlides} imageAutoMs={6000} loading={loadingHeroes} />
+      <Categories />
+      <section className="app-section app-section--tight">
+        <div className="rounded-xl bg-surface shadow-sm">
+          <HomeProducts
+            variant="merge-top"
+            title={sectionCopy.newArrivalsTitle || "New Arrivals"}
+            items={newArrivalCards}
+            loading={loadingProducts && !newArrivalCards.length}
+            className="rounded-t-xl"
+          />
+          <HomeProducts
+            variant="merge-bottom"
+            title={sectionCopy.bestsellersTitle || "Bestsellers"}
+            items={bestsellerCards}
+            loading={loadingProducts && !bestsellerCards.length}
+            className="rounded-b-xl"
+          />
+        </div>
+      </section>
+      <HomeSets
+        variant="compact"
+        title={sectionCopy.setsTitle}
+        subtitle={sectionCopy.setsSubtitle}
+        tabs={setTabs}
+        items={sets}
+        viewAllHref="/sets"
+        loading={loadingSets}
+      />
+      <HomeProductComments items={commentsToRender} />
+      <HomeCampaigns items={campaignsToRender} loading={loadingCampaigns} />
+      <HomeContact />
+    </>
+  );
+}
+
+function mapProductsToHomeCards(products) {
+  if (!products?.length) return [];
+  return products.map((product) => ({
+    image: product.images?.[0]?.url || "/shop-1.jpg",
+    title: product.name,
+    subtitle: product.category?.name || "",
+    price: product.price,
+    finalPrice: product.finalPrice ?? product.price,
+    discount: product.discount?.percentage,
+    to: product.slug ? `/product/${product.slug}` : `/product/${product.id}`,
+  }));
+}
+
+function mapSetsToCards(sets, { untitledSet, includesMoreLabel } = {}) {
+  return (sets || []).map((s) => {
+    const image = s.images?.[0]?.url || "/set-placeholder.jpg";
+    const title = s.name || untitledSet || "Untitled Set";
+    const desc = s.description || "";
+    const to = `/set/${s.slug || s.id}`;
+    const price = Number(s.price ?? 0);
+    const finalPrice = Number(s.finalPrice ?? price);
+    const discount = s.discount?.percentage;
+    const productNames = (s.products || [])
+      .map((p) => p?.product?.name)
+      .filter(Boolean);
+    const includes =
+      productNames.length > 0
+        ? productNames.slice(0, 3).join(", ") +
+          (productNames.length > 3
+            ? ` ${String(includesMoreLabel || "+{count}").replace(
+                "{count}",
+                productNames.length - 3
+              )}`
+            : "")
+        : "";
+    const tags = Array.from(
+      new Set(
+        (s.products || [])
+          .map((p) => p?.product?.category?.name)
+          .filter(Boolean)
+      )
+    );
+    return {
+      image,
+      title,
+      desc,
+      includes,
+      tags,
+      to,
+      price,
+      finalPrice,
+      discount,
+    };
+  });
+}
+
+function mapCampaignsToHomeCards(list, { fallbackTitle, fallbackCta } = {}) {
+  return (list || []).map((campaign) => ({
+    id: campaign.id,
+    to: campaign.computedLink || "/shop",
+    image: campaign.image?.url || "/cmp-1.jpg",
+    title: campaign.name || fallbackTitle || "Campaign",
+    subtitle: campaign.description || "",
+    badge: campaign.badge || "",
+    ctaText: campaign.ctaText || fallbackCta || "Shop Now",
+    variant: mapLayoutToVariant(campaign.layout),
+  }));
+}
+
+function mapLayoutToVariant(layout) {
+  const normalized = String(layout || "").toUpperCase();
+  if (normalized === "BIG") return "big";
+  if (normalized === "WIDE") return "wide";
+  return "small";
+}
+
+function extractMessage(error) {
+  if (!error) return "Unexpected error";
+  if (error instanceof Error) {
+    try {
+      const parsed = JSON.parse(error.message);
+      if (parsed?.message) return parsed.message;
+    } catch {
+      // ignore
+    }
+    return error.message;
+  }
+  return String(error);
+}

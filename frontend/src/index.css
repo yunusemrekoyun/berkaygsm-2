@@ -1,0 +1,190 @@
+@import "tailwindcss";
+
+@theme {
+  /* Mevcut paletin */
+  --color-primary: #5c2a35; /* derin bordo (başlıklar, sidebar) */
+  --color-secondary: #8a4d5b; /* rosewood / ikincil metin */
+  --color-accent: #d87c82; /* rose pink (buton, aktif link) */
+  --color-accent-hover: #c4646d; /* koyu rose hover */
+
+  --color-surface: #f0d9d9; /* açık pembe-bej arkaplan */
+  --color-surface-light: #f9ecec; /* açık pembe/krem */
+  --color-surface-hover: #fff6f6; /* hover için neredeyse beyaz */
+  --color-border: #e1bfc2; /* pastel pembe border */
+  --color-contact-bg: #fff9f8; /* ivory pink */
+}
+@theme admin {
+  --color-bg-admin: #fdf7f9; /* çok açık pembe-beyaz */
+  --color-text-admin: #3b0a24; /* bordo koyu yazı */
+  --color-bg-card: #ffffff;
+  --color-bg-hover: #fde2e7; /* pembe hover */
+  --color-bg-sidebar: #9d174d; /* koyu gül sidebar */
+  --color-text-sidebar: #ffffff;
+  --color-text-admin-muted: #6b7280;
+  --color-border-admin: #fbcfe8; /* pastel pembe sınır */
+}
+
+:root {
+  --page-max-width: 1400px;
+  --page-shell-width: 1440px;
+  --page-inline-padding: clamp(1rem, 3vw, 2.25rem);
+  --page-vertical-padding: clamp(1.5rem, 4vw, 3rem);
+  --header-height: 5rem;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--color-surface-light);
+    color: var(--color-primary);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+@layer utilities {
+  .app-shell {
+    background: rgba(221, 236, 229, 0.6);
+    min-height: 100vh;
+  }
+
+  .app-card {
+    max-width: var(--page-shell-width);
+    margin-inline: auto;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 10px 45px rgba(92, 42, 53, 0.08);
+    overflow: hidden;
+  }
+
+  .app-section {
+    width: min(100%, var(--page-max-width));
+    margin-inline: auto;
+    padding-inline: var(--page-inline-padding);
+    padding-block: var(--page-vertical-padding);
+  }
+
+  .app-section--tight {
+    padding-block: clamp(1rem, 3vw, 2rem);
+  }
+
+  .app-grid {
+    display: grid;
+    gap: clamp(1rem, 2vw, 1.75rem);
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-table-container {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  @media (max-width: 768px) {
+    .admin-table {
+      min-width: 0 !important;
+      border-spacing: 0;
+    }
+
+    .admin-table thead,
+    .admin-table tfoot {
+      display: none;
+    }
+
+    .admin-table tbody {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .admin-table tbody tr {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--color-border-admin);
+      border-radius: 1.25rem;
+      padding: 0.75rem 1rem;
+      background: var(--color-bg-card);
+      box-shadow: 0 12px 35px rgba(59, 10, 36, 0.08);
+    }
+
+    .admin-table tbody tr:hover {
+      background: var(--color-bg-card);
+    }
+
+    .admin-table tbody td {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.4rem 0;
+      text-align: left !important;
+    }
+
+    .admin-table tbody td[data-label]::before {
+      content: attr(data-label);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-admin-muted);
+      min-width: 6rem;
+    }
+
+    .admin-table tbody td:last-child {
+      padding-bottom: 0;
+    }
+
+    .admin-table tbody td:first-child {
+      padding-top: 0;
+    }
+
+    .admin-table tbody td > .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .admin-table .mobile-full {
+      width: 100%;
+    }
+  }
+}
