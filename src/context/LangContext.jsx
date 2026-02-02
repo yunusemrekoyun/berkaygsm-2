@@ -37,7 +37,12 @@ function readInitialLang() {
 }
 
 export function LangProvider({ children }) {
-  const [lang, setLangState] = useState(readInitialLang);
+  const [lang, setLangState] = useState(DEFAULT_LANG);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setLangState(readInitialLang());
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
