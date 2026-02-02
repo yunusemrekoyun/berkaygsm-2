@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import AdminLayout from "../../components/layout/AdminLayout.jsx";
 import { authApi } from "../../api/auth.js";
@@ -12,7 +12,7 @@ import {
   setAccessToken,
 } from "../../api/client.js";
 
-export default function AdminRootLayout({ children }) {
+function AdminGate({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -95,4 +95,12 @@ export default function AdminRootLayout({ children }) {
   if ((user?.role || "user").toLowerCase() !== "admin") return null;
 
   return <AdminLayout>{children}</AdminLayout>;
+}
+
+export default function AdminRootLayout({ children }) {
+  return (
+    <Suspense fallback={null}>
+      <AdminGate>{children}</AdminGate>
+    </Suspense>
+  );
 }

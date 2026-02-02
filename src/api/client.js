@@ -106,7 +106,21 @@ export async function http(
     throw new Error(text || `HTTP ${response.status}`);
   }
 
-  return response.json();
+  if (response.status === 204 || response.status === 205) return null;
+
+  const contentType = response.headers.get("content-type") || "";
+  const text = await response.text().catch(() => "");
+  if (!text) return null;
+
+  if (contentType.includes("application/json")) {
+    return JSON.parse(text);
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
 }
 
 export const toQueryString = (params = {}) => {

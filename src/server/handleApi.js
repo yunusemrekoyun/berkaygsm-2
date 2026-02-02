@@ -5,8 +5,13 @@ import { generalLimiter } from "./rateLimiters.js";
 import { connectDB } from "../../backend/config/db.js";
 
 export async function handleApi(request, context = {}) {
-  const pathSegments = Array.isArray(context?.params?.path)
-    ? context.params.path
+  const paramsSource = context?.params;
+  const resolvedParams =
+    paramsSource && typeof paramsSource.then === "function"
+      ? await paramsSource
+      : paramsSource;
+  const pathSegments = Array.isArray(resolvedParams?.path)
+    ? resolvedParams.path
     : [];
 
   const match = findRoute(request.method, pathSegments);
