@@ -600,17 +600,17 @@ export default function ProductForm({
           </SelectionCard>
 
           <SelectionCard
-            title="Bedenler"
-            description="Mevcut kıyafet bedenlerini yönetin."
+            title="Modeller"
+            description="Uyumlu telefon modellerini yönetin."
             checked={showSizes}
             onToggle={() => setShowSizes((prev) => !prev)}
           >
             <TagInput
-              label="Beden seçenekleri"
+              label="Model seçenekleri"
               values={sizes}
               onChange={setSizes}
-              placeholder="Beden ekleyip Enter’a basın"
-              helper="Örnek: XS, S, M, L, XL"
+              placeholder="Model ekleyip Enter’a basın"
+              helper="Örnek: iPhone 15, Galaxy S24, Pixel 8"
               disabled={!showSizes}
             />
           </SelectionCard>
@@ -630,7 +630,7 @@ export default function ProductForm({
                 onChange={(event) => setAttributeTitle(event.target.value)}
                 disabled={!showAttribute}
                 className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)] disabled:opacity-60"
-                placeholder="Örn. Paça uzunluğu"
+                placeholder="Örn. Kablo uzunluğu"
               />
             </label>
             <TagInput

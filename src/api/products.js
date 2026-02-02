@@ -77,6 +77,26 @@ const toJsonArray = (value) => {
   return JSON.stringify([]);
 };
 
+const looksLikeProduct = (value) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  return (
+    Boolean(value._id) ||
+    Boolean(value.id) ||
+    Boolean(value.slug) ||
+    Boolean(value.name) ||
+    value.price !== undefined
+  );
+};
+
+const extractProduct = (data) => {
+  if (!data) return null;
+  if (data.product) return data.product;
+  if (data?.data?.product) return data.data.product;
+  if (looksLikeProduct(data?.data)) return data.data;
+  if (looksLikeProduct(data)) return data;
+  return null;
+};
+
 export const productApi = {
   async list(params = {}, lang = DEFAULT_LANG) {
     const qs = toQueryString({ ...params, lang: lang ?? DEFAULT_LANG });
@@ -91,7 +111,7 @@ export const productApi = {
     }
     const qs = toQueryString({ lang: lang ?? DEFAULT_LANG });
     const data = await http(`/products/${identifier}${qs}`, { auth: true });
-    return data.product;
+    return extractProduct(data);
   },
 
   // payload = productPayload (stok HARİÇ!)
@@ -122,6 +142,9 @@ export const productApi = {
       );
     if (payload.customAttribute)
       form.append("customAttribute", JSON.stringify(payload.customAttribute));
+    if (payload.stockRows) {
+      form.append("stockRows", JSON.stringify(payload.stockRows));
+    }
 
     // 🚫 Artık INVENTORY GÖNDERMEYİZ (stoklar ayrı endpoint ile yazılıyor)
     const uploadedImages = await uploadAssets(payload.images || [], {
@@ -135,7 +158,7 @@ export const productApi = {
       body: form,
       auth: true,
     });
-    return data.product;
+    return extractProduct(data);
   },
 
   // payload = productPayload (stok HARİÇ!)
@@ -174,6 +197,9 @@ export const productApi = {
       );
     if (payload.customAttribute !== undefined)
       form.append("customAttribute", JSON.stringify(payload.customAttribute));
+    if (payload.stockRows) {
+      form.append("stockRows", JSON.stringify(payload.stockRows));
+    }
 
     const uploadedImages = await uploadAssets(payload.images || [], {
       scope: "products",
@@ -193,7 +219,7 @@ export const productApi = {
       body: form,
       auth: true,
     });
-    return data.product;
+    return extractProduct(data);
   },
 
   async remove(idOrSlug, params = {}) {

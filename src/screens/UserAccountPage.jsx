@@ -39,6 +39,11 @@ export default function UserAccountPage({ onLogout }) {
   const logoutLabel = sidebarCopy.logout || "Logout";
 
   useEffect(() => {
+    const cachedUser = getUser();
+    if (cachedUser) setUserState(cachedUser);
+  }, []);
+
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     const nextTab =
       normalizeTab(params.get("tab")) ||

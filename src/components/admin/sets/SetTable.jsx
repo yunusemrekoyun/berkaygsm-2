@@ -212,7 +212,7 @@ function StockInspectModal({ setItem, onClose }) {
               Stok detayları — {setItem.name}
             </h3>
             <p className="text-xs text-[var(--color-text-admin-muted)]">
-              Varyant seviyesinde stok (renk · beden · özellik)
+              Varyant seviyesinde stok (renk · model · özellik)
             </p>
           </div>
           <button

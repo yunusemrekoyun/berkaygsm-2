@@ -144,13 +144,13 @@ export default function PrivacyPolicyPage() {
               If you have questions about this policy or wish to exercise your
               data protection rights, e-mail us at{" "}
               <a
-                href="mailto:privacy@evimstil.com"
+                href="mailto:privacy@berkaygsm.com"
                 className="text-accent underline"
               >
-                privacy@evimstil.com
+                privacy@berkaygsm.com
               </a>{" "}
-              or write to Evim &amp; Stil GmbH, Kurfürstendamm 45, 10719 Berlin,
-              Germany.
+              or write to Berkay GSM GmbH, Kurfürstendamm 45, 10719
+              Berlin, Germany.
             </footer>
           )}
         </div>

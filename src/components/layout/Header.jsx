@@ -177,16 +177,16 @@ export default function Header() {
               <Link
                 to="/"
                 className="inline-flex flex-1 items-center justify-center gap-2"
-                aria-label="Ayyıldız"
+                aria-label="Berkay GSM"
               >
                 <img
                   src="/logo.png"
                   alt=""
-                  className="h-10 w-10 object-contain"
+                  className="h-8 w-8 object-contain"
                   draggable="false"
                 />
                 <span className="font-serif text-2xl font-bold text-primary">
-                  Ayyıldız
+                  Berkay GSM
                 </span>
               </Link>
               <div className="flex items-center gap-2">
@@ -235,12 +235,12 @@ export default function Header() {
                   <Link to="/" className="group inline-flex items-center gap-3">
                     <img
                       src="/logo.png"
-                      alt="Ayyıldız İç Giyim"
-                      className="h-20 w-20 object-contain"
+                      alt="Berkay GSM"
+                      className="h-16 w-16 object-contain"
                       draggable="false"
                     />
                     <span className="font-serif text-3xl font-extrabold tracking-tight text-primary">
-                      Ayyıldız İç Giyim
+                      Berkay GSM
                     </span>
                   </Link>
                 </div>

@@ -147,8 +147,10 @@ export default function AdminCategories() {
       if (nextSelectId) {
         await handleSelect({ id: nextSelectId }, lang);
       }
+      return data;
     } catch (error) {
       setBanner({ variant: "danger", message: extractMessage(error) });
+      return [];
     } finally {
       setLoadingTree(false);
     }
@@ -164,20 +166,48 @@ export default function AdminCategories() {
           BASE_LANG
         );
         setBanner({ variant: "success", message: "Kategori güncellendi" });
-        const normalized = normalizeCategory(updated);
-        setSelectedCategory(normalized);
-        setTranslationDrafts(createTranslationDrafts(normalized));
-        setTranslationSaving({});
+        let resolved = updated;
+        if (!resolved) {
+          resolved = await categoryApi.get(selectedCategory.id, BASE_LANG);
+        }
+        if (resolved) {
+          const normalized = normalizeCategory(resolved);
+          setSelectedCategory(normalized);
+          setTranslationDrafts(createTranslationDrafts(normalized));
+          setTranslationSaving({});
+        }
         await refreshTree(selectedCategory.id, BASE_LANG);
       } else {
         const created = await categoryApi.create(payload, BASE_LANG);
         setBanner({ variant: "success", message: "Kategori oluşturuldu" });
-        const normalized = normalizeCategory(created);
-        setSelectedCategory(normalized);
-        setSelectedId(normalized.id);
-        setTranslationDrafts(createTranslationDrafts(normalized));
-        setTranslationSaving({});
-        await refreshTree(created.id, BASE_LANG);
+        if (created) {
+          const normalized = normalizeCategory(created);
+          setSelectedCategory(normalized);
+          setSelectedId(normalized.id);
+          setTranslationDrafts(createTranslationDrafts(normalized));
+          setTranslationSaving({});
+          await refreshTree(created.id, BASE_LANG);
+        } else {
+          const parentKey = payload.parent ? payload.parent : "root";
+          const siblings = await categoryApi
+            .list({ parent: parentKey }, BASE_LANG)
+            .catch(() => []);
+          const match = siblings.find(
+            (item) =>
+              String(item?.name || "").trim().toLowerCase() ===
+              String(payload?.name || "").trim().toLowerCase()
+          );
+          if (match) {
+            const normalized = normalizeCategory(match);
+            setSelectedCategory(normalized);
+            setSelectedId(normalized.id);
+            setTranslationDrafts(createTranslationDrafts(normalized));
+            setTranslationSaving({});
+            await refreshTree(normalized.id, BASE_LANG);
+          } else {
+            await refreshTree(undefined, BASE_LANG);
+          }
+        }
       }
     } catch (error) {
       setBanner({ variant: "danger", message: extractMessage(error) });
@@ -415,14 +445,18 @@ function TranslationEditors({ category, drafts, onChange, onSave, savingMap }) {
 function extractMessage(error) {
   if (!error) return "Beklenmeyen hata";
   if (error instanceof Error) {
-    try {
-      const parsed = JSON.parse(error.message);
-      if (parsed?.message) return parsed.message;
-    } catch (e) {
-      console.error(e);
-      /* ignore */
+    const message = error.message || "";
+    const trimmed = message.trim();
+    const looksJson = trimmed.startsWith("{") || trimmed.startsWith("[");
+    if (looksJson) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed?.message) return parsed.message;
+      } catch {
+        /* ignore */
+      }
     }
-    return error.message;
+    return message || "Beklenmeyen hata";
   }
   return String(error);
 }

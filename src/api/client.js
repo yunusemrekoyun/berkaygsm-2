@@ -3,29 +3,43 @@ const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "/api").replace(/\/$/, "");
 const ACCESS_KEY = "accessToken";
 const USER_KEY = "authUser";
 
-export const getAccessToken = () => localStorage.getItem(ACCESS_KEY) || null;
+const canUseStorage = () =>
+  typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+
+const getStorage = () => (canUseStorage() ? window.localStorage : null);
+
+export const getAccessToken = () => {
+  const storage = getStorage();
+  return storage ? storage.getItem(ACCESS_KEY) || null : null;
+};
 
 export const setAccessToken = (token) => {
+  const storage = getStorage();
+  if (!storage) return;
   if (token) {
-    localStorage.setItem(ACCESS_KEY, token);
+    storage.setItem(ACCESS_KEY, token);
   } else {
-    localStorage.removeItem(ACCESS_KEY);
+    storage.removeItem(ACCESS_KEY);
   }
 };
 
 export const getUser = () => {
+  const storage = getStorage();
+  if (!storage) return null;
   try {
-    return JSON.parse(localStorage.getItem(USER_KEY) || "null");
+    return JSON.parse(storage.getItem(USER_KEY) || "null");
   } catch {
     return null;
   }
 };
 
 export const setUser = (user) => {
+  const storage = getStorage();
+  if (!storage) return;
   if (user) {
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    storage.setItem(USER_KEY, JSON.stringify(user));
   } else {
-    localStorage.removeItem(USER_KEY);
+    storage.removeItem(USER_KEY);
   }
 };
 

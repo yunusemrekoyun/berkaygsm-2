@@ -1,6 +1,22 @@
 import { http, toQueryString } from "./client.js";
 
 /* ---------------- helpers ---------------- */
+const normalizeOwnerId = (value) => {
+  if (!value) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "object") {
+    if (typeof value.$oid === "string") return value.$oid.trim();
+    if (typeof value.toHexString === "function") return value.toHexString();
+    if (typeof value._id === "string") return value._id.trim();
+    if (typeof value.id === "string") return value.id.trim();
+    if (typeof value._id === "object")
+      return normalizeOwnerId(value._id);
+    if (typeof value.id === "object")
+      return normalizeOwnerId(value.id);
+  }
+  return "";
+};
+
 const isObjectId = (v) =>
   typeof v === "string" && /^[0-9a-fA-F]{24}$/.test(v ?? "");
 
@@ -28,8 +44,28 @@ export const stocksApi = {
    * DÖNÜŞ: { items, pagination }
    */
   async list(params = {}) {
-    const qs = toQueryString(params);
+    const nextParams = { ...params };
+    if (nextParams.owner) {
+      const normalized = normalizeOwnerId(nextParams.owner);
+      if (normalized) {
+        nextParams.owner = normalized;
+      } else {
+        delete nextParams.owner;
+      }
+    }
+    const qs = toQueryString(nextParams);
     const res = await http(`/stocks${qs}`, { auth: true });
+    if (!res) {
+      return {
+        items: [],
+        pagination: {
+          page: params.page || 1,
+          pages: 1,
+          total: 0,
+          limit: params.limit || 20,
+        },
+      };
+    }
     // Çeşitli backend şekillerine karşı normalize et
     return {
       items: res.items || res.stocks || res.data || [],
@@ -48,8 +84,24 @@ export const stocksApi = {
    */
   async listByOwner(ownerModel, owner) {
     if (!ownerModel) throw new Error("ownerModel is required");
-    if (!isObjectId(owner)) throw new Error("owner must be a valid ObjectId");
-    return this.list({ ownerModel, owner });
+    const safeOwner = normalizeOwnerId(owner);
+    if (!isObjectId(safeOwner))
+      throw new Error("owner must be a valid ObjectId");
+    const data = await http(
+      `/stocks/by-owner/${encodeURIComponent(ownerModel)}/${encodeURIComponent(
+        safeOwner
+      )}`,
+      { auth: true }
+    );
+    return {
+      items: data?.stocks || data?.items || [],
+      pagination: data?.pagination || {
+        page: 1,
+        pages: 1,
+        total: (data?.stocks || data?.items || []).length || 0,
+        limit: (data?.stocks || data?.items || []).length || 0,
+      },
+    };
   },
 
   /**
@@ -76,6 +128,9 @@ export const stocksApi = {
       body: { ownerModel, owner, rows: normItems },
       auth: true,
     });
+    if (!data) {
+      return { ok: true, count: 0 };
+    }
     return { ok: !!data.ok, count: data.count ?? 0 };
   },
 

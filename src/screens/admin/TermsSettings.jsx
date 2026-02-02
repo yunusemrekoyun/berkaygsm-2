@@ -476,7 +476,7 @@ function SEOEditor({ seo, onChange }) {
           <Input
             value={model.title || ""}
             onChange={(e) => onChange({ ...model, title: e.target.value })}
-            placeholder="Kullanım Koşulları — Evim & Stil"
+            placeholder="Kullanım Koşulları — Berkay GSM"
           />
         </div>
         <div className="md:col-span-6">

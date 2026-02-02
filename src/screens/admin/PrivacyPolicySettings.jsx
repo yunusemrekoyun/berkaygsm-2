@@ -475,7 +475,7 @@ function SEOEditor({ seo, onChange }) {
           <Input
             value={seo.title}
             onChange={(e) => onChange({ ...seo, title: e.target.value })}
-            placeholder="Gizlilik Politikası — Evim & Stil"
+            placeholder="Gizlilik Politikası — Berkay GSM"
           />
         </div>
         <div className="md:col-span-6">

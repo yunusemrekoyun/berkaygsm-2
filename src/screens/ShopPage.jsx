@@ -264,7 +264,7 @@ export default function ShopPage() {
     // priceRange.max değiştiğinde de başlangıç değeri ayarlansın
   }, [lang, priceRange.max, searchParams]);
 
-  // Renk/S beden seçenekleri
+  // Renk/Model seçenekleri
   const availableColors = useMemo(() => {
     const map = new Map();
     products.forEach((product) => {
@@ -803,7 +803,7 @@ export default function ShopPage() {
               <p className="mt-1 text-sm text-secondary">
                 {formatStaticText(
                   matchingCopy.subtitle ||
-                    "Results for “{query}” across trousseau packages.",
+                    "Results for “{query}” across accessory bundles.",
                   { query: searchQuery }
                 )}
               </p>

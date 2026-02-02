@@ -39,7 +39,7 @@ export default function TermsPage() {
   );
   const intro =
     data?.heroIntro?.trim() ||
-    "Please read these terms carefully before placing an order. They outline your rights and obligations when shopping with Evim & Stil.";
+    "Please read these terms carefully before placing an order. They outline your rights and obligations when shopping with Berkay GSM.";
   const sections = Array.isArray(data?.sections) ? data.sections : [];
   const footerNote =
     typeof data?.footerNote === "string" && data.footerNote.trim()

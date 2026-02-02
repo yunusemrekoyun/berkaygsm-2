@@ -44,6 +44,10 @@ function AdminGate({ children }) {
       if (!token) {
         const refreshed = await refreshAccessToken();
         if (!refreshed) {
+          if (cachedUser) {
+            finish(cachedUser);
+            return;
+          }
           setAccessToken(null);
           setUserCache(null);
           finish(null);
@@ -52,15 +56,17 @@ function AdminGate({ children }) {
         token = getAccessToken();
       }
 
-      if (!token) {
-        finish(null);
-        return;
+      if (token) {
+        const me = await authApi.me().catch(() => null);
+        if (me) {
+          setUserCache(me);
+          finish(me);
+          return;
+        }
       }
 
-      const me = await authApi.me().catch(() => null);
-      if (me) {
-        setUserCache(me);
-        finish(me);
+      if (cachedUser) {
+        finish(cachedUser);
       } else {
         setAccessToken(null);
         setUserCache(null);
@@ -73,20 +79,37 @@ function AdminGate({ children }) {
     };
   }, [pathname, paramsKey]);
 
+  const resolveFallbackPath = () => {
+    if (typeof window === "undefined") return "/";
+    try {
+      const stored = window.sessionStorage.getItem("lastPublicPath");
+      if (
+        stored &&
+        stored.startsWith("/") &&
+        !stored.startsWith("/admin")
+      ) {
+        return stored;
+      }
+    } catch {
+      /* ignore */
+    }
+    return "/";
+  };
+
   useEffect(() => {
     if (initializing) return;
 
     if (!user) {
-      const redirect = encodeURIComponent(
-        pathname + (paramsKey ? `?${paramsKey}` : "")
-      );
+      const redirectTarget = pathname + (paramsKey ? `?${paramsKey}` : "");
+      const redirect = encodeURIComponent(redirectTarget);
       router.replace(`/account?view=login&redirect=${redirect}`);
       return;
     }
 
     const role = (user?.role || "user").toLowerCase();
     if (role !== "admin") {
-      router.replace("/");
+      const fallback = resolveFallbackPath();
+      router.replace(fallback);
     }
   }, [initializing, user, pathname, paramsKey, router]);
 

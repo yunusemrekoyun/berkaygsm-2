@@ -217,7 +217,7 @@ function PresetCard({ preset, active, onSelect }) {
 export default function ThemeSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeKey, setActiveKey] = useState("rosewood");
+  const [activeKey, setActiveKey] = useState("ocean");
   const [previewKey, setPreviewKey] = useState(null);
 
   // İlk yüklemede backend'deki aktif temayı çek ve DOM'a uygula
@@ -228,7 +228,7 @@ export default function ThemeSettingsPage() {
         const server = await themeApi.get(); // { activeKey, store, admin }
         if (!mounted) return;
 
-        setActiveKey(server.activeKey || "rosewood");
+        setActiveKey(server.activeKey || "ocean");
         // DOM'a uygula
         applyThemeVars({ store: server.store, admin: server.admin });
       } finally {

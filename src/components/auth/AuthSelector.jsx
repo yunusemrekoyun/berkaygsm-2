@@ -1,17 +1,22 @@
 // src/components/auth/AuthSelector.jsx
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import UserAccountPage from "../../screens/UserAccountPage";
 import AuthPage from "../../screens/AuthPage";
 import { authApi } from "../../api/auth";
-import { getAccessToken, refreshAccessToken } from "../../api/client";
+import { getAccessToken, refreshAccessToken, getUser } from "../../api/client";
 
 export default function AuthSelector() {
   const [ready, setReady] = useState(false);
-  const [isLogged, setIsLogged] = useState(false);
+  const [isLogged, setIsLogged] = useState(() =>
+    Boolean(getAccessToken() || getUser())
+  );
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const paramsKey = useMemo(() => params.toString(), [params]);
+
+  const hasCachedAuth = () => Boolean(getAccessToken() || getUser());
 
   // logout query
   useEffect(() => {
@@ -22,31 +27,46 @@ export default function AuthSelector() {
         setIsLogged(false);
       }
     })();
-  }, [params, navigate]);
+  }, [paramsKey, navigate]);
 
   // açılışta doğrula
   useEffect(() => {
+    let mounted = true;
+
+    const setLogged = (value) => {
+      if (mounted) setIsLogged(value);
+    };
+
     (async () => {
+      const cachedUser = getUser();
+      const cachedToken = getAccessToken();
+      if (cachedUser || cachedToken) setLogged(true);
       try {
-        if (!getAccessToken()) {
+        if (!cachedToken) {
           const ok = await refreshAccessToken();
           if (!ok) {
-            setIsLogged(false);
-            setReady(true);
+            if (!hasCachedAuth()) setLogged(false);
             return;
           }
         }
         const me = await authApi.me();
-        setIsLogged(Boolean(me));
+        if (me) {
+          setLogged(true);
+        } else if (!hasCachedAuth()) {
+          setLogged(false);
+        }
         // 🔴 burada admin'e zorunlu yönlendirme YOK
         // sadece guard redirect paramı olsaydı orada yakalayabilirdik
       } catch {
-        setIsLogged(false);
+        if (!hasCachedAuth()) setLogged(false);
       } finally {
-        setReady(true);
+        if (mounted) setReady(true);
       }
     })();
-  }, [params, navigate]);
+    return () => {
+      mounted = false;
+    };
+  }, [paramsKey]);
 
   if (!ready) return null;
 
