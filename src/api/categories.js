@@ -18,7 +18,7 @@ export const categoryApi = {
   async get(idOrSlug, lang = DEFAULT_LANG) {
     const qs = toQueryString({ lang: lang ?? DEFAULT_LANG });
     const data = await http(`/categories/${idOrSlug}${qs}`, { auth: true });
-    return data.category;
+    return data?.category || data?.data?.category || data || null;
   },
 
   async create(payload, lang = DEFAULT_LANG) {
@@ -36,7 +36,7 @@ export const categoryApi = {
       body: form,
       auth: true,
     });
-    return data.category;
+    return data?.category || data?.data?.category || data || null;
   },
 
   async update(idOrSlug, payload, lang = DEFAULT_LANG) {
@@ -57,7 +57,7 @@ export const categoryApi = {
       body: form,
       auth: true,
     });
-    return data.category;
+    return data?.category || data?.data?.category || data || null;
   },
 
   async remove(idOrSlug) {

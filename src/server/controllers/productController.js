@@ -72,6 +72,89 @@ function parseBool(v, def = true) {
   return ["1", "true", "yes", "on"].includes(s);
 }
 
+function normKey(value) {
+  if (value === undefined || value === null) return "";
+  return String(value).trim().toLowerCase();
+}
+
+function buildProductComboKey(row = {}) {
+  return `p|${normKey(row.color)}|${normKey(row.size)}|${normKey(
+    row.attributeValue
+  )}`;
+}
+
+function parseStockRows(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    if (!raw.length) return [];
+    if (raw.every((entry) => typeof entry === "object")) return raw;
+    const parsedItems = raw
+      .map((entry) => {
+        if (typeof entry !== "string") return null;
+        try {
+          return JSON.parse(entry);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+    return parsedItems.flat();
+  }
+  if (typeof raw === "string") {
+    let current = raw;
+    for (let i = 0; i < 2; i += 1) {
+      try {
+        const parsed = JSON.parse(current);
+        if (Array.isArray(parsed)) return parsed;
+        if (typeof parsed === "string") {
+          current = parsed;
+          continue;
+        }
+        return [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }
+  return [];
+}
+
+async function syncProductStockRows(productId, rawRows) {
+  const rows = parseStockRows(rawRows);
+  if (!rows.length) return { ok: true, count: 0 };
+
+  const seen = new Set();
+  const docs = [];
+  rows.forEach((row) => {
+    const qtyValue = row?.qtyOnHand ?? row?.stock ?? row?.quantity ?? 0;
+    const doc = {
+      ownerModel: "Product",
+      owner: productId,
+      color: row?.color ?? null,
+      size: row?.size ?? null,
+      attributeValue: row?.attributeValue ?? null,
+      qtyOnHand: Math.max(0, Math.floor(Number(qtyValue) || 0)),
+      sku: row?.sku ? String(row.sku).trim().toUpperCase() : undefined,
+      isActive: row?.isActive === undefined ? true : !!row.isActive,
+      note: row?.note ?? "",
+    };
+    const comboKey = buildProductComboKey(doc);
+    if (!comboKey || seen.has(comboKey)) return;
+    seen.add(comboKey);
+    docs.push({ ...doc, comboKey });
+  });
+
+  if (!docs.length) return { ok: true, count: 0 };
+
+  await StockItem.deleteMany({ ownerModel: "Product", owner: productId });
+  const inserted = await StockItem.insertMany(docs, { ordered: false });
+  return {
+    ok: true,
+    count: Array.isArray(inserted) ? inserted.length : 0,
+  };
+}
+
 async function resolveCategory(category) {
   if (!category) return null;
   const filter = isId(category) ? { _id: category } : { slug: category };
@@ -230,6 +313,17 @@ async function buildProductDiscountMap(products = []) {
 
 function presentProduct(doc, lang, discount = null) {
   const localized = resolveTranslation(doc, lang);
+  const resolvedId =
+    localized?.id ||
+    localized?._id ||
+    doc?._id?.toString?.() ||
+    doc?.id?.toString?.() ||
+    null;
+  if (resolvedId) {
+    const idStr = String(resolvedId);
+    localized.id = idStr;
+    localized._id = idStr;
+  }
   attachDiscountMeta(localized, doc, discount);
   if (doc.category && typeof doc.category === "object") {
     localized.category = resolveTranslation(doc.category, lang);
@@ -355,6 +449,12 @@ export async function createProduct(req, res) {
     await annotateProductsWithSetUsage([populated]);
     const discountMap = await buildProductDiscountMap([populated]);
     const discount = discountMap.get(resolveDocId(populated)) || null;
+    try {
+      await syncProductStockRows(doc._id, req.body?.stockRows);
+      await hydrateProductsWithInventory([populated]);
+    } catch (err) {
+      console.warn("Stock sync failed (createProduct):", err?.message || err);
+    }
     res.status(201).json({
       product: presentProduct(populated, lang, discount),
     });
@@ -633,6 +733,12 @@ export async function updateProduct(req, res) {
     await annotateProductsWithSetUsage([populated]);
     const discountMap = await buildProductDiscountMap([populated]);
     const discount = discountMap.get(resolveDocId(populated)) || null;
+    try {
+      await syncProductStockRows(product._id, req.body?.stockRows);
+      await hydrateProductsWithInventory([populated]);
+    } catch (err) {
+      console.warn("Stock sync failed (updateProduct):", err?.message || err);
+    }
     res.json({ product: presentProduct(populated, lang, discount) });
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.sku)

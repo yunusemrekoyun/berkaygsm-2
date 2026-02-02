@@ -82,11 +82,11 @@ const AboutTranslationSchema = new mongoose.Schema(
 const AboutSchema = new mongoose.Schema(
   {
     key: { type: String, unique: true, default: "about", index: true },
-    heroTitle: { type: String, default: "About Evim & Stil" },
+    heroTitle: { type: String, default: "About Berkay GSM" },
     heroSubtitle: {
       type: String,
       default:
-        "Discover the story behind our passion for bringing elegant lingerie and home textiles to the heart of the community—crafted with care, rooted in quality, and designed to feel like home.",
+        "Discover the story behind our passion for dependable phone accessories—crafted for protection, power, and everyday use.",
     },
     heroImage: { type: ImageSchema, default: null },
     leftImage: { type: ImageSchema, default: null },
@@ -95,56 +95,56 @@ const AboutSchema = new mongoose.Schema(
       default: [
         {
           title: "Our Story",
-          text: "Evim & Stil was founded with a simple idea: elevate everyday life with beautifully-made essentials. From a tiny studio to a multi-location boutique, our journey has always been guided by craftsmanship, comfort and kindness.",
+          text: "Berkay GSMstarted with a simple idea: make reliable, stylish phone gear easy to find. From a small workshop to a growing storefront, we have always focused on quality, fit, and customer care.",
         },
         {
           title: "Our Vision",
-          text: "To be the most trusted destination for premium lingerie and home textiles—blending European finesse with Turkish craftsmanship, and shaping serene, elegant spaces for modern living.",
+          text: "To be the most trusted destination for premium mobile accessories—blending durable materials with modern design and fair pricing.",
         },
         {
           title: "Our Values",
-          text: "Quality without compromise, timeless design over fast trends, and an experience that feels personal. We work with responsible mills and long-term partners to ensure durability, touch, and fit you can rely on.",
+          text: "Safety-certified charging, device-first fit, and long-lasting materials. We work with trusted partners to ensure performance and compatibility you can rely on.",
         },
       ],
     },
     stats: {
       type: [StatSchema],
       default: [
-        { value: "14+", label: "Years of Craft" },
-        { value: "120K+", label: "Happy Customers" },
-        { value: "6", label: "Stores & Studios" },
-        { value: "80%", label: "Eco Fabrics" },
+        { value: "10K+", label: "Devices Protected" },
+        { value: "45K+", label: "Happy Customers" },
+        { value: "5", label: "Service Centers" },
+        { value: "98%", label: "Compatibility Success" },
       ],
     },
     materialsTitle: {
       type: String,
-      default: "Materials & Responsibility",
+      default: "Materials & Safety",
     },
     materialsText: {
       type: String,
       default:
-        "We select breathable cottons, silky satins and durable blends from audited suppliers. Over 80% of our fabric range is OEKO-TEX® or equivalent certified. Packaging is plastic-light, and most of our suppliers are within regional logistics corridors to reduce transport.",
+        "We select impact-resistant polymers, tempered glass, and certified charging components from audited suppliers. Packaging is minimal, and we prioritize partners with responsible manufacturing practices.",
     },
     materialsBullets: {
       type: [String],
       default: [
-        "• OEKO-TEX® certified dye houses",
-        "• Responsible water & energy use",
-        "• Long-lasting stitch & finish checks",
+        "• Drop-tested case materials",
+        "• Certified charging standards",
+        "• Scratch-resistant glass protection",
         "• Reusable & recyclable packaging",
       ],
     },
     materialsImage: { type: ImageSchema, default: null },
-    ctaTitle: { type: String, default: "Visit Our Boutique in Berlin" },
+    ctaTitle: { type: String, default: "Visit Our Store in Berlin" },
     ctaSubtitle: {
       type: String,
       default:
-        "Experience the textures in person and let our stylists help you build the perfect trousseau—bridal sets, bedding packages and more.",
+        "Try cases, grips, and chargers in person and let our team help you find the right fit for your device.",
     },
     ctas: {
       type: [CtaSchema],
       default: [
-        { text: "Explore Packages", to: "/sets", variant: "primary" },
+        { text: "Explore Accessories", to: "/shop", variant: "primary" },
         { text: "Contact Us", to: "/contact", variant: "secondary" },
       ],
     },

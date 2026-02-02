@@ -7,7 +7,9 @@ export default function Footer() {
   const t = useStaticTranslation();
   const links = t("footer.links") || {};
   const year = new Date().getFullYear();
-  const copy = t("footer.copyright", { year }) || `© ${year} Ayyıldız İç Giyim.`;
+  const copy =
+    t("footer.copyright", { year }) ||
+    `© ${year} Berkay GSM.`;
 
   return (
     <footer className="border-t border-border bg-white">
@@ -16,7 +18,7 @@ export default function Footer() {
         <div className="flex flex-wrap items-center justify-center gap-4 pb-6 text-sm text-secondary">
           <span className="flex min-w-[140px] items-center justify-center gap-2 rounded-full bg-surface-light px-4 py-2 text-accent">
             <Mail className="h-4 w-4" />
-            <span className="font-medium">{links.email || "hello@ayyildiz.com"}</span>
+            <span className="font-medium">{links.email || "hello@berkaygsm.com"}</span>
           </span>
           <span className="flex min-w-[140px] items-center justify-center gap-2 rounded-full bg-surface-light px-4 py-2 text-accent">
             <Phone className="h-4 w-4" />

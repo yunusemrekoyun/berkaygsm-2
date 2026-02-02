@@ -55,23 +55,23 @@ const STATIC_CONTENT = {
         privacy: "Privacy Policy",
         terms: "Terms of Service",
       },
-      copyright: "© {year} Ayyıldız İç Giyim. All rights reserved.",
+      copyright: "© {year} Berkay GSM. All rights reserved.",
     },
     homePage: {
       heroFallback: [
         {
           id: "f1",
-          title: "Celebrate Your Moments in Style",
-          subtitle: "Discover our exclusive collection.",
-          buttonText: "Shop Now",
+          title: "Power up your everyday tech",
+          subtitle: "Cases, chargers, screen protection, and more.",
+          buttonText: "Shop accessories",
           image: { url: "/hero-1.jpg" },
           video: null,
           computedLink: "/shop",
         },
         {
           id: "f2",
-          title: "Elegance for Every Day",
-          subtitle: "Timeless pieces for your wardrobe.",
+          title: "Protection that looks good",
+          subtitle: "Slim cases and grips for every device.",
           buttonText: "Explore",
           image: { url: "/hero-2.jpg" },
           video: null,
@@ -81,32 +81,32 @@ const STATIC_CONTENT = {
       fallbackCampaigns: [
         {
           image: "/cmp-1.jpg",
-          title: "Autumn Bedding Event",
-          subtitle: "Up to 30% off on premium duvet & sheet sets.",
+          title: "Fast Charging Week",
+          subtitle: "Save on USB-C fast chargers and cables.",
           badge: "Limited",
-          to: "/campaign/autumn-bedding",
+          to: "/shop?sale=true",
           variant: "big",
         },
         {
           image: "/cmp-2.jpg",
-          title: "Bridal Lingerie Picks",
-          subtitle: "Elegant designs for your special day.",
+          title: "New Case Drop",
+          subtitle: "Fresh colors for iPhone & Galaxy.",
           badge: "Top Picks",
-          to: "/campaign/bridal-lingerie",
+          to: "/shop",
           variant: "wide",
         },
         {
           image: "/cmp-3.jpg",
-          title: "Home Towels Bundle",
-          subtitle: "Egyptian cotton towels bundle prices.",
-          to: "/campaign/towels-bundle",
+          title: "Screen Protection Bundle",
+          subtitle: "Glass + alignment kit deals.",
+          to: "/shop",
           variant: "small",
         },
         {
           image: "/cmp-4.jpg",
-          title: "Trousseau Essentials",
-          subtitle: "Complete wedding trousseau sets.",
-          to: "/campaign/trousseau-essentials",
+          title: "Travel Power Kit",
+          subtitle: "Compact chargers and power banks.",
+          to: "/shop",
           variant: "small",
         },
       ],
@@ -114,21 +114,21 @@ const STATIC_CONTENT = {
         {
           name: "Ayla",
           quote:
-            "I absolutely love the quality and elegance of the lingerie I purchased. It’s perfect for my special day!",
+            "The MagSafe case feels premium and fits perfectly.",
           rating: 5,
           avatar: "/c1.png",
         },
         {
           name: "Elif",
           quote:
-            "The home textiles are so soft and luxurious. They add a touch of elegance to my bedroom.",
+            "The 30W charger is tiny but super fast.",
           rating: 5,
           avatar: "/c2.png",
         },
         {
           name: "Fatma",
           quote:
-            "The wedding set is stunning! Exactly what I was looking for and the quality is exceptional.",
+            "Screen protector went on flawlessly—no bubbles.",
           rating: 5,
           avatar: "/c3.png",
         },
@@ -136,8 +136,8 @@ const STATIC_CONTENT = {
       sections: {
         newArrivalsTitle: "New Arrivals",
         bestsellersTitle: "Bestsellers",
-        setsTitle: "Trousseau Packages",
-        setsSubtitle: "Curated collections for your perfect wedding trousseau",
+        setsTitle: "Accessory Bundles",
+        setsSubtitle: "Curated kits for protection, power, and audio",
         untitledSet: "Untitled Set",
         includesMore: "+{count}",
       },
@@ -148,14 +148,14 @@ const STATIC_CONTENT = {
     homeSets: {
       tabsAll: "All",
       viewAll: "View all",
-      viewAllPackages: "View all packages",
-      noResults: "No packages match this filter.",
+      viewAllPackages: "View all bundles",
+      noResults: "No bundles match this filter.",
     },
     homeContact: {
       title: "Visit Our Store",
       description:
-        "Experience our collections in person at our flagship store in Berlin. Our friendly staff will be delighted to assist you in finding the perfect pieces for your trousseau.",
-      storeName: "Evim & Stil Berlin",
+        "Visit our store to try cases, grips, and chargers in person. We will help you find the right fit for your device.",
+      storeName: "Berkay GSM",
       address: "Kurfürstendamm 123, 10711 Berlin, Germany",
       hoursLabel: "Opening Hours:",
       hours: [
@@ -323,11 +323,11 @@ const STATIC_CONTENT = {
     shopPage: {
       title: "Shop Our Collection",
       subtitle:
-        "Browse curated products uploaded via the admin panel. Filter by category, colour, size and price to find your perfect match.",
+        "Browse curated accessories uploaded via the admin panel. Filter by category, model, color, and price to find your perfect match.",
       noProducts: "No products found for selected filters.",
       matchingSets: {
-        title: "Matching Sets",
-        subtitle: "Results for “{query}” across trousseau packages.",
+        title: "Matching Bundles",
+        subtitle: "Results for “{query}” across accessory bundles.",
         empty: "No sets match this search.",
       },
       campaignBanner: {
@@ -341,7 +341,7 @@ const STATIC_CONTENT = {
       reset: "Reset",
       categories: "Categories",
       allProducts: "All products",
-      size: "Size",
+      size: "Model",
       color: "Color",
       price: "Price Range",
       expand: "Expand",
@@ -352,13 +352,13 @@ const STATIC_CONTENT = {
       quickCategories: "Quick categories",
     },
     setsPage: {
-      breadcrumb: "Trousseau Packages",
-      title: "Trousseau Packages",
+      breadcrumb: "Accessory Bundles",
+      title: "Accessory Bundles",
       subtitle:
-        "Curated collections for your perfect wedding trousseau — discover elegant bridal, bedroom and bathroom packages crafted to match your style.",
+        "Curated bundles for protection, power, and everyday carry.",
       listTitle: "Explore the Collections",
       listSubtitle:
-        "Use the filters to browse our Bridal, Bedroom and Bathroom packages.",
+        "Use the filters to browse protection, charging, and audio bundles.",
       tabsAll: "All",
       campaignBanner: {
         prefix: "Showing campaign",
@@ -366,9 +366,9 @@ const STATIC_CONTENT = {
         errorAction: "Clear campaign filter",
       },
       cta: {
-        heading: "Need help choosing a set?",
-        text: "Our stylists can help you build the perfect trousseau package.",
-        button: "Talk to a Stylist",
+        heading: "Need help choosing a bundle?",
+        text: "Our team can help you match the right accessories.",
+        button: "Talk to an Expert",
       },
       cards: {
         includes: "Includes:",
@@ -481,7 +481,7 @@ const STATIC_CONTENT = {
     cart: {
       emptyTitle: "Your cart is empty",
       emptySubtitle:
-        "Discover our latest arrivals and curated trousseau packages.",
+        "Discover new cases, chargers, and accessory bundles.",
       continueShopping: "Continue Shopping",
       heading: "Shopping Cart",
       couponPlaceholder: "Enter coupon code",
@@ -505,7 +505,7 @@ const STATIC_CONTENT = {
       selectionsLabel: "Selections",
       options: {
         color: "Color",
-        size: "Size",
+        size: "Model",
         option: "Option",
       },
       remove: "Remove",
@@ -564,23 +564,23 @@ const STATIC_CONTENT = {
         privacy: "Gizlilik Politikası",
         terms: "Kullanım Koşulları",
       },
-      copyright: "© {year} Ayyıldız İç Giyim. Tüm hakları saklıdır.",
+      copyright: "© {year} Berkay GSM. Tüm hakları saklıdır.",
     },
     homePage: {
       heroFallback: [
         {
           id: "f1",
-          title: "Anlarınızı Şıklıkla Kutlayın",
-          subtitle: "Özel koleksiyonumuzu keşfedin.",
-          buttonText: "Alışverişe Başla",
+          title: "Günlük teknolojine güç kat",
+          subtitle: "Kılıf, şarj cihazı, ekran koruyucu ve daha fazlası.",
+          buttonText: "Aksesuarları keşfet",
           image: { url: "/hero-1.jpg" },
           video: null,
           computedLink: "/shop",
         },
         {
           id: "f2",
-          title: "Her Gün İçin Zarafet",
-          subtitle: "Gardırobunuz için zamansız parçalar.",
+          title: "Her cihaz için şık koruma",
+          subtitle: "İnce kılıflar, tutacaklar ve standlar.",
           buttonText: "Keşfet",
           image: { url: "/hero-2.jpg" },
           video: null,
@@ -590,32 +590,32 @@ const STATIC_CONTENT = {
       fallbackCampaigns: [
         {
           image: "/cmp-1.jpg",
-          title: "Sonbahar Nevresim Etkinliği",
-          subtitle: "Premium nevresim ve çarşaf setlerinde %30’a varan indirim.",
+          title: "Hızlı Şarj Haftası",
+          subtitle: "USB-C hızlı şarj ve kablolarda fırsatlar.",
           badge: "Sınırlı",
-          to: "/campaign/autumn-bedding",
+          to: "/shop?sale=true",
           variant: "big",
         },
         {
           image: "/cmp-2.jpg",
-          title: "Gelin İç Giyim Seçkisi",
-          subtitle: "Özel gününüz için zarif tasarımlar.",
+          title: "Yeni Kılıf Koleksiyonu",
+          subtitle: "iPhone ve Galaxy için yeni renkler.",
           badge: "Favoriler",
-          to: "/campaign/bridal-lingerie",
+          to: "/shop",
           variant: "wide",
         },
         {
           image: "/cmp-3.jpg",
-          title: "Havlu Paketleri",
-          subtitle: "Mısır pamuğu havlularda set fiyatları.",
-          to: "/campaign/towels-bundle",
+          title: "Ekran Koruma Paketi",
+          subtitle: "Cam + hizalama kiti fırsatları.",
+          to: "/shop",
           variant: "small",
         },
         {
           image: "/cmp-4.jpg",
-          title: "Çeyiz Temel Parçaları",
-          subtitle: "Tamamlayıcı çeyiz setleri.",
-          to: "/campaign/trousseau-essentials",
+          title: "Seyahat Güç Kiti",
+          subtitle: "Kompakt şarj ve powerbank seçenekleri.",
+          to: "/shop",
           variant: "small",
         },
       ],
@@ -623,21 +623,21 @@ const STATIC_CONTENT = {
         {
           name: "Ayla",
           quote:
-            "Satın aldığım iç giyim ürünlerinin kalitesine ve zarafetine bayıldım. Özel günüm için mükemmel!",
+            "MagSafe kılıf tam oturdu, kalite harika.",
           rating: 5,
           avatar: "/c1.png",
         },
         {
           name: "Elif",
           quote:
-            "Ev tekstilleri yumuşacık ve çok lüks. Yatak odamı gerçekten şık gösteriyor.",
+            "30W adaptör çok küçük ama inanılmaz hızlı.",
           rating: 5,
           avatar: "/c2.png",
         },
         {
           name: "Fatma",
           quote:
-            "Gelin seti harika! Aradığım tam olarak buydu ve kalitesi kusursuz.",
+            "Ekran koruyucu baloncuksuz şekilde yapıştı.",
           rating: 5,
           avatar: "/c3.png",
         },
@@ -645,8 +645,8 @@ const STATIC_CONTENT = {
       sections: {
         newArrivalsTitle: "Yeni Gelenler",
         bestsellersTitle: "En Çok Satanlar",
-        setsTitle: "Çeyiz Paketleri",
-        setsSubtitle: "Mükemmel çeyiziniz için küratörlü koleksiyonlar",
+        setsTitle: "Aksesuar Paketleri",
+        setsSubtitle: "Koruma, güç ve ses için küratörlü kitler",
         untitledSet: "İsimsiz Set",
         includesMore: "+{count}",
       },
@@ -663,8 +663,8 @@ const STATIC_CONTENT = {
     homeContact: {
       title: "Mağazamızı Ziyaret Edin",
       description:
-        "Berlin’deki amiral mağazamızda koleksiyonlarımızı yakından keşfedin. Ekibimiz çeyiziniz için en uygun parçaları bulmanızda size yardımcı olmaktan memnuniyet duyar.",
-      storeName: "Evim & Stil Berlin",
+        "Mağazamızda kılıf, şarj ve aksesuarları deneyin. Ekibimiz cihazınıza en uygun modeli bulmanızda yardımcı olur.",
+      storeName: "Berkay GSM",
       address: "Kurfürstendamm 123, 10711 Berlin, Almanya",
       hoursLabel: "Çalışma Saatleri:",
       hours: [
@@ -832,12 +832,12 @@ const STATIC_CONTENT = {
     shopPage: {
       title: "Koleksiyonumuzu Keşfedin",
       subtitle:
-        "Admin panelinden yüklenen küratörlü ürünleri inceleyin. Kategori, renk, beden ve fiyata göre filtreleyerek sizin için ideal parçayı bulun.",
+        "Admin panelinden yüklenen ürünleri inceleyin. Kategori, renk, model ve fiyata göre filtreleyerek sizin için ideal parçayı bulun.",
       noProducts: "Seçili filtrelere uygun ürün bulunamadı.",
       matchingSets: {
-        title: "Eşleşen Setler",
-        subtitle: "“{query}” için çeyiz paketleri.",
-        empty: "Bu aramaya uygun set yok.",
+        title: "Eşleşen Paketler",
+        subtitle: "“{query}” için aksesuar paketleri.",
+        empty: "Bu aramaya uygun paket yok.",
       },
       campaignBanner: {
         prefix: "Gösterilen kampanya",
@@ -850,7 +850,7 @@ const STATIC_CONTENT = {
       reset: "Sıfırla",
       categories: "Kategoriler",
       allProducts: "Tüm ürünler",
-      size: "Beden",
+      size: "Model",
       color: "Renk",
       price: "Fiyat Aralığı",
       expand: "Aç",
@@ -861,12 +861,12 @@ const STATIC_CONTENT = {
       quickCategories: "Hızlı kategoriler",
     },
     setsPage: {
-      breadcrumb: "Çeyiz Paketleri",
-      title: "Çeyiz Paketleri",
+      breadcrumb: "Aksesuar Paketleri",
+      title: "Aksesuar Paketleri",
       subtitle:
-        "Tarzınıza uygun gelin, yatak odası ve banyo paketlerini keşfedin.",
+        "Koruma, güç ve günlük kullanım için küratörlü paketleri keşfedin.",
       listTitle: "Koleksiyonları keşfedin",
-      listSubtitle: "Gelin, yatak odası ve banyo paketlerini filtreleyerek inceleyin.",
+      listSubtitle: "Koruma, şarj ve ses paketlerini filtreleyerek inceleyin.",
       tabsAll: "Tümü",
       campaignBanner: {
         prefix: "Gösterilen kampanya",
@@ -875,8 +875,8 @@ const STATIC_CONTENT = {
       },
       cta: {
         heading: "Set seçerken yardıma mı ihtiyacınız var?",
-        text: "Stylist ekibimiz mükemmel çeyiz paketini oluşturmanıza yardımcı olur.",
-        button: "Stylist ile görüş",
+        text: "Ekibimiz cihazınıza uygun aksesuarları eşleştirmenize yardımcı olur.",
+        button: "Uzmanla görüş",
       },
       cards: {
         includes: "İçindekiler:",
@@ -1070,7 +1070,7 @@ const STATIC_CONTENT = {
         privacy: "Datenschutz",
         terms: "AGB",
       },
-      copyright: "© {year} Ayyıldız İç Giyim. Alle Rechte vorbehalten.",
+      copyright: "© {year} Berkay GSM. Alle Rechte vorbehalten.",
     },
     homePage: {
       heroFallback: [

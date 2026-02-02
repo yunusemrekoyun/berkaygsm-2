@@ -196,7 +196,7 @@ function SidebarHeader({ collapsed, onToggle }) {
         {!collapsed && (
           <div className="flex flex-col leading-tight">
             <span className="text-base font-semibold tracking-tight">
-              Ayyıldız
+              Berkay GSM
             </span>
             <span className="text-xs text-white/70">Yönetim Konsolu</span>
           </div>

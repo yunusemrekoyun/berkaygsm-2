@@ -25,9 +25,9 @@ export async function requireAuth(req, res, next) {
     }
 
     req.userId = user._id.toString();
-    req.userRole = payload.role || user.role;
+    req.userRole = user.role || payload.role;
     req.user = user;
-    next();
+    return next();
   } catch {
     return res.status(401).json({ message: "Invalid or expired token" });
   }

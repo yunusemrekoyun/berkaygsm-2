@@ -25,14 +25,14 @@ export const themeApi = {
       });
       return (
         data?.theme || {
-          activeKey: "rosewood",
+          activeKey: "ocean",
           store: {},
           admin: {},
         }
       );
     } catch (err) {
       console.error("themeApi.get error:", err);
-      return { activeKey: "rosewood", store: {}, admin: {} };
+      return { activeKey: "ocean", store: {}, admin: {} };
     }
   },
 
@@ -50,7 +50,7 @@ export const themeApi = {
       });
       return (
         data?.theme || {
-          activeKey: "rosewood",
+          activeKey: "ocean",
           store: {},
           admin: {},
           presets: [],
@@ -59,7 +59,7 @@ export const themeApi = {
     } catch (err) {
       console.error("themeApi.manage error:", err);
       return {
-        activeKey: "rosewood",
+        activeKey: "ocean",
         store: {},
         admin: {},
         presets: [],

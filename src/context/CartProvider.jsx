@@ -62,7 +62,8 @@ function normalizeItem(raw) {
 export default function CartProvider({ children }) {
   const [items, setItems] = useState(() => {
     try {
-      const stored = localStorage.getItem("cart");
+      if (typeof window === "undefined") return [];
+      const stored = window.localStorage.getItem("cart");
       const parsed = stored ? JSON.parse(stored) : [];
       if (!Array.isArray(parsed)) return [];
       return parsed
@@ -91,7 +92,8 @@ export default function CartProvider({ children }) {
   const [couponMessage, setCouponMessage] = useState(null);
 
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(items));
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("cart", JSON.stringify(items));
   }, [items]);
 
   useEffect(() => {

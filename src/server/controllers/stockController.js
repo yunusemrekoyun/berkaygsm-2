@@ -28,6 +28,28 @@ function norm(v) {
   const s = String(v).trim();
   return s || null;
 }
+function normKey(v) {
+  if (v == null) return "";
+  return String(v).trim().toLowerCase();
+}
+function buildComboKeyForProductRow(row) {
+  return `p|${normKey(row.color)}|${normKey(row.size)}|${normKey(
+    row.attributeValue
+  )}`;
+}
+function buildComboKeyForSetRow(row) {
+  const parts = (row.components || []).map((c) => {
+    const pid = c.product?.toString?.() || String(c.product || "");
+    return [
+      pid,
+      Number.isFinite(c.quantity) && c.quantity > 0 ? c.quantity : 1,
+      normKey(c.color),
+      normKey(c.size),
+      normKey(c.attributeValue),
+    ].join(":");
+  });
+  return `s|${parts.join("|")}`;
+}
 function normalizeComponents(list) {
   const arr = Array.isArray(list) ? list : [];
   return arr
@@ -241,20 +263,40 @@ export async function syncOwnerStocks(req, res) {
 
     await StockItem.deleteMany({ ownerModel, owner });
 
-    const docs = rows.map((r) => ({
-      ownerModel,
-      owner,
-      color: ownerModel === "Product" ? norm(r.color) : null,
-      size: ownerModel === "Product" ? norm(r.size) : null,
-      attributeValue: ownerModel === "Product" ? norm(r.attributeValue) : null,
-      components: ownerModel === "Set" ? normalizeComponents(r.components) : [],
-      qtyOnHand: Math.max(0, Math.floor(Number(r.qtyOnHand) || 0)),
-      sku: r.sku ? String(r.sku).trim().toUpperCase() : undefined,
-      isActive: r.isActive === undefined ? true : !!r.isActive,
-      note: r.note ?? "",
-      // comboKey & sku pre-hooks
-    }));
-    const inserted = await StockItem.create(docs);
+    const seen = new Set();
+    const docs = [];
+    rows.forEach((r) => {
+      const doc = {
+        ownerModel,
+        owner,
+        color: ownerModel === "Product" ? norm(r.color) : null,
+        size: ownerModel === "Product" ? norm(r.size) : null,
+        attributeValue:
+          ownerModel === "Product" ? norm(r.attributeValue) : null,
+        components:
+          ownerModel === "Set" ? normalizeComponents(r.components) : [],
+        qtyOnHand: Math.max(0, Math.floor(Number(r.qtyOnHand) || 0)),
+        sku: r.sku ? String(r.sku).trim().toUpperCase() : undefined,
+        isActive: r.isActive === undefined ? true : !!r.isActive,
+        note: r.note ?? "",
+      };
+
+      if (ownerModel === "Set" && doc.components.length === 0) return;
+
+      const comboKey =
+        ownerModel === "Set"
+          ? buildComboKeyForSetRow(doc)
+          : buildComboKeyForProductRow(doc);
+      if (!comboKey || seen.has(comboKey)) return;
+      seen.add(comboKey);
+      docs.push({ ...doc, comboKey });
+    });
+
+    if (!docs.length) {
+      return res.json({ ok: true, count: 0 });
+    }
+
+    const inserted = await StockItem.insertMany(docs, { ordered: false });
     res.json({
       ok: true,
       count: Array.isArray(inserted) ? inserted.length : 0,

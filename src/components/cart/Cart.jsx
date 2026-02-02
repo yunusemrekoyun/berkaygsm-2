@@ -66,7 +66,7 @@ export default function Cart() {
         </h2>
         <p className="mt-2 text-secondary">
           {copy.emptySubtitle ||
-            "Discover our latest arrivals and curated trousseau packages."}
+            "Discover new cases, chargers, and accessory bundles."}
         </p>
         <a
           href="/shop"

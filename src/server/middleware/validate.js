@@ -5,7 +5,7 @@ export function validateBody(schema) {
     try {
       const parsed = schema.parse(req.body ?? {});
       req.body = parsed;
-      next();
+      return next();
     } catch (error) {
       if (error instanceof ZodError) {
         return res.status(400).json({

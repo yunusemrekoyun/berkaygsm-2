@@ -15,7 +15,14 @@ export default function AuthPage({ initialView = "register", onAuthSuccess }) {
   const redirectTarget = useMemo(() => {
     const sp = new URLSearchParams(location.search);
     const r = sp.get("redirect");
-    return r && r.startsWith("/") ? r : null;
+    if (!r) return null;
+    let decoded = r;
+    try {
+      decoded = decodeURIComponent(r);
+    } catch {
+      decoded = r;
+    }
+    return decoded && decoded.startsWith("/") ? decoded : null;
   }, [location.search]);
 
   const handleRegister = async (vals) => {

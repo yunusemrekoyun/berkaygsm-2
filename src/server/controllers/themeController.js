@@ -19,7 +19,7 @@ export async function getPublicTheme(req, res) {
     if (!doc) {
       return res.json({
         theme: {
-          activeKey: "rosewood",
+          activeKey: "ocean",
           store: {},
           admin: {},
         },
@@ -47,7 +47,7 @@ export async function getManageTheme(req, res) {
     if (!doc) {
       return res.json({
         theme: {
-          activeKey: "rosewood",
+          activeKey: "ocean",
           store: {},
           admin: {},
           presets: [],

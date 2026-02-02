@@ -184,9 +184,15 @@ export default function AdminStocks() {
               {items.map((it) => {
                 const model = tab === "products" ? "Product" : "Set";
                 const name = it?.name || it?.title || it?.slug || it?._id;
+                const ownerId =
+                  it?._id ||
+                  it?.id ||
+                  it?.productId ||
+                  it?.setId ||
+                  null;
                 return (
                   <tr
-                    key={it._id}
+                    key={ownerId || it._id || it.slug}
                     className="border-t"
                     style={{ borderColor: "var(--color-border-admin)" }}
                   >
@@ -229,7 +235,8 @@ export default function AdminStocks() {
                     <td className="px-4 py-3 text-left md:text-right" data-label="Stok">
                       <div className="mobile-full flex flex-col gap-2 md:flex-row md:justify-end">
                         <button
-                          onClick={() => openPanel(model, it._id, name)}
+                          onClick={() => openPanel(model, ownerId, name)}
+                          disabled={!ownerId}
                           className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium shadow-sm md:w-auto"
                           style={{
                             background: "var(--color-accent)",

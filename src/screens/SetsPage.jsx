@@ -132,7 +132,7 @@ export default function SetsPage() {
           <BreadCrumb
             items={[
               { label: breadcrumbs.home || "Home", to: "/" },
-              { label: setsCopy.breadcrumb || "Trousseau Packages" },
+              { label: setsCopy.breadcrumb || "Accessory Bundles" },
             ]}
           />
           {/* <div className="mt-4 text-center">
@@ -141,7 +141,7 @@ export default function SetsPage() {
             </h1>
             <p className="mx-auto mt-2 max-w-2xl text-secondary">
               {setsCopy.subtitle ||
-                "Curated collections for your perfect wedding trousseau — discover elegant bridal, bedroom and bathroom packages crafted to match your style."}
+                "Curated bundles for protection, power, and everyday carry — built to match your device and style."}
             </p>
           </div> */}
         </div>
@@ -184,7 +184,7 @@ export default function SetsPage() {
       )}
 
       <SetsSets
-        title={setsCopy.listTitle || setsCopy.title || "Trousseau Packages"}
+        title={setsCopy.listTitle || setsCopy.title || "Accessory Bundles"}
         subtitle={setsCopy.listSubtitle || setsCopy.subtitle}
         tabs={tabs}
         items={items}
@@ -197,17 +197,17 @@ export default function SetsPage() {
       <section className="mx-auto mb-12 max-w-[1400px] px-4 sm:px-6">
         <div className="rounded-xl border border-border bg-contact-bg p-6 text-center">
           <h3 className="text-xl font-semibold text-primary">
-            {ctaCopy.heading || "Need help choosing a set?"}
+            {ctaCopy.heading || "Need help choosing a bundle?"}
           </h3>
           <p className="mt-1 text-secondary">
-            {ctaCopy.text || "Our stylists can help you build the perfect trousseau package."}
+            {ctaCopy.text || "Our team can help you match the right accessories."}
           </p>
           <div className="mt-4">
             <a
               href="/contact"
               className="inline-flex items-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
             >
-              {ctaCopy.button || "Talk to a Stylist"}
+              {ctaCopy.button || "Talk to an Expert"}
             </a>
           </div>
         </div>

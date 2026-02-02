@@ -6,7 +6,7 @@ const PAYPAL_API_BASE =
     : "https://api-m.sandbox.paypal.com";
 const PAYPAL_LOCALE = process.env.PAYPAL_LOCALE || "de-DE";
 const PAYPAL_BRAND_NAME =
-  process.env.PAYPAL_BRAND_NAME || "Ayyıldız İç Giyim";
+  process.env.PAYPAL_BRAND_NAME || "Berkay GSM";
 
 class PayPalError extends Error {
   constructor(status, data, message) {

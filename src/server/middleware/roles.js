@@ -3,6 +3,6 @@ export function requireRole(...roles) {
     if (!roles.includes(req.userRole)) {
       return res.status(403).json({ message: "Forbidden" });
     }
-    next();
+    return next();
   };
 }

@@ -17,6 +17,47 @@ const TRANSLATION_LANGS = [
   { value: "de", label: "Deutsch (DE)" },
 ];
 
+const bytesToHex = (data) => {
+  if (!Array.isArray(data)) return "";
+  if (data.length !== 12) return "";
+  return data.map((byte) => byte.toString(16).padStart(2, "0")).join("");
+};
+
+const normalizeObjectIdString = (value) => {
+  if (!value) return "";
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (/^[0-9a-fA-F]{24}$/.test(trimmed)) return trimmed;
+    const match = trimmed.match(/[0-9a-fA-F]{24}/);
+    return match ? match[0] : "";
+  }
+  if (typeof value === "object") {
+    if (typeof value.$oid === "string") return normalizeObjectIdString(value.$oid);
+    if (typeof value.toHexString === "function") return value.toHexString();
+    if (typeof value.id === "string") return normalizeObjectIdString(value.id);
+    const bufferHex = bytesToHex(value?.id?.data || value?.data);
+    if (bufferHex) return bufferHex;
+  }
+  return "";
+};
+
+const extractObjectId = (input) => {
+  if (!input || typeof input !== "object") return "";
+  const candidates = [
+    input.id,
+    input._id,
+    input.productId,
+    input?.product?.id,
+    input?.product?._id,
+    input?.$oid,
+  ];
+  for (const candidate of candidates) {
+    const normalized = normalizeObjectIdString(candidate);
+    if (normalized) return normalized;
+  }
+  return "";
+};
+
 function resolveProductIdentifier(product) {
   if (!product) return null;
 
@@ -46,7 +87,10 @@ function resolveProductIdentifier(product) {
     }
   }
 
-  if (!raw) return null;
+  if (!raw) {
+    const extracted = extractObjectId(product);
+    return extracted || null;
+  }
 
   if (typeof raw === "string") {
     const trimmed = raw.trim();
@@ -71,7 +115,12 @@ function resolveProductIdentifier(product) {
   }
 
   const fallback = String(raw).trim();
-  return fallback && fallback !== "[object Object]" ? fallback : null;
+  if (fallback && fallback !== "[object Object]") {
+    return fallback;
+  }
+
+  const extracted = extractObjectId(raw);
+  return extracted || null;
 }
 
 const resolveProductObjectId = (input) => {
@@ -86,26 +135,80 @@ const resolveProductObjectId = (input) => {
   ];
 
   for (const candidate of candidates) {
-    if (!candidate) continue;
-    let value = candidate;
-    if (typeof value === "object") {
-      if (typeof value._id === "string") value = value._id;
-      else if (typeof value.id === "string") value = value.id;
-      else if (typeof value.toHexString === "function")
-        value = value.toHexString();
-      else if (
-        typeof value.toString === "function" &&
-        value.toString !== Object.prototype.toString
-      ) {
-        const str = value.toString().trim();
-        if (str && str !== "[object Object]") value = str;
-      }
-    }
-    if (typeof value === "string" && /^[0-9a-fA-F]{24}$/.test(value.trim())) {
-      return value.trim();
-    }
+    const normalized = normalizeObjectIdString(candidate);
+    if (normalized) return normalized;
   }
-  return "";
+  return extractObjectId(input) || "";
+};
+
+const normalizeStockLines = (stockLines = []) => {
+  if (!Array.isArray(stockLines)) return [];
+  const map = new Map();
+  stockLines.forEach((line) => {
+    const key = [
+      line?.color ?? "",
+      line?.size ?? "",
+      line?.attributeValue ?? "",
+    ].join("||");
+    if (map.has(key)) return;
+    map.set(key, {
+      color: line?.color ?? null,
+      size: line?.size ?? null,
+      attributeValue: line?.attributeValue ?? null,
+      qtyOnHand: Number(line?.qtyOnHand) || 0,
+      sku: line?.sku,
+      note: line?.note,
+      isActive: line?.isActive,
+    });
+  });
+  return Array.from(map.values());
+};
+
+const syncProductStocks = async (ownerId, stockLines = []) => {
+  if (!ownerId || !Array.isArray(stockLines) || stockLines.length === 0) {
+    return { ok: true, count: 0, recovered: false };
+  }
+
+  const normalized = normalizeStockLines(stockLines);
+  if (!normalized.length) return { ok: true, count: 0, recovered: false };
+
+  await stocksApi
+    .replace({
+      ownerModel: "Product",
+      owner: ownerId,
+      items: normalized,
+    })
+    .catch(() => null);
+
+  const verify = await stocksApi
+    .listByOwner("Product", ownerId)
+    .catch(() => null);
+  const existing = Array.isArray(verify?.items)
+    ? verify.items
+    : Array.isArray(verify?.stocks)
+    ? verify.stocks
+    : [];
+  if (existing.length) {
+    return { ok: true, count: existing.length, recovered: false };
+  }
+
+  for (const line of normalized) {
+    await stocksApi.upsert(
+      stocksApi.helpers.forProduct({
+        owner: ownerId,
+        color: line.color,
+        size: line.size,
+        attributeValue: line.attributeValue,
+        qtyOnHand: Number(line.qtyOnHand || 0),
+        sku: line.sku || undefined,
+        note: line.note || "",
+        isActive: line.isActive !== false,
+        mode: "set",
+      })
+    );
+  }
+
+  return { ok: true, count: normalized.length, recovered: true };
 };
 
 export default function AdminProducts() {
@@ -233,10 +336,7 @@ export default function AdminProducts() {
       const ownerId =
         resolveProductObjectId(full) || resolveProductObjectId(product);
       const stockRes = ownerId
-        ? await stocksApi.list({
-            ownerModel: "Product",
-            owner: ownerId,
-          })
+        ? await stocksApi.listByOwner("Product", ownerId)
         : { items: [] };
       const inventory = (stockRes.items || []).map((it) => ({
         color: it.color ?? null,
@@ -386,6 +486,11 @@ export default function AdminProducts() {
   const handleSaveProduct = async ({ productPayload, stockLines }) => {
     // productPayload: sadece ürün alanları (stok hariç)
     // stockLines: [{ color, size, attributeValue, qtyOnHand }, ...]
+    const payloadWithStocks = {
+      ...productPayload,
+      stockRows: stockLines,
+    };
+    let stockWarning = null;
     if (editingProduct) {
       const identifier = resolveProductIdentifier(editingProduct);
       if (!identifier) {
@@ -398,41 +503,72 @@ export default function AdminProducts() {
 
       const updated = await productApi.update(
         identifier,
-        productPayload,
+        payloadWithStocks,
         BASE_LANG
       );
-
-      if (updated) {
+      if (stockLines?.length) {
         const ownerId =
-          resolveProductObjectId(editingProduct) ||
           resolveProductObjectId(updated) ||
+          resolveProductObjectId(editingProduct) ||
           null;
         if (ownerId) {
-          await stocksApi.replace({
-            ownerModel: "Product",
-            owner: ownerId,
-            items: stockLines,
-          });
+          try {
+            await syncProductStocks(ownerId, stockLines);
+          } catch (err) {
+            stockWarning =
+              extractMessage(err) ||
+              "Stok detayları kaydedilemedi. Lütfen tekrar deneyin.";
+          }
         }
       }
-      setBanner({ variant: "success", message: "Ürün güncellendi" });
+      if (stockWarning) {
+        setBanner({ variant: "warning", message: stockWarning });
+      } else {
+        setBanner({ variant: "success", message: "Ürün güncellendi" });
+      }
       await loadProducts(pagination.page);
       setModalOpen(false);
       setEditingProduct(null);
     } else {
-      const created = await productApi.create(productPayload, BASE_LANG);
+      const created = await productApi.create(payloadWithStocks, BASE_LANG);
+      let resolvedCreated = created;
+
+      if (!resolvedCreated && productPayload?.name) {
+        const searchName = String(productPayload.name).trim();
+        if (searchName) {
+          const list = await productApi
+            .list(
+              {
+                search: searchName,
+                includeHidden: true,
+                limit: 5,
+                page: 1,
+              },
+              BASE_LANG
+            )
+            .catch(() => null);
+          const candidates = list?.products || [];
+          const normalizedSearch = searchName.toLowerCase();
+          const exactMatch = candidates.find(
+            (item) =>
+              String(item?.name || "").trim().toLowerCase() === normalizedSearch
+          );
+          resolvedCreated = exactMatch || candidates[0] || null;
+        }
+      }
+
       // ✅ Cevap şekline göre ID yakala (çeşitli backend varyantlarına dayanıklı)
       const newId =
-        resolveProductObjectId(created) ||
-        resolveProductObjectId(created?.product) ||
+        resolveProductObjectId(resolvedCreated) ||
+        resolveProductObjectId(resolvedCreated?.product) ||
         null;
 
       let ownerId = newId;
       if (!ownerId) {
         const slug =
-          created?.slug ||
-          created?.product?.slug ||
-          created?.data?.slug ||
+          resolvedCreated?.slug ||
+          resolvedCreated?.product?.slug ||
+          resolvedCreated?.data?.slug ||
           null;
         if (slug) {
           const full = await productApi.get(slug, BASE_LANG);
@@ -440,14 +576,55 @@ export default function AdminProducts() {
         }
       }
 
-      if (ownerId && stockLines?.length) {
-        await stocksApi.replace({
-          ownerModel: "Product",
-          owner: ownerId,
-          items: stockLines,
+      if (!ownerId) {
+        const recentList = await productApi
+          .list({ includeHidden: true, limit: 10, page: 1 }, BASE_LANG)
+          .catch(() => null);
+        const recentProducts = recentList?.products || [];
+        const normalizedSearch = productPayload?.name
+          ? String(productPayload.name).trim().toLowerCase()
+          : "";
+
+        const byName = normalizedSearch
+          ? recentProducts.find(
+              (item) =>
+                String(item?.name || "").trim().toLowerCase() ===
+                normalizedSearch
+            )
+          : null;
+
+        const createdAtThreshold = Date.now() - 2 * 60 * 1000;
+        const byRecent = recentProducts.find((item) => {
+          const createdAt = item?.createdAt
+            ? Date.parse(item.createdAt)
+            : NaN;
+          return Number.isFinite(createdAt) && createdAt >= createdAtThreshold;
         });
+
+        const fallback = byName || byRecent || recentProducts[0] || null;
+        ownerId = resolveProductObjectId(fallback);
       }
-      setBanner({ variant: "success", message: "Ürün oluşturuldu" });
+
+      if (stockLines?.length) {
+        if (ownerId) {
+          try {
+            const stockResult = await syncProductStocks(ownerId, stockLines);
+            if (!stockResult?.count) {
+              stockWarning =
+                "Ürün oluşturuldu ancak stok detayları doğrulanamadı.";
+            }
+          } catch (err) {
+            stockWarning =
+              extractMessage(err) ||
+              "Ürün oluşturuldu ancak stok detayları kaydedilemedi.";
+          }
+        }
+      }
+      if (stockWarning) {
+        setBanner({ variant: "warning", message: stockWarning });
+      } else {
+        setBanner({ variant: "success", message: "Ürün oluşturuldu" });
+      }
       await loadProducts(1);
       setModalOpen(false);
       setEditingProduct(null);
