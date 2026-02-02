@@ -1,5 +1,5 @@
-// frontend/src/api/campaigns.js
 import { http, toQueryString } from "./client.js";
+import { uploadAsset, appendAsset } from "./uploads.js";
 import { DEFAULT_LANG } from "../constants/lang.js";
 
 // Sadece ID normalizasyonu için basit helper
@@ -106,7 +106,7 @@ function extractIds(values) {
 }
 
 // multipart/form-data payload üretici
-function buildFormData(
+async function buildFormData(
   {
     name,
     description,
@@ -164,10 +164,9 @@ function buildFormData(
   appendIds("categories", categories);
   appendIds("discounts", discounts);
 
-  if (includeImage && image instanceof File) {
-    form.append("image", image);
-  } else if (includeImage && image && image.originalFile instanceof File) {
-    form.append("image", image.originalFile);
+  if (includeImage && image) {
+    const uploaded = await uploadAsset(image, { scope: "campaigns" });
+    appendAsset(form, "image", uploaded);
   }
 
   return form;
@@ -202,7 +201,7 @@ export const campaignApi = {
   },
 
   async create(payload, lang = DEFAULT_LANG) {
-    const form = buildFormData(payload, { includeImage: true });
+    const form = await buildFormData(payload, { includeImage: true });
     const qs = toQueryString({ lang: lang ?? DEFAULT_LANG });
     const data = await http(`/campaigns${qs}`, {
       method: "POST",
@@ -219,7 +218,7 @@ export const campaignApi = {
         JSON.stringify({ message: "Kampanya kimliği bulunamadı" })
       );
     }
-    const form = buildFormData(payload, {
+    const form = await buildFormData(payload, {
       includeImage: payload.image !== undefined,
     });
     const qs = toQueryString({ lang: lang ?? DEFAULT_LANG });

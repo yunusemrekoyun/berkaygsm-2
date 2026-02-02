@@ -32,7 +32,36 @@ async function parseBody(request, bodyType) {
 
   const contentType = request.headers.get("content-type") || "";
 
-  if (bodyType === "form" || contentType.includes("multipart/form-data")) {
+  if (bodyType === "form") {
+    if (contentType.includes("multipart/form-data")) {
+      const { fields, filesByField } = await parseMultipart(request);
+      return { body: fields, filesByField };
+    }
+    if (contentType.includes("application/json")) {
+      try {
+        const json = await request.json();
+        return { body: json || {}, filesByField: {} };
+      } catch {
+        return { body: {}, filesByField: {} };
+      }
+    }
+    if (contentType.includes("application/x-www-form-urlencoded")) {
+      try {
+        const text = await request.text();
+        const params = new URLSearchParams(text);
+        const body = {};
+        params.forEach((value, key) => {
+          body[key] = value;
+        });
+        return { body, filesByField: {} };
+      } catch {
+        return { body: {}, filesByField: {} };
+      }
+    }
+    return { body: {}, filesByField: {} };
+  }
+
+  if (contentType.includes("multipart/form-data")) {
     const { fields, filesByField } = await parseMultipart(request);
     return { body: fields, filesByField };
   }

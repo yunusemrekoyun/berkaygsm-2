@@ -1,5 +1,5 @@
-// frontend/src/api/heroes.js
 import { http, toQueryString } from "./client.js";
+import { uploadAsset, appendAsset } from "./uploads.js";
 import { DEFAULT_LANG } from "../constants/lang.js";
 
 /* ------------------ ID yardımcıları (Buffer → string) ------------------ */
@@ -206,7 +206,10 @@ export const heroApi = {
     if (Array.isArray(categories) && categories.length) {
       form.append("categories", categories.join(","));
     }
-    if (file) form.append("media", file);
+    if (file) {
+      const uploaded = await uploadAsset(file, { scope: "heroes" });
+      appendAsset(form, "media", uploaded);
+    }
 
     const qs = toQueryString({ lang: lang ?? DEFAULT_LANG });
     const data = await http(`/heroes${qs}`, {
@@ -258,7 +261,10 @@ export const heroApi = {
       form.append("isActive", isActive ? "true" : "false");
     if (sortOrder !== undefined)
       form.append("sortOrder", String(Number(sortOrder) || 0));
-    if (file) form.append("media", file);
+    if (file) {
+      const uploaded = await uploadAsset(file, { scope: "heroes" });
+      appendAsset(form, "media", uploaded);
+    }
     if (removeMedia) form.append("removeMedia", "true");
 
     const qs = toQueryString({ lang: lang ?? DEFAULT_LANG });

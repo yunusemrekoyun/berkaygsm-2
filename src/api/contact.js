@@ -1,4 +1,5 @@
 import { http, toQueryString } from "./client";
+import { uploadAsset } from "./uploads.js";
 import { DEFAULT_LANG } from "../constants/lang.js";
 
 const CONTACT_ENDPOINT = "/contact";
@@ -33,16 +34,9 @@ export const contactMessageApi = {
 // Medya (Cloudinary) basit upload helper'ı
 export const mediaApi = {
   async upload(file) {
-    const form = new FormData();
-    form.append("file", file);
-    const data = await http("/media/upload", {
-      method: "POST",
-      body: form,
-      auth: true,
-      isForm: true,
-    });
-    // beklenen: { url, publicId, width, height, format }
-    return data;
+    const asset = await uploadAsset(file, { scope: "contact" });
+    if (!asset) throw new Error("Upload failed");
+    return asset;
   },
 };
 

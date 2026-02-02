@@ -1,4 +1,5 @@
 import { http, toQueryString } from "./client.js";
+import { uploadAsset } from "./uploads.js";
 
 export const mediaApi = {
   async usage() {
@@ -21,17 +22,20 @@ export const mediaApi = {
     if (!file) {
       throw new Error("File is required");
     }
-    const form = new FormData();
-    form.append("file", file);
-    if (options.folder) form.append("folder", options.folder);
-    if (options.resourceType) {
-      form.append("resourceType", options.resourceType);
+    const folderHint = String(options.folder || "").toLowerCase();
+    const scope =
+      options.scope ||
+      (folderHint.includes("contact")
+        ? "contact"
+        : folderHint.includes("about")
+        ? "about"
+        : folderHint.includes("hero")
+        ? "heroes"
+        : "media");
+    const asset = await uploadAsset(file, { scope });
+    if (!asset) {
+      throw new Error("Upload failed");
     }
-    const data = await http("/media/upload", {
-      method: "POST",
-      body: form,
-      auth: true,
-    });
-    return data.asset;
+    return asset;
   },
 };

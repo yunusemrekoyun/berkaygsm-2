@@ -12,16 +12,9 @@ pnpm-debug.log*
 .env.*.local
 
 # Node.js bağımlılıkları
-backend/node_modules
-frontend/node_modules
 node_modules
 
 # Build çıktıları
-backend/dist
-backend/build
-frontend/dist
-frontend/build
-frontend/public
 .next
 out
 
@@ -56,4 +49,3 @@ pids
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-/frontend/public

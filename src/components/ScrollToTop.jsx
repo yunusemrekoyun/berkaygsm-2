@@ -4,7 +4,7 @@ import { useLocation } from "react-router-dom";
 /**
  * ScrollToTop:
  * Route değiştiğinde sayfayı en üste kaydırır.
- * Global olarak main.jsx’te App’in hemen üstüne yerleştirilmelidir.
+ * Global olarak layout seviyesinde kullanılmalıdır.
  */
 export default function ScrollToTop() {
   const { pathname } = useLocation();

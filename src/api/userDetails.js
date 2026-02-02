@@ -1,4 +1,5 @@
 import { http } from "./client.js";
+import { uploadAsset, appendAsset } from "./uploads.js";
 
 export const userDetailsApi = {
   async getAll() {
@@ -34,7 +35,8 @@ export const userDetailsApi = {
   },
   async uploadAvatar(file) {
     const form = new FormData();
-    form.append("avatar", file);
+    const uploaded = await uploadAsset(file, { scope: "avatars" });
+    appendAsset(form, "avatar", uploaded);
     const data = await http("/user-details/me/avatar", {
       method: "PATCH",
       body: form,

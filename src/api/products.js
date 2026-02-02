@@ -1,4 +1,5 @@
 import { http, toQueryString } from "./client.js";
+import { uploadAssets, appendAssetList } from "./uploads.js";
 import { DEFAULT_LANG } from "../constants/lang.js";
 
 const normalizeIdOrSlug = (value) => {
@@ -123,7 +124,10 @@ export const productApi = {
       form.append("customAttribute", JSON.stringify(payload.customAttribute));
 
     // 🚫 Artık INVENTORY GÖNDERMEYİZ (stoklar ayrı endpoint ile yazılıyor)
-    (payload.images || []).forEach((file) => form.append("images", file));
+    const uploadedImages = await uploadAssets(payload.images || [], {
+      scope: "products",
+    });
+    appendAssetList(form, "images", uploadedImages);
 
     const qs = toQueryString({ lang: lang ?? DEFAULT_LANG });
     const data = await http(`/products${qs}`, {
@@ -171,7 +175,10 @@ export const productApi = {
     if (payload.customAttribute !== undefined)
       form.append("customAttribute", JSON.stringify(payload.customAttribute));
 
-    (payload.images || []).forEach((file) => form.append("images", file));
+    const uploadedImages = await uploadAssets(payload.images || [], {
+      scope: "products",
+    });
+    appendAssetList(form, "images", uploadedImages);
     if (payload.removeImagePublicIds?.length)
       form.append(
         "removeImagePublicIds",
