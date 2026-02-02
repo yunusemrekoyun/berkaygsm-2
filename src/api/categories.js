@@ -1,4 +1,5 @@
 import { http, toQueryString } from "./client.js";
+import { uploadAsset, appendAsset } from "./uploads.js";
 import { DEFAULT_LANG } from "../constants/lang.js";
 
 export const categoryApi = {
@@ -24,7 +25,10 @@ export const categoryApi = {
     const form = new FormData();
     form.append("name", payload.name.trim());
     if (payload.parent) form.append("parent", payload.parent);
-    if (payload.image) form.append("image", payload.image);
+    if (payload.image) {
+      const uploaded = await uploadAsset(payload.image, { scope: "categories" });
+      appendAsset(form, "image", uploaded);
+    }
 
     const qs = toQueryString({ lang: lang ?? DEFAULT_LANG });
     const data = await http(`/categories${qs}`, {
@@ -40,7 +44,10 @@ export const categoryApi = {
     if (payload.name !== undefined) form.append("name", payload.name.trim());
     if (payload.parent !== undefined)
       form.append("parent", payload.parent || "");
-    if (payload.image) form.append("image", payload.image);
+    if (payload.image) {
+      const uploaded = await uploadAsset(payload.image, { scope: "categories" });
+      appendAsset(form, "image", uploaded);
+    }
     if (payload.removeImage !== undefined)
       form.append("removeImage", payload.removeImage ? "true" : "false");
 

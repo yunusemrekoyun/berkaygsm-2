@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { findRoute } from "./apiRoutes.js";
 import { runHandlers } from "./adapter.js";
 import { generalLimiter } from "./rateLimiters.js";
-import { connectDB } from "../../backend/config/db.js";
+import { connectDB } from "./config/db.js";
 
 export async function handleApi(request, context = {}) {
   const paramsSource = context?.params;

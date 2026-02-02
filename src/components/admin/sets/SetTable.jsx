@@ -1,4 +1,3 @@
-// frontend/src/components/admin/sets/SetTable.jsx
 import { useMemo, useState } from "react";
 import { Edit3, Trash2, Search, Languages } from "lucide-react";
 import { getColorInfo } from "../../../utils/colors.js";

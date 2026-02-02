@@ -1,4 +1,3 @@
-// frontend/src/components/admin/common/ColorBadge.jsx
 import { getColorInfo } from "../../../utils/colors.js";
 
 export default function ColorBadge({ value, showLabel = true, className = "" }) {

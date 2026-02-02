@@ -4,7 +4,7 @@ import {
   refresh,
   logout,
   me,
-} from "../../backend/controllers/authController.js";
+} from "./controllers/authController.js";
 import {
   createProduct,
   listProducts,
@@ -12,7 +12,7 @@ import {
   updateProduct,
   deleteProduct,
   listProductSets,
-} from "../../backend/controllers/productController.js";
+} from "./controllers/productController.js";
 import {
   createCategory,
   listCategories,
@@ -20,7 +20,7 @@ import {
   updateCategory,
   deleteCategory,
   getCategoryTree,
-} from "../../backend/controllers/categoryController.js";
+} from "./controllers/categoryController.js";
 import {
   listActiveCampaigns,
   listCampaignsAdmin,
@@ -30,34 +30,34 @@ import {
   reorderCampaigns,
   resolveCampaign,
   getCampaign,
-} from "../../backend/controllers/campaignController.js";
+} from "./controllers/campaignController.js";
 import {
   listDiscounts,
   createDiscount,
   updateDiscount,
   deleteDiscount,
-} from "../../backend/controllers/discountController.js";
+} from "./controllers/discountController.js";
 import {
   listCoupons,
   createCoupon,
   updateCoupon,
   deleteCoupon,
   applyCoupon,
-} from "../../backend/controllers/couponController.js";
+} from "./controllers/couponController.js";
 import {
   listSets,
   createSet,
   getSet,
   updateSet,
   deleteSet,
-} from "../../backend/controllers/setController.js";
+} from "./controllers/setController.js";
 import {
   listUsers,
   getUser,
   updateUser,
   softDeleteUser,
   restoreUser,
-} from "../../backend/controllers/userController.js";
+} from "./controllers/userController.js";
 import {
   getMyDetails,
   updateMyDetails,
@@ -67,7 +67,7 @@ import {
   deleteAddress,
   getFavorites,
   toggleFavorite,
-} from "../../backend/controllers/userDetailsController.js";
+} from "./controllers/userDetailsController.js";
 import {
   createOrder,
   myOrders,
@@ -75,11 +75,11 @@ import {
   listOrders,
   adminGetOrder,
   updateOrderStatus,
-} from "../../backend/controllers/orderController.js";
+} from "./controllers/orderController.js";
 import {
   createPayPalCheckout,
   capturePayPalCheckout,
-} from "../../backend/controllers/paymentController.js";
+} from "./controllers/paymentController.js";
 import {
   listHeroes,
   createHero,
@@ -87,11 +87,11 @@ import {
   updateHero,
   deleteHero,
   reorderHeroes,
-} from "../../backend/controllers/heroController.js";
+} from "./controllers/heroController.js";
 import {
   getShippingConfig,
   updateShippingConfig,
-} from "../../backend/controllers/shippingController.js";
+} from "./controllers/shippingController.js";
 import {
   listStocks,
   listByOwner,
@@ -100,7 +100,7 @@ import {
   deleteStock,
   syncOwnerStocks,
   getStockSummary,
-} from "../../backend/controllers/stockController.js";
+} from "./controllers/stockController.js";
 import {
   listApprovedForProduct,
   productReviewStats,
@@ -113,11 +113,11 @@ import {
   listApprovedForSet,
   setReviewStats,
   listHomeFeaturedReviews,
-} from "../../backend/controllers/reviewController.js";
+} from "./controllers/reviewController.js";
 import {
   getAbout,
   updateAbout,
-} from "../../backend/controllers/aboutController.js";
+} from "./controllers/aboutController.js";
 import {
   getContact,
   updateContact,
@@ -125,42 +125,43 @@ import {
   listMessages,
   updateMessageStatus,
   deleteMessage,
-} from "../../backend/controllers/contactController.js";
+} from "./controllers/contactController.js";
 import {
   getFaqPublic,
   getFaqManage,
   upsertFaq,
-} from "../../backend/controllers/faqController.js";
+} from "./controllers/faqController.js";
 import {
   getPublicShippingReturns,
   getManageShippingReturns,
   upsertShippingReturns,
-} from "../../backend/controllers/shippingReturnsController.js";
+} from "./controllers/shippingReturnsController.js";
 import {
   getPublicPrivacy,
   getManagePrivacy,
   upsertPrivacy,
-} from "../../backend/controllers/privacyController.js";
+} from "./controllers/privacyController.js";
 import {
   getPublicTerms,
   getManageTerms,
   upsertTerms,
-} from "../../backend/controllers/termsController.js";
+} from "./controllers/termsController.js";
 import {
   getPublicTheme,
   getManageTheme,
   upsertTheme,
-} from "../../backend/controllers/themeController.js";
+} from "./controllers/themeController.js";
 import {
   getCloudinaryUsage,
   listCloudinaryResources,
   deleteCloudinaryResource,
+  createUploadSignature,
   uploadMediaAsset,
-} from "../../backend/controllers/mediaController.js";
+} from "./controllers/mediaController.js";
 
-import { requireAuth } from "../../backend/middleware/auth.js";
-import { requireRole } from "../../backend/middleware/roles.js";
-import { validateBody } from "../../backend/middleware/validate.js";
+import { requireAuth } from "./middleware/auth.js";
+import { requireRole } from "./middleware/roles.js";
+import { validateBody } from "./middleware/validate.js";
 import {
   orderCreateSchema,
   paypalCreateSchema,
@@ -168,7 +169,7 @@ import {
   stockUpsertSchema,
   stockUpdateSchema,
   stockSyncSchema,
-} from "../../backend/validation/schemas.js";
+} from "./validation/schemas.js";
 
 import {
   generalLimiter,
@@ -267,6 +268,7 @@ export const routes = [
     ["media", "resources", ":publicId"],
     [requireAuth, requireRole("admin"), deleteCloudinaryResource]
   ),
+  route("POST", ["media", "signature"], [requireAuth, createUploadSignature]),
   route(
     "POST",
     ["media", "upload"],

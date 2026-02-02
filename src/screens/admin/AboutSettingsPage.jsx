@@ -67,23 +67,8 @@ export default function AboutSettingsPage() {
     if (!data) return;
     setSaving(true);
     try {
-      const form = new FormData();
-
-      // Basit alanlar + dizi/objeler
-      Object.entries(data || {}).forEach(([k, v]) => {
-        if (Array.isArray(v) || (v && typeof v === "object")) {
-          form.append(k, JSON.stringify(v));
-        } else {
-          form.append(k, v ?? "");
-        }
-      });
-
-      // Görseller
-      Object.entries(files).forEach(([k, file]) => {
-        if (file) form.append(k, file);
-      });
-
-      const res = await aboutApi.update(form, BASE_LANG);
+      const payload = { ...(data || {}), ...(files || {}) };
+      const res = await aboutApi.update(payload, BASE_LANG);
       setData(res.about);
       toast.success("Hakkımızda sayfası güncellendi");
       await loadAbout();

@@ -1,5 +1,5 @@
-// frontend/src/api/sets.js
 import { http, toQueryString } from "./client.js";
+import { uploadAssets, appendAssetList } from "./uploads.js";
 import { DEFAULT_LANG } from "../constants/lang.js";
 
 function normalizeSetIdOrSlug(value) {
@@ -64,7 +64,7 @@ function normalizeSetIdOrSlug(value) {
   return fallback && fallback !== "[object Object]" ? fallback : "";
 }
 
-function buildSetFormData(payload = {}) {
+async function buildSetFormData(payload = {}) {
   const form = new FormData();
   if (payload.name !== undefined) form.append("name", payload.name.trim());
   if (payload.description !== undefined)
@@ -79,7 +79,10 @@ function buildSetFormData(payload = {}) {
   }
 
   // Set'in kendi görselleri
-  (payload.images || []).forEach((file) => form.append("images", file));
+  const uploadedImages = await uploadAssets(payload.images || [], {
+    scope: "sets",
+  });
+  appendAssetList(form, "images", uploadedImages);
 
   if (payload.removeImagePublicIds?.length) {
     form.append(
@@ -107,7 +110,7 @@ export const setApi = {
     return data.set;
   },
   async create(payload, lang = DEFAULT_LANG) {
-    const form = buildSetFormData(payload);
+    const form = await buildSetFormData(payload);
     const qs = toQueryString({ lang: lang ?? DEFAULT_LANG });
     return http(`/sets${qs}`, { method: "POST", body: form, auth: true });
   },
@@ -116,7 +119,7 @@ export const setApi = {
     if (!identifier) {
       throw new Error(JSON.stringify({ message: "Set kimliği bulunamadı" }));
     }
-    const form = buildSetFormData(payload);
+    const form = await buildSetFormData(payload);
     const qs = toQueryString({ lang: lang ?? DEFAULT_LANG });
     return http(`/sets/${identifier}${qs}`, {
       method: "PUT",
