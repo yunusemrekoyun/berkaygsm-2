@@ -38,9 +38,9 @@ export default function SetSummary({
   const { priceText, originalText, showStrike, totalText } = useMemo(() => {
     const basePrice = Number(price ?? 0);
     const computedFinal = Number(finalPrice ?? basePrice);
-    const formatter = new Intl.NumberFormat("en-US", {
+    const formatter = new Intl.NumberFormat("tr-TR", {
       style: "currency",
-      currency: "EUR",
+      currency: "TRY",
       minimumFractionDigits: 2,
     });
     return {

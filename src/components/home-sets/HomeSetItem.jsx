@@ -116,9 +116,9 @@ export default function HomeSetItem({
 }
 
 function formatCurrency(value) {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("tr-TR", {
     style: "currency",
-    currency: "EUR",
+    currency: "TRY",
     minimumFractionDigits: 2,
   }).format(Number(value) || 0);
 }

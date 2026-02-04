@@ -60,7 +60,7 @@ const SummarySchema = new mongoose.Schema(
     discountAmount: { type: Number, default: 0 },
     shippingName: { type: String, default: "Standard Shipping" },
     total: { type: Number, default: 0 },
-    currency: { type: String, default: "EUR" },
+    currency: { type: String, default: "TRY" },
   },
   { _id: false }
 );

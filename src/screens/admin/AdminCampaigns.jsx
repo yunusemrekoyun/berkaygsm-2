@@ -15,7 +15,7 @@ import { useConfirm } from "../../components/ui/ConfirmDialog.jsx";
 
 const currency = new Intl.NumberFormat("tr-TR", {
   style: "currency",
-  currency: "EUR",
+  currency: "TRY",
   minimumFractionDigits: 0,
 });
 

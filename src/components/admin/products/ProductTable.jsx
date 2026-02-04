@@ -1,8 +1,8 @@
 import { Edit3, Trash2, Languages } from "lucide-react";
 
-const formatter = new Intl.NumberFormat("en-US", {
+const formatter = new Intl.NumberFormat("tr-TR", {
   style: "currency",
-  currency: "EUR",
+  currency: "TRY",
   minimumFractionDigits: 2,
 });
 

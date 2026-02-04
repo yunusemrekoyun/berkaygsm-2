@@ -373,9 +373,9 @@ export default function ShopPage() {
   const activeCampaign = campaignContext?.campaign || null;
   const priceFormatter = useMemo(
     () =>
-      new Intl.NumberFormat("en-US", {
+      new Intl.NumberFormat("tr-TR", {
         style: "currency",
-        currency: "EUR",
+        currency: "TRY",
         maximumFractionDigits: 0,
       }),
     []

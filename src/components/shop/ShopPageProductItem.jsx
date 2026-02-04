@@ -2,9 +2,9 @@
 import { Link } from "react-router-dom";
 import DiscountBadge from "../ui/DiscountBadge.jsx";
 
-const currency = new Intl.NumberFormat("en-US", {
+const currency = new Intl.NumberFormat("tr-TR", {
   style: "currency",
-  currency: "EUR",
+  currency: "TRY",
   minimumFractionDigits: 2,
 });
 

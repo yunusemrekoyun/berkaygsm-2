@@ -9,7 +9,7 @@ import {
 } from "../../i18n/staticContent.js";
 
 const CURRENCY = (n) =>
-  new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(
+  new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(
     n
   );
 
