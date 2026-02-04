@@ -98,12 +98,14 @@ export default function ProductTable({
               </td>
               <td className="px-4 py-3 text-left md:text-right" data-label="İşlemler">
                 <div className="mobile-full flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
-                  <button
-                    onClick={() => onTranslate?.(product)}
-                    className="inline-flex w-full items-center justify-center gap-1 rounded-full border border-[var(--color-border-admin)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] md:w-auto"
-                  >
-                    <Languages className="h-4 w-4" /> Dil varyantı
-                  </button>
+                  {typeof onTranslate === "function" && (
+                    <button
+                      onClick={() => onTranslate(product)}
+                      className="inline-flex w-full items-center justify-center gap-1 rounded-full border border-[var(--color-border-admin)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] md:w-auto"
+                    >
+                      <Languages className="h-4 w-4" /> Dil varyantı
+                    </button>
+                  )}
                   <button
                     onClick={() => onEdit?.(product)}
                     className="inline-flex w-full items-center justify-center gap-1 rounded-full border border-[var(--color-border-admin)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] md:w-auto"

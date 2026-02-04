@@ -12,7 +12,14 @@ export default function HomeCampaigns({ items = [], loading = false }) {
 
   return (
     <section className="app-section">
-      <div className="grid auto-rows-[minmax(220px,1fr)] grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4 md:grid-rows-2 md:auto-rows-[210px]">
+      <div
+        className="grid auto-rows-[minmax(220px,1fr)] grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4 md:grid-rows-2 md:auto-rows-[210px]"
+        data-animate="fade-up"
+        data-animate-distance="18"
+        data-animate-duration="1.1"
+        data-animate-ease="power3.out"
+        data-animate-start="top 100%"
+      >
         {loading && items.length === 0
           ? Array.from({ length: 4 }).map((_, index) => (
               <div

@@ -1,11 +1,11 @@
 import { useCallback } from "react";
 import { useStorefrontLang } from "../context/LangContext.jsx";
+import { SUPPORTED_LANGS } from "../constants/lang.js";
 
-const OPTIONS = [
-  { value: "tr", label: "TR" },
-  { value: "en", label: "EN" },
-  { value: "de", label: "DE" },
-];
+const OPTIONS = SUPPORTED_LANGS.map((value) => ({
+  value,
+  label: value.toUpperCase(),
+}));
 
 export default function LanguageSwitcher({
   className = "",
@@ -13,6 +13,7 @@ export default function LanguageSwitcher({
   label = "Dil",
 }) {
   const { lang, setLang } = useStorefrontLang();
+  if (SUPPORTED_LANGS.length <= 1) return null;
 
   const onChange = useCallback(
     (event) => {

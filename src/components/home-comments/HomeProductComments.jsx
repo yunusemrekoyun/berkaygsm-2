@@ -12,7 +12,11 @@ export default function HomeProductComments({ title, items = [] }) {
         {resolvedTitle}
       </h2>
 
-      <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
+      <div
+        className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(240px,1fr))]"
+        data-animate="stagger"
+        data-animate-children="> *"
+      >
         {items.map((c, i) => (
           <HomeProductCommentItem key={i} {...c} />
         ))}

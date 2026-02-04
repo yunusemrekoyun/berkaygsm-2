@@ -1,4 +1,4 @@
-export const SUPPORTED_LANGS = ["tr", "en", "de"];
+export const SUPPORTED_LANGS = ["tr"];
 export const DEFAULT_LANG = "tr";
 
 const ID_KEYS = ["_id", "id"];

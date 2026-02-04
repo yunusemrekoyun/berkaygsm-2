@@ -18,13 +18,10 @@ import {
 } from "lucide-react";
 import { faqApi } from "../../api/faq";
 import FaqTranslationModal from "../../components/admin/faq/FaqTranslationModal.jsx";
+import { HAS_TRANSLATIONS, TRANSLATION_LANGS } from "../../constants/lang.js";
 
 const BASE_LANG = "tr";
 const BASE_LANGUAGE_LABEL = "Türkçe (TR)";
-const TRANSLATION_LANGS = [
-  { value: "en", label: "English (EN)" },
-  { value: "de", label: "Deutsch (DE)" },
-];
 
 const createEmptyFaq = () => ({
   heroTitle: "",
@@ -256,21 +253,35 @@ export default function AdminFaqSettingsPageInner() {
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <p className="flex-1 rounded-xl border border-[var(--color-border-admin)]/60 bg-[var(--color-bg-admin)]/40 px-3 py-2 text-[11px] text-[var(--color-text-admin-muted)]">
-                Bu form{" "}
-                <span className="font-semibold text-[var(--color-text-admin)]">
-                  {BASE_LANGUAGE_LABEL}
-                </span>{" "}
-                içeriklerini günceller. İngilizce ve Almanca içerikler için “Dil varyantları”
-                butonunu kullanın.
+                {HAS_TRANSLATIONS ? (
+                  <>
+                    Bu form{" "}
+                    <span className="font-semibold text-[var(--color-text-admin)]">
+                      {BASE_LANGUAGE_LABEL}
+                    </span>{" "}
+                    içeriklerini günceller. Diğer diller için “Dil varyantları”
+                    butonunu kullanın.
+                  </>
+                ) : (
+                  <>
+                    Bu form yalnızca{" "}
+                    <span className="font-semibold text-[var(--color-text-admin)]">
+                      {BASE_LANGUAGE_LABEL}
+                    </span>{" "}
+                    içeriklerini yönetir.
+                  </>
+                )}
               </p>
-              <button
-                type="button"
-                onClick={openTranslationModal}
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
-              >
-                <Languages className="h-4 w-4" />
-                Dil varyantları
-              </button>
+              {HAS_TRANSLATIONS && (
+                <button
+                  type="button"
+                  onClick={openTranslationModal}
+                  className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
+                >
+                  <Languages className="h-4 w-4" />
+                  Dil varyantları
+                </button>
+              )}
             </div>
           </div>
 
@@ -566,16 +577,18 @@ export default function AdminFaqSettingsPageInner() {
   return (
     <div className="space-y-6">
       {content}
-      <FaqTranslationModal
-        open={translationState.open}
-        loading={translationState.loading}
-        error={translationState.error}
-        faq={translationState.faq}
-        baseLang={BASE_LANG}
-        langs={TRANSLATION_LANGS}
-        onClose={closeTranslationModal}
-        onUpdated={handleTranslationsUpdated}
-      />
+      {HAS_TRANSLATIONS && (
+        <FaqTranslationModal
+          open={translationState.open}
+          loading={translationState.loading}
+          error={translationState.error}
+          faq={translationState.faq}
+          baseLang={BASE_LANG}
+          langs={TRANSLATION_LANGS}
+          onClose={closeTranslationModal}
+          onUpdated={handleTranslationsUpdated}
+        />
+      )}
     </div>
   );
 }

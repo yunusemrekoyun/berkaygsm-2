@@ -125,6 +125,8 @@ export default function HomeSets({
               ? "grid-cols-1 min-[440px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
               : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6",
           ].join(" ")}
+          data-animate="stagger"
+          data-animate-children="> *"
         >
           {loading
             ? // Skeleton cards (compact için ölçüler uyumlu)

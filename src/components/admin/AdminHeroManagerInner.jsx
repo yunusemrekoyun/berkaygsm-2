@@ -17,7 +17,11 @@ import {
 } from "lucide-react";
 import AlertBanner from "../ui/AlertBanner.jsx";
 import { useConfirm } from "../ui/ConfirmDialog.jsx";
-import { DEFAULT_LANG } from "../../constants/lang.js";
+import {
+  DEFAULT_LANG,
+  HAS_TRANSLATIONS,
+  TRANSLATION_LANGS,
+} from "../../constants/lang.js";
 import HeroTranslationModal from "./hero/HeroTranslationModal.jsx";
 
 /* ----- Liste + Modal tetik ----- */
@@ -35,10 +39,6 @@ export default function AdminHeroManagerInner() {
   });
 
   const BASE_LANG = "tr";
-  const TRANSLATION_LANGS = [
-    { value: "en", label: "English (EN)" },
-    { value: "de", label: "Deutsch (DE)" },
-  ];
 
   useEffect(() => {
     loadHeroes();
@@ -310,13 +310,15 @@ export default function AdminHeroManagerInner() {
                 >
                   <ArrowDown className="h-4 w-4" />
                 </button>
-                <button
-                  onClick={() => openTranslationModal(h)}
-                  className="rounded-lg p-2 hover:bg-[var(--color-bg-hover)]"
-                  title="Dil varyantları"
-                >
-                  <Languages className="h-4 w-4" />
-                </button>
+                {HAS_TRANSLATIONS && (
+                  <button
+                    onClick={() => openTranslationModal(h)}
+                    className="rounded-lg p-2 hover:bg-[var(--color-bg-hover)]"
+                    title="Dil varyantları"
+                  >
+                    <Languages className="h-4 w-4" />
+                  </button>
+                )}
                 <button
                   onClick={() => setEditing(h)}
                   className="rounded-lg p-2 hover:bg-[var(--color-bg-hover)]"
@@ -372,16 +374,18 @@ export default function AdminHeroManagerInner() {
         />
       )}
 
-      <HeroTranslationModal
-        open={translationState.open}
-        loading={translationState.loading}
-        error={translationState.error}
-        hero={translationState.hero}
-        baseLang={BASE_LANG}
-        langs={TRANSLATION_LANGS}
-        onClose={closeTranslationModal}
-        onUpdated={handleTranslationsUpdated}
-      />
+      {HAS_TRANSLATIONS && (
+        <HeroTranslationModal
+          open={translationState.open}
+          loading={translationState.loading}
+          error={translationState.error}
+          hero={translationState.hero}
+          baseLang={BASE_LANG}
+          langs={TRANSLATION_LANGS}
+          onClose={closeTranslationModal}
+          onUpdated={handleTranslationsUpdated}
+        />
+      )}
     </div>
   );
 }
@@ -485,8 +489,7 @@ function HeroModal({
             <span className="font-semibold text-[var(--color-text-admin)]">
               {languageLabel}
             </span>{" "}
-            dilinde saklanır. Medya ve hedef seçimi tüm dillerde ortak
-            kullanılır.
+            dilinde saklanır. Medya ve hedef seçimi burada yönetilir.
           </div>
           {/* SOL */}
           <div className="md:col-span-7 space-y-4">

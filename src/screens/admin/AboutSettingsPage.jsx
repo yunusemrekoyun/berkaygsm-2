@@ -11,12 +11,9 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import AboutTranslationModal from "../../components/admin/about/AboutTranslationModal.jsx";
+import { HAS_TRANSLATIONS, TRANSLATION_LANGS } from "../../constants/lang.js";
 
 const BASE_LANG = "tr";
-const TRANSLATION_LANGS = [
-  { value: "en", label: "English (EN)" },
-  { value: "de", label: "Deutsch (DE)" },
-];
 
 // Yardımcılar: array <-> textarea metni
 
@@ -137,19 +134,22 @@ export default function AboutSettingsPage() {
             Hakkımızda Sayfası İçeriği
           </h1>
           <p className="text-sm text-[var(--color-text-admin-muted)]">
-            Türkçe (varsayılan) içerikleri düzenleyin; diğer diller için “Dil
-            varyantları” butonunu kullanın.
+            {HAS_TRANSLATIONS
+              ? "Türkçe (varsayılan) içerikleri düzenleyin; diğer diller için “Dil varyantları” butonunu kullanın."
+              : "Tüm içerikler Türkçe olarak yönetilir."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={openTranslationModal}
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
-          >
-            <Languages className="h-4 w-4" />
-            Dil varyantları
-          </button>
+          {HAS_TRANSLATIONS && (
+            <button
+              type="button"
+              onClick={openTranslationModal}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
+            >
+              <Languages className="h-4 w-4" />
+              Dil varyantları
+            </button>
+          )}
           <button
             onClick={handleSubmit}
             disabled={saving}
@@ -454,16 +454,18 @@ export default function AboutSettingsPage() {
         </div>
       </SectionCard>
 
-      <AboutTranslationModal
-        open={translationState.open}
-        loading={translationState.loading}
-        error={translationState.error}
-        about={translationState.about || data}
-        baseLang={BASE_LANG}
-        langs={TRANSLATION_LANGS}
-        onClose={closeTranslationModal}
-        onUpdated={handleTranslationsUpdated}
-      />
+      {HAS_TRANSLATIONS && (
+        <AboutTranslationModal
+          open={translationState.open}
+          loading={translationState.loading}
+          error={translationState.error}
+          about={translationState.about || data}
+          baseLang={BASE_LANG}
+          langs={TRANSLATION_LANGS}
+          onClose={closeTranslationModal}
+          onUpdated={handleTranslationsUpdated}
+        />
+      )}
     </div>
   );
 }

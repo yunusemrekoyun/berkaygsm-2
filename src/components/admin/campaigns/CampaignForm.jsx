@@ -282,7 +282,11 @@ export default function CampaignForm({
       </header>
 
       <div className="rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-admin)]/40 px-3 py-2 text-[11px] text-[var(--color-text-admin-muted)]">
-        Kampanya başlığı, açıklaması ve CTA metinleri <span className="font-semibold text-[var(--color-text-admin)]">{languageLabel}</span> diline aittir. Görsel, hedef ve varyant seçimleri tüm dillerde ortaktır.
+        Kampanya başlığı, açıklaması ve CTA metinleri{" "}
+        <span className="font-semibold text-[var(--color-text-admin)]">
+          {languageLabel}
+        </span>{" "}
+        diline aittir. Görsel ve hedef seçimleri burada yönetilir.
       </div>
 
       {error && (

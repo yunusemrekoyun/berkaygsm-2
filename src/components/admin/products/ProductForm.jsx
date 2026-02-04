@@ -458,7 +458,7 @@ export default function ProductForm({
         {/* ... form alanları aynı (ad/fiyat/kategori/açıklama/detaylar) ... */}
 
         <div className="rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)]/80 px-4 py-3 text-xs text-[var(--color-text-admin-muted)]">
-          Bu form ürünün ana (Türkçe) içeriğini günceller. Fiyat, stok ve görseller tüm dillerde aynıdır.
+          Bu form ürünün Türkçe içeriğini günceller. Fiyat, stok ve görseller burada yönetilir.
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
