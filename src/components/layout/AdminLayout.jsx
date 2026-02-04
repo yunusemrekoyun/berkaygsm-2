@@ -36,6 +36,8 @@ export default function AdminLayout({ children, title, subtitle, actions }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [me, setMe] = useState(getUserCache());
+  const [busyCount, setBusyCount] = useState(0);
+  const busySetRef = useRef(new Set());
   const bodyOverflow = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -68,6 +70,25 @@ export default function AdminLayout({ children, title, subtitle, actions }) {
       document.body.style.overflow = bodyOverflow.current || "";
     };
   }, [sidebarOpen]);
+
+  useEffect(() => {
+    const handler = (event) => {
+      const detail = event?.detail || {};
+      const id = detail.id;
+      if (!id) return;
+      const set = busySetRef.current;
+      if (detail.type === "start") {
+        set.add(id);
+      } else if (detail.type === "end") {
+        set.delete(id);
+      }
+      setBusyCount(set.size);
+    };
+    window.addEventListener("admin-action", handler);
+    return () => {
+      window.removeEventListener("admin-action", handler);
+    };
+  }, []);
 
   const breadcrumbs = useMemo(() => {
     const parts = location.pathname.replace(/^\/+|\/+$/g, "").split("/");
@@ -125,6 +146,14 @@ export default function AdminLayout({ children, title, subtitle, actions }) {
 
   return (
     <div className="flex min-h-screen bg-[var(--color-bg-admin)] text-[var(--color-text-admin)]">
+      {busyCount > 0 && (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/30">
+          <div className="flex items-center gap-3 rounded-full bg-white px-5 py-3 text-sm font-semibold text-[var(--color-text-admin)] shadow-lg">
+            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[var(--color-accent)]" />
+            İşlem yapılıyor…
+          </div>
+        </div>
+      )}
       {/* Masaüstü yan menü */}
       <aside
         className={`hidden md:flex md:flex-col border-r border-[var(--color-border-admin)]/30 bg-[var(--color-bg-sidebar)] text-[var(--color-text-sidebar)] transition-[width] duration-300
