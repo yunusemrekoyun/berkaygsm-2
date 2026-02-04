@@ -55,22 +55,50 @@ function buildHeaders({ body, headers = {}, auth }) {
   };
 }
 
+const emitAdminAction = (type, detail) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.dispatchEvent(
+      new CustomEvent("admin-action", { detail: { type, ...detail } })
+    );
+  } catch {
+    // ignore dispatch failures
+  }
+};
+
 async function request(
   path,
   { method = "GET", body, headers, auth = false } = {}
 ) {
   const resolvedHeaders = buildHeaders({ body, headers, auth });
-  const response = await fetch(BASE_URL + path, {
-    method,
-    headers: resolvedHeaders,
-    body: body
-      ? body instanceof FormData
-        ? body
-        : JSON.stringify(body)
-      : undefined,
-    credentials: "include",
-  });
-  return response;
+  const methodUpper = String(method || "GET").toUpperCase();
+  const isMutating = !["GET", "HEAD", "OPTIONS"].includes(methodUpper);
+  const actionId =
+    auth && isMutating
+      ? `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      : null;
+
+  if (actionId) {
+    emitAdminAction("start", { id: actionId, method: methodUpper, path });
+  }
+
+  try {
+    const response = await fetch(BASE_URL + path, {
+      method,
+      headers: resolvedHeaders,
+      body: body
+        ? body instanceof FormData
+          ? body
+          : JSON.stringify(body)
+        : undefined,
+      credentials: "include",
+    });
+    return response;
+  } finally {
+    if (actionId) {
+      emitAdminAction("end", { id: actionId });
+    }
+  }
 }
 
 let refreshPromise = null;

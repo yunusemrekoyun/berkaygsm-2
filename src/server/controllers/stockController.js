@@ -261,8 +261,6 @@ export async function syncOwnerStocks(req, res) {
     const { ownerModel, owner, rows = [] } = req.body || {};
     await assertOwner(ownerModel, owner);
 
-    await StockItem.deleteMany({ ownerModel, owner });
-
     const seen = new Set();
     const docs = [];
     rows.forEach((r) => {
@@ -296,11 +294,70 @@ export async function syncOwnerStocks(req, res) {
       return res.json({ ok: true, count: 0 });
     }
 
-    const inserted = await StockItem.insertMany(docs, { ordered: false });
-    res.json({
-      ok: true,
-      count: Array.isArray(inserted) ? inserted.length : 0,
-    });
+    // Prefer atomic replace with transaction when supported.
+    const session = await StockItem.startSession();
+    try {
+      session.startTransaction();
+      await StockItem.deleteMany({ ownerModel, owner }).session(session);
+      const inserted = await StockItem.insertMany(docs, {
+        ordered: false,
+        session,
+      });
+      await session.commitTransaction();
+      res.json({
+        ok: true,
+        count: Array.isArray(inserted) ? inserted.length : 0,
+      });
+      return;
+    } catch (err) {
+      try {
+        await session.abortTransaction();
+      } catch {
+        // ignore abort failures
+      }
+
+      const message = err?.message || "";
+      const txnUnsupported = /transaction|replica set|not supported/i.test(
+        message
+      );
+      if (!txnUnsupported) {
+        if (err?.code === 11000 && err?.keyPattern?.sku) {
+          return res.status(400).json({ message: "SKU already exists" });
+        }
+        const status = /ownerModel|valid ObjectId|not found/.test(message)
+          ? 400
+          : 500;
+        return res.status(status).json({ message: message || "Sync failed" });
+      }
+    } finally {
+      session.endSession();
+    }
+
+    // Fallback without transaction: upsert rows, then prune old ones.
+    try {
+      const ops = docs.map((doc) => ({
+        updateOne: {
+          filter: { ownerModel, owner, comboKey: doc.comboKey },
+          update: { $set: doc },
+          upsert: true,
+        },
+      }));
+      await StockItem.bulkWrite(ops, { ordered: false });
+      const comboKeys = docs.map((doc) => doc.comboKey);
+      await StockItem.deleteMany({
+        ownerModel,
+        owner,
+        comboKey: { $nin: comboKeys },
+      });
+      res.json({ ok: true, count: docs.length });
+    } catch (err) {
+      if (err?.code === 11000 && err?.keyPattern?.sku)
+        return res.status(400).json({ message: "SKU already exists" });
+      const status = /ownerModel|valid ObjectId|not found/.test(err.message)
+        ? 400
+        : 500;
+      res.status(status).json({ message: err.message || "Sync failed" });
+    }
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.sku)
       return res.status(400).json({ message: "SKU already exists" });

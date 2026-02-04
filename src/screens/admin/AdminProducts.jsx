@@ -263,6 +263,25 @@ export default function AdminProducts() {
     }
   };
 
+  const removeProductFromList = (target) => {
+    const targetId = resolveProductObjectId(target);
+    const targetSlug =
+      typeof target === "string" ? target : target?.slug || null;
+    if (!targetId && !targetSlug) return;
+    setProducts((prev) =>
+      prev.filter((item) => {
+        const itemId = resolveProductObjectId(item);
+        if (targetId && itemId) return itemId !== targetId;
+        if (targetSlug && item?.slug) return item.slug !== targetSlug;
+        return true;
+      })
+    );
+    setPagination((prev) => ({
+      ...prev,
+      total: Math.max(0, Number(prev.total || 0) - 1),
+    }));
+  };
+
   const loadProducts = async (page = 1) => {
     setLoading(true);
     try {
@@ -372,7 +391,8 @@ export default function AdminProducts() {
         return;
       }
       await productApi.remove(identifier);
-      setBanner({ variant: "warning", message: "Ürün silindi" });
+      removeProductFromList(product);
+      setBanner({ variant: "success", message: "Ürün silindi" });
       await loadProducts(pagination.page);
     } catch (error) {
       const payload = parseErrorPayload(error);
@@ -414,6 +434,7 @@ export default function AdminProducts() {
       await productApi.remove(identifier, {
         setAction: actionParam,
       });
+      removeProductFromList(deleteDialog.product);
       setDeleteDialog(null);
       setBanner({
         variant: "success",
@@ -618,6 +639,9 @@ export default function AdminProducts() {
               extractMessage(err) ||
               "Ürün oluşturuldu ancak stok detayları kaydedilemedi.";
           }
+        } else {
+          stockWarning =
+            "Ürün oluşturuldu ancak stok için ürün kimliği alınamadı.";
         }
       }
       if (stockWarning) {
