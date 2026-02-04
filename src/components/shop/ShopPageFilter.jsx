@@ -277,9 +277,9 @@ function CategoryTreeItem({
 }
 
 function formatCurrency(value) {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("tr-TR", {
     style: "currency",
-    currency: "EUR",
+    currency: "TRY",
     maximumFractionDigits: 0,
   }).format(value || 0);
 }

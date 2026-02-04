@@ -2,9 +2,9 @@ let paypalSdkPromise = null;
 
 export function loadPayPalSdk({
   clientId,
-  currency = "EUR",
+  currency = "TRY",
   intent = "capture",
-  locale = "de_DE",
+  locale = "tr_TR",
 } = {}) {
   if (!clientId) {
     return Promise.reject(new Error("PayPal client id is not configured"));

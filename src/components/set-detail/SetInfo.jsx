@@ -18,9 +18,9 @@ export default function SetInfo({
   const basePrice = Number(price ?? 0);
   const computedFinal = Number(finalPrice ?? basePrice);
   const showStrike = Number.isFinite(basePrice) && computedFinal < basePrice;
-  const priceFormatter = new Intl.NumberFormat("en-US", {
+  const priceFormatter = new Intl.NumberFormat("tr-TR", {
     style: "currency",
-    currency: "EUR",
+    currency: "TRY",
     minimumFractionDigits: 2,
   });
 

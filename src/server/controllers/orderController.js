@@ -14,7 +14,7 @@ import {
 } from "../utils/discountHelpers.js";
 import { hydrateProductsWithInventory } from "../utils/stockItemHelpers.js";
 
-const PAYPAL_CURRENCY = (process.env.PAYPAL_CURRENCY || "EUR").toUpperCase();
+const PAYPAL_CURRENCY = (process.env.PAYPAL_CURRENCY || "TRY").toUpperCase();
 const PAYPAL_ORDER_TTL_MINUTES = Math.max(
   5,
   Number(process.env.PAYPAL_ORDER_TTL_MINUTES || 30)

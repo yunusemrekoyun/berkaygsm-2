@@ -216,7 +216,7 @@ export default function CheckoutPage() {
   const [banner, setBanner] = useState(null);
   const [simulationMode, setSimulationMode] = useState("success");
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
-  const paypalCurrency = process.env.NEXT_PUBLIC_PAYPAL_CURRENCY || "EUR";
+  const paypalCurrency = process.env.NEXT_PUBLIC_PAYPAL_CURRENCY || "TRY";
   const paypalEnabled = Boolean(paypalClientId);
   const [paymentMethod, setPaymentMethod] = useState(
     paypalEnabled ? "paypal" : "cod"

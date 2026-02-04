@@ -14,9 +14,9 @@ import {
 } from "../../i18n/staticContent.js";
 import { useStorefrontLang } from "../../context/LangContext.jsx";
 
-const currency = new Intl.NumberFormat("en-US", {
+const currency = new Intl.NumberFormat("tr-TR", {
   style: "currency",
-  currency: "EUR",
+  currency: "TRY",
   minimumFractionDigits: 2,
 });
 

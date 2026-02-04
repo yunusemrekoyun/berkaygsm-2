@@ -13,7 +13,7 @@ import { useAdminLang } from "../../context/LangContext.jsx";
 
 const currency = new Intl.NumberFormat("tr-TR", {
   style: "currency",
-  currency: "EUR",
+  currency: "TRY",
   minimumFractionDigits: 0,
 });
 

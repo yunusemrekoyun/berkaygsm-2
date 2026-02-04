@@ -3,9 +3,9 @@ import AdminModal from "../common/AdminModal";
 import { Plus, Trash2 } from "lucide-react";
 import { DEFAULT_LANG } from "../../../constants/lang.js";
 
-const currency = new Intl.NumberFormat("en-US", {
+const currency = new Intl.NumberFormat("tr-TR", {
   style: "currency",
-  currency: "EUR",
+  currency: "TRY",
   minimumFractionDigits: 2,
 });
 
@@ -273,7 +273,7 @@ export default function SetForm({
 
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
-              Fiyat (EUR)<span className="text-[var(--color-accent)]">*</span>
+              Fiyat (TL)<span className="text-[var(--color-accent)]">*</span>
             </span>
             <input
               type="number"

@@ -2,9 +2,9 @@ import { useMemo, useState } from "react";
 import { Edit3, Trash2, Search, Languages } from "lucide-react";
 import { getColorInfo } from "../../../utils/colors.js";
 
-const currency = new Intl.NumberFormat("en-US", {
+const currency = new Intl.NumberFormat("tr-TR", {
   style: "currency",
-  currency: "EUR",
+  currency: "TRY",
   minimumFractionDigits: 2,
 });
 

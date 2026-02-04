@@ -3,9 +3,9 @@ import AdminModal from "../common/AdminModal";
 import EntityPicker from "./EntityPicker.jsx";
 import AlertBanner from "../../ui/AlertBanner.jsx";
 
-const currency = new Intl.NumberFormat("en-US", {
+const currency = new Intl.NumberFormat("tr-TR", {
   style: "currency",
-  currency: "EUR",
+  currency: "TRY",
   minimumFractionDigits: 0,
 });
 

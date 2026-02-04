@@ -32,9 +32,9 @@ const STATUS_COLORS = {
 
 const money = (value) => {
   try {
-    return new Intl.NumberFormat("en-IE", {
+    return new Intl.NumberFormat("tr-TR", {
       style: "currency",
-      currency: "EUR",
+      currency: "TRY",
     }).format(Number(value || 0));
   } catch {
     return `€${Number(value || 0).toFixed(2)}`;
