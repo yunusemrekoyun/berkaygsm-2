@@ -19,13 +19,10 @@ import {
   Loader2,
   Languages,
 } from "lucide-react";
+import { HAS_TRANSLATIONS, TRANSLATION_LANGS } from "../../constants/lang.js";
 
 const BASE_LANG = "tr";
 const BASE_LANGUAGE_LABEL = "Türkçe (TR)";
-const TRANSLATION_LANGS = [
-  { value: "en", label: "English (EN)" },
-  { value: "de", label: "Deutsch (DE)" },
-];
 
 const makeBlock = (title = "", lines = []) => ({
   title,
@@ -331,18 +328,21 @@ export default function AdminContactSettingsPageInner() {
             İletişim Sayfası İçeriği
           </h1>
           <p className="text-sm text-[var(--color-text-admin-muted)]">
-            Türkçe (varsayılan) içerikleri buradan düzenleyin; diğer diller için
-            “Dil varyantları” butonunu kullanın.
+            {HAS_TRANSLATIONS
+              ? "Türkçe (varsayılan) içerikleri buradan düzenleyin; diğer diller için “Dil varyantları” butonunu kullanın."
+              : "Tüm içerikler Türkçe olarak yönetilir."}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openTranslationModal}
-          className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
-        >
-          <Languages className="h-4 w-4" />
-          Dil varyantları
-        </button>
+        {HAS_TRANSLATIONS && (
+          <button
+            type="button"
+            onClick={openTranslationModal}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
+          >
+            <Languages className="h-4 w-4" />
+            Dil varyantları
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
@@ -362,8 +362,7 @@ export default function AdminContactSettingsPageInner() {
               <span className="font-semibold text-[var(--color-text-admin)]">
                 {BASE_LANGUAGE_LABEL}
               </span>{" "}
-              dili için kaydedilir. Görsel, form durumu ve iletişim kanalları tüm
-              dillerde ortak kullanılır.
+              dili için kaydedilir.
             </p>
           </div>
 
@@ -626,16 +625,18 @@ export default function AdminContactSettingsPageInner() {
         </aside>
       </div>
 
-      <ContactTranslationModal
-        open={translationState.open}
-        loading={translationState.loading}
-        error={translationState.error}
-        contact={translationState.contact}
-        baseLang={BASE_LANG}
-        langs={TRANSLATION_LANGS}
-        onClose={closeTranslationModal}
-        onUpdated={handleTranslationsUpdated}
-      />
+      {HAS_TRANSLATIONS && (
+        <ContactTranslationModal
+          open={translationState.open}
+          loading={translationState.loading}
+          error={translationState.error}
+          contact={translationState.contact}
+          baseLang={BASE_LANG}
+          langs={TRANSLATION_LANGS}
+          onClose={closeTranslationModal}
+          onUpdated={handleTranslationsUpdated}
+        />
+      )}
     </div>
   );
 }

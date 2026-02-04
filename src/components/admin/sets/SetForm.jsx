@@ -251,9 +251,7 @@ export default function SetForm({
           <span className="font-semibold text-[var(--color-text-admin)]">
             {languageLabel}
           </span>{" "}
-          diline kaydedilir. Diğer dil varyantlarını set listesindeki “Dil
-          varyantı” butonundan düzenleyebilirsiniz. Fiyat ve ürün listesi tüm
-          dillerde ortaktır.
+          diline kaydedilir. Fiyat ve ürün listesi burada yönetilir.
         </div>
 
         {/* Genel bilgiler */}

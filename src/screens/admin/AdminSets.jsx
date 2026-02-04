@@ -9,12 +9,9 @@ import { useConfirm } from "../../components/ui/ConfirmDialog.jsx";
 import SetTable from "../../components/admin/sets/SetTable";
 import SetForm from "../../components/admin/sets/SetForm";
 import SetTranslationModal from "../../components/admin/sets/SetTranslationModal.jsx";
+import { HAS_TRANSLATIONS, TRANSLATION_LANGS } from "../../constants/lang.js";
 
 const BASE_LANG = "tr";
-const TRANSLATION_LANGS = [
-  { value: "en", label: "English (EN)" },
-  { value: "de", label: "Deutsch (DE)" },
-];
 
 function resolveSetIdentifier(setItem) {
   if (!setItem) return null;
@@ -317,7 +314,7 @@ export default function AdminSets() {
         loading={loading}
         onEdit={handleEdit}
         onDelete={handleDelete}
-        onTranslate={openTranslationModal}
+        onTranslate={HAS_TRANSLATIONS ? openTranslationModal : undefined}
       />
 
       <SetForm
@@ -334,16 +331,18 @@ export default function AdminSets() {
         contentLang={BASE_LANG}
       />
 
-      <SetTranslationModal
-        open={translationState.open}
-        loading={translationState.loading}
-        error={translationState.error}
-        setItem={translationState.set}
-        baseLang={BASE_LANG}
-        langs={TRANSLATION_LANGS}
-        onClose={closeTranslationModal}
-        onUpdated={handleTranslationsUpdated}
-      />
+      {HAS_TRANSLATIONS && (
+        <SetTranslationModal
+          open={translationState.open}
+          loading={translationState.loading}
+          error={translationState.error}
+          setItem={translationState.set}
+          baseLang={BASE_LANG}
+          langs={TRANSLATION_LANGS}
+          onClose={closeTranslationModal}
+          onUpdated={handleTranslationsUpdated}
+        />
+      )}
     </section>
   );
 }

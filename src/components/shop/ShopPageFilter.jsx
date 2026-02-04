@@ -66,7 +66,10 @@ export default function ShopPageFilter({
   };
 
   return (
-    <aside className="rounded-xl bg-contact-bg p-5 ring-1 ring-border">
+    <aside
+      className="rounded-xl bg-contact-bg p-5 ring-1 ring-border"
+      data-animate="fade-right"
+    >
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-primary">{text.title}</h3>
         <button

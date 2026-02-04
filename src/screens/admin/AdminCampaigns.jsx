@@ -12,6 +12,7 @@ import CampaignForm from "../../components/admin/campaigns/CampaignForm.jsx";
 import CampaignTranslationModal from "../../components/admin/campaigns/CampaignTranslationModal.jsx";
 import AlertBanner from "../../components/ui/AlertBanner.jsx";
 import { useConfirm } from "../../components/ui/ConfirmDialog.jsx";
+import { HAS_TRANSLATIONS, TRANSLATION_LANGS } from "../../constants/lang.js";
 
 const currency = new Intl.NumberFormat("tr-TR", {
   style: "currency",
@@ -20,10 +21,6 @@ const currency = new Intl.NumberFormat("tr-TR", {
 });
 
 const BASE_LANG = "tr";
-const TRANSLATION_LANGS = [
-  { value: "en", label: "English (EN)" },
-  { value: "de", label: "Deutsch (DE)" },
-];
 
 function resolveCampaignIdentifier(campaign) {
   if (!campaign) return null;
@@ -463,7 +460,11 @@ export default function AdminCampaigns() {
                     onToggleActive={() => handleToggleActive(campaign)}
                     onMoveUp={() => handleMove(campaign, -1)}
                     onMoveDown={() => handleMove(campaign, +1)}
-                    onTranslate={() => openTranslationModal(campaign)}
+                    onTranslate={
+                      HAS_TRANSLATIONS
+                        ? () => openTranslationModal(campaign)
+                        : undefined
+                    }
                     disableMoveUp={index === 0}
                     disableMoveDown={index === sortedCampaigns.length - 1}
                   />
@@ -501,16 +502,18 @@ export default function AdminCampaigns() {
         </div>
       </div>
 
-      <CampaignTranslationModal
-        open={translationState.open}
-        loading={translationState.loading}
-        error={translationState.error}
-        campaign={translationState.campaign}
-        baseLang={BASE_LANG}
-        langs={TRANSLATION_LANGS}
-        onClose={closeTranslationModal}
-        onUpdated={handleTranslationsUpdated}
-      />
+      {HAS_TRANSLATIONS && (
+        <CampaignTranslationModal
+          open={translationState.open}
+          loading={translationState.loading}
+          error={translationState.error}
+          campaign={translationState.campaign}
+          baseLang={BASE_LANG}
+          langs={TRANSLATION_LANGS}
+          onClose={closeTranslationModal}
+          onUpdated={handleTranslationsUpdated}
+        />
+      )}
     </section>
   );
 }

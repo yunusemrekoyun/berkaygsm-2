@@ -10,12 +10,9 @@ import { flattenCategoryTree } from "../../utils/catalog.js";
 import AlertBanner from "../../components/ui/AlertBanner.jsx";
 import { useConfirm } from "../../components/ui/ConfirmDialog.jsx";
 import { buildProductState } from "../../components/admin/products/productTranslationUtils.js";
+import { HAS_TRANSLATIONS, TRANSLATION_LANGS } from "../../constants/lang.js";
 
 const BASE_LANG = "tr";
-const TRANSLATION_LANGS = [
-  { value: "en", label: "English (EN)" },
-  { value: "de", label: "Deutsch (DE)" },
-];
 
 const bytesToHex = (data) => {
   if (!Array.isArray(data)) return "";
@@ -751,7 +748,7 @@ export default function AdminProducts() {
         loading={loading}
         onEdit={handleEditProduct}
         onDelete={handleDeleteProduct}
-        onTranslate={openTranslationModal}
+        onTranslate={HAS_TRANSLATIONS ? openTranslationModal : undefined}
       />
 
       {pagination.pages > 1 && (
@@ -784,16 +781,18 @@ export default function AdminProducts() {
         categories={categoryOptions}
       />
 
-      <ProductTranslationModal
-        open={translationState.open}
-        loading={translationState.loading}
-        error={translationState.error}
-        product={translationState.product}
-        baseLang={BASE_LANG}
-        langs={TRANSLATION_LANGS}
-        onClose={closeTranslationModal}
-        onUpdated={handleTranslationsUpdated}
-      />
+      {HAS_TRANSLATIONS && (
+        <ProductTranslationModal
+          open={translationState.open}
+          loading={translationState.loading}
+          error={translationState.error}
+          product={translationState.product}
+          baseLang={BASE_LANG}
+          langs={TRANSLATION_LANGS}
+          onClose={closeTranslationModal}
+          onUpdated={handleTranslationsUpdated}
+        />
+      )}
 
       {deleteDialog && (
         <DeleteProductResolutionModal

@@ -113,7 +113,7 @@ export default function CategoryForm({
         ) : (
           <>
             <div className="rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)]/80 px-3 py-2 text-[11px] text-[var(--color-text-admin-muted)]">
-              Bu form yalnızca Türkçe (TR) ana içerik için kullanılır. Hiyerarşi ve görseller tüm dillerde ortaktır; diğer diller için aşağıdaki çeviri panellerini kullanın.
+              Bu form yalnızca Türkçe (TR) içerik için kullanılır.
             </div>
             <label className="block">
               <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">

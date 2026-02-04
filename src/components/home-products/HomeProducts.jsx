@@ -47,7 +47,11 @@ export default function HomeProducts({
 function ProductGrid({ items, loading, emptyLabel }) {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div
+        className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+        data-animate="stagger"
+        data-animate-children="> *"
+      >
         {Array.from({ length: 6 }).map((_, index) => (
           <div
             key={index}
@@ -67,7 +71,11 @@ function ProductGrid({ items, loading, emptyLabel }) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div
+      className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+      data-animate="stagger"
+      data-animate-children="> *"
+    >
       {items.map((item, index) => (
         <HomeProductItem key={index} {...item} />
       ))}

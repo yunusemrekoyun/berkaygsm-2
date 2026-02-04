@@ -20,15 +20,12 @@ import {
   Globe,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { HAS_TRANSLATIONS, TRANSLATION_LANGS } from "../../constants/lang.js";
 
 /* -------------------- PAGE -------------------- */
 
 const BASE_LANG = "tr";
 const BASE_LANGUAGE_LABEL = "Türkçe (TR)";
-const TRANSLATION_LANGS = [
-  { value: "en", label: "English (EN)" },
-  { value: "de", label: "Deutsch (DE)" },
-];
 
 export default function PrivacySettings() {
   const [form, setForm] = useState(EMPTY_MODEL);
@@ -172,21 +169,35 @@ export default function PrivacySettings() {
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 <p className="flex-1 rounded-xl border border-[var(--color-border-admin)]/60 bg-[var(--color-bg-admin)]/40 px-3 py-2 text-[11px] text-[var(--color-text-admin-muted)]">
-                  Bu form{" "}
-                  <span className="font-semibold text-[var(--color-text-admin)]">
-                    {BASE_LANGUAGE_LABEL}
-                  </span>{" "}
-                  içeriklerini düzenler. Diğer diller için “Dil varyantları”
-                  butonunu kullanın.
+                  {HAS_TRANSLATIONS ? (
+                    <>
+                      Bu form{" "}
+                      <span className="font-semibold text-[var(--color-text-admin)]">
+                        {BASE_LANGUAGE_LABEL}
+                      </span>{" "}
+                      içeriklerini düzenler. Diğer diller için “Dil varyantları”
+                      butonunu kullanın.
+                    </>
+                  ) : (
+                    <>
+                      Bu form yalnızca{" "}
+                      <span className="font-semibold text-[var(--color-text-admin)]">
+                        {BASE_LANGUAGE_LABEL}
+                      </span>{" "}
+                      içeriklerini yönetir.
+                    </>
+                  )}
                 </p>
-                <button
-                  type="button"
-                  onClick={openTranslationModal}
-                  className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
-                >
-                  <Languages className="h-4 w-4" />
-                  Dil varyantları
-                </button>
+                {HAS_TRANSLATIONS && (
+                  <button
+                    type="button"
+                    onClick={openTranslationModal}
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
+                  >
+                    <Languages className="h-4 w-4" />
+                    Dil varyantları
+                  </button>
+                )}
               </div>
             </div>
 
@@ -308,16 +319,18 @@ export default function PrivacySettings() {
         </aside>
       </div>
 
-      <PrivacyTranslationModal
-        open={translationState.open}
-        loading={translationState.loading}
-        error={translationState.error}
-        privacy={translationState.privacy}
-        baseLang={BASE_LANG}
-        langs={TRANSLATION_LANGS}
-        onClose={closeTranslationModal}
-        onUpdated={handleTranslationsUpdated}
-      />
+      {HAS_TRANSLATIONS && (
+        <PrivacyTranslationModal
+          open={translationState.open}
+          loading={translationState.loading}
+          error={translationState.error}
+          privacy={translationState.privacy}
+          baseLang={BASE_LANG}
+          langs={TRANSLATION_LANGS}
+          onClose={closeTranslationModal}
+          onUpdated={handleTranslationsUpdated}
+        />
+      )}
     </div>
   );
 }

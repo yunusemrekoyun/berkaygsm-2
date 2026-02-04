@@ -9,12 +9,9 @@ import {
   collectDescendantIds,
   flattenCategoryTree,
 } from "../../utils/catalog.js";
+import { HAS_TRANSLATIONS, TRANSLATION_LANGS } from "../../constants/lang.js";
 
 const BASE_LANG = "tr";
-const TRANSLATION_LANGS = [
-  { value: "en", label: "English (EN)" },
-  { value: "de", label: "Deutsch (DE)" },
-];
 
 function createTranslationDrafts(category) {
   const drafts = {};
@@ -303,7 +300,7 @@ export default function AdminCategories() {
               setTranslationSaving({});
             }}
           />
-          {selectedCategory?.id && (
+          {HAS_TRANSLATIONS && selectedCategory?.id && (
             <TranslationEditors
               category={selectedCategory}
               drafts={translationDrafts}
@@ -319,6 +316,7 @@ export default function AdminCategories() {
 }
 
 function TranslationEditors({ category, drafts, onChange, onSave, savingMap }) {
+  if (!HAS_TRANSLATIONS) return null;
   const fallbackName = category?.name ?? "";
   const translations = category?.translations ?? {};
   const [openStates, setOpenStates] = useState(() => {

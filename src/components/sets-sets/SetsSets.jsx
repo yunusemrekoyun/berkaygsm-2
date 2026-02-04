@@ -62,7 +62,11 @@ export default function SetsSets({
         </div>
 
         {loading ? (
-          <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div
+            className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2"
+            data-animate="stagger"
+            data-animate-children="> *"
+          >
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
@@ -71,7 +75,11 @@ export default function SetsSets({
             ))}
           </div>
         ) : (
-          <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div
+            className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2"
+            data-animate="stagger"
+            data-animate-children="> *"
+          >
             {shown.map((s, i) => (
               <SetsSetItem key={i} {...s} copy={cardCopy} />
             ))}

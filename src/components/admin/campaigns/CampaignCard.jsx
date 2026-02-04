@@ -164,14 +164,16 @@ export default function CampaignCard({
           >
             <Pencil className="h-4 w-4" />
           </button>
-          <button
-            type="button"
-            onClick={onTranslate}
-            className="rounded-lg p-2 text-[var(--color-text-admin-muted)] transition hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-admin)]"
-            title="Dil varyantlarını düzenle"
-          >
-            <Languages className="h-4 w-4" />
-          </button>
+          {typeof onTranslate === "function" && (
+            <button
+              type="button"
+              onClick={onTranslate}
+              className="rounded-lg p-2 text-[var(--color-text-admin-muted)] transition hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-admin)]"
+              title="Dil varyantlarını düzenle"
+            >
+              <Languages className="h-4 w-4" />
+            </button>
+          )}
           <button
             type="button"
             onClick={onDelete}

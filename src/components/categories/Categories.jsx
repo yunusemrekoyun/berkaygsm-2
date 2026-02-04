@@ -70,7 +70,11 @@ export default function Categories({ title, items }) {
       </h2>
 
       {loading ? (
-        <div className={gridClass}>
+        <div
+          className={gridClass}
+          data-animate="stagger"
+          data-animate-children="> *"
+        >
           {Array.from({ length: DESKTOP_VISIBLE }).map((_, index) => (
             <div
               key={index}
@@ -91,6 +95,9 @@ export default function Categories({ title, items }) {
           <div
             ref={scrollRef}
             className="flex snap-x snap-mandatory gap-8 overflow-x-auto pb-4 md:pb-6 no-scrollbar"
+            data-animate="stagger"
+            data-animate-children="[data-category-card]"
+            data-stagger="0.08"
           >
             {categories.map((category) => (
               <div
@@ -112,7 +119,11 @@ export default function Categories({ title, items }) {
           </button>
         </div>
       ) : (
-        <div className={gridClass}>
+        <div
+          className={gridClass}
+          data-animate="stagger"
+          data-animate-children="> *"
+        >
           {categories.map((category) => (
             <CategoryItem key={category.id || category.title} {...category} />
           ))}

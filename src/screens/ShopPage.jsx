@@ -545,14 +545,14 @@ export default function ShopPage() {
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-accent">
           <div>
             {saleBannerCopy.text ||
-              "Only discounted products are shown. Hurry before they sell out!"}
+              "Sadece indirimli ürünleri gösteriyorsunuz fırsatları kaçırmayın!"}
           </div>
           <button
             type="button"
             onClick={handleClearSale}
             className="text-accent underline underline-offset-4 hover:text-accent/80"
           >
-            {saleBannerCopy.clear || "Show all products"}
+            {saleBannerCopy.clear || "Tüm ürünleri göster"}
           </button>
         </div>
       )}

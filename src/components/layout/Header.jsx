@@ -15,7 +15,6 @@ import MegaMenu from "./MegaMenu";
 import { categoryApi } from "../../api/categories";
 import { mapCategoryTree } from "../../utils/catalog";
 import { useCart } from "../../hooks/useCart";
-import LanguageSwitcher from "../LanguageSwitcher.jsx";
 import { useStorefrontLang } from "../../context/LangContext.jsx";
 import { useStaticTranslation } from "../../i18n/staticContent.js";
 
@@ -223,7 +222,6 @@ export default function Header() {
                   className="ml-2 w-full border-none text-sm outline-none placeholder:text-secondary/60"
                 />
               </div>
-              <LanguageSwitcher className="rounded-full border border-border px-4 py-2 text-sm font-medium text-primary" />
             </form>
           </div>
 
@@ -260,7 +258,6 @@ export default function Header() {
                   </form>
                 </div>
                 <div className="flex items-center justify-end gap-3">
-                  <LanguageSwitcher className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm font-medium text-primary" />
                   <Link
                     to="/cart"
                     className="relative inline-flex rounded-full p-2 hover:bg-surface-hover"

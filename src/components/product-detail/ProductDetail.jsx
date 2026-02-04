@@ -264,7 +264,7 @@ export default function ProductDetail({ product = {} }) {
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
       {/* Left: Gallery */}
-      <div className="md:col-span-5">
+      <div className="md:col-span-5" data-animate="fade-right">
         <div className="relative overflow-hidden rounded-xl border border-border bg-white">
           <img
             src={gallery[activeImg]}
@@ -282,7 +282,12 @@ export default function ProductDetail({ product = {} }) {
         </div>
 
         {gallery.length > 1 && (
-          <div className="mt-4 grid grid-cols-3 gap-4">
+          <div
+            className="mt-4 grid grid-cols-3 gap-4"
+            data-animate="stagger"
+            data-animate-children="> *"
+            data-stagger="0.08"
+          >
             {gallery.map((img, index) => (
               <button
                 key={img + index}
@@ -304,7 +309,7 @@ export default function ProductDetail({ product = {} }) {
       </div>
 
       {/* Right: Info */}
-      <div className="md:col-span-7 space-y-6">
+      <div className="md:col-span-7 space-y-6" data-animate="fade-left">
         <div className="rounded-xl border border-border bg-contact-bg p-6">
           {/* Başlık + Kalp */}
           <div className="flex items-start justify-between gap-3">

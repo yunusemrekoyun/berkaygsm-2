@@ -85,12 +85,12 @@ export default function SetDetail({ setDoc }) {
   return (
     <div className="grid gap-6 md:grid-cols-12">
       {/* Left: Gallery */}
-      <div className="md:col-span-5">
+      <div className="md:col-span-5" data-animate="fade-right">
         <SetGallery images={setDoc.images || []} title={setDoc.name} />
       </div>
 
       {/* Right: Info */}
-      <div className="md:col-span-7 space-y-5">
+      <div className="md:col-span-7 space-y-5" data-animate="fade-left">
         <div className="space-y-5 rounded-xl bg-white p-5 ring-1 ring-black/5 md:p-6">
           {/* Üst sağ: Favori kalbi */}
           <div className="flex items-start justify-between">
