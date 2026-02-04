@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import StockItem from "../models/StockItem.js";
 import Product from "../models/Product.js";
-import Set from "../models/Set.js";
+import SetModel from "../models/Set.js";
 
 const isId = (s) => typeof s === "string" && /^[0-9a-fA-F]{24}$/.test(s);
 
@@ -18,7 +18,7 @@ async function assertOwner(ownerModel, owner) {
   if (!["Product", "Set"].includes(ownerModel))
     throw new Error("ownerModel must be Product or Set");
   if (!isId(owner)) throw new Error("owner is not a valid ObjectId");
-  const Model = ownerModel === "Set" ? Set : Product;
+  const Model = ownerModel === "Set" ? SetModel : Product;
   const exists = await Model.exists({ _id: owner });
   if (!exists) throw new Error(`${ownerModel} not found`);
 }

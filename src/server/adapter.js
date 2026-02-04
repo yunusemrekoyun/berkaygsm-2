@@ -186,14 +186,34 @@ class ResponseMock {
 export async function runHandlers(request, { params = {}, handlers = [], bodyType = "auto", upload = null } = {}) {
   const url = new URL(request.url);
   const headers = buildHeaders(request);
-  const { body, filesByField } = await parseBody(request, bodyType);
+  let body = {};
+  let filesByField = {};
+  try {
+    const parsed = await parseBody(request, bodyType);
+    body = parsed.body || {};
+    filesByField = parsed.filesByField || {};
+  } catch (error) {
+    const status = error?.status || 400;
+    return NextResponse.json(
+      { message: error?.message || "Invalid request payload" },
+      { status }
+    );
+  }
 
   if (upload) {
     const limits = { ...(upload.limits || {}) };
     if (upload.type === "single" && limits.maxFiles == null) {
       limits.maxFiles = 1;
     }
-    assertUploadLimits(filesByField, limits);
+    try {
+      assertUploadLimits(filesByField, limits);
+    } catch (error) {
+      const status = error?.status || 400;
+      return NextResponse.json(
+        { message: error?.message || "Upload rejected" },
+        { status }
+      );
+    }
   }
 
   const req = {
@@ -203,7 +223,7 @@ export async function runHandlers(request, { params = {}, handlers = [], bodyTyp
     query: Object.fromEntries(url.searchParams.entries()),
     params: params || {},
     cookies: parseCookies(request),
-    body: body || {},
+    body,
     ip: getClientIp(headers),
     file: null,
     files: undefined,
