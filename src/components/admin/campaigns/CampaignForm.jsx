@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { UploadCloud, Image as ImageIcon, X } from "lucide-react";
 import EntityPicker from "../discounts/EntityPicker.jsx";
 import { DEFAULT_LANG } from "../../../constants/lang.js";
@@ -95,6 +95,9 @@ export default function CampaignForm({
 
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
+  const [imageCleared, setImageCleared] = useState(false);
+  const fileInputRef = useRef(null);
+  const objectUrlRef = useRef(null);
 
   const [error, setError] = useState("");
 
@@ -113,6 +116,12 @@ export default function CampaignForm({
       setSelectedDiscounts([]);
       setImageFile(null);
       setImagePreview("");
+      setImageCleared(false);
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
       setError("");
       return;
     }
@@ -136,6 +145,12 @@ export default function CampaignForm({
     );
     setImageFile(null);
     setImagePreview(initialCampaign.image?.url || "");
+    setImageCleared(false);
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
     setError("");
   }, [
     initialCampaign,
@@ -144,6 +159,15 @@ export default function CampaignForm({
     categoryOptions,
     discountOptions,
   ]);
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+    };
+  }, []);
 
   const summary = useMemo(
     () =>
@@ -162,7 +186,14 @@ export default function CampaignForm({
     const file = event.target.files?.[0];
     if (!file) return;
     setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+    }
+    const nextUrl = URL.createObjectURL(file);
+    objectUrlRef.current = nextUrl;
+    setImagePreview(nextUrl);
+    setImageCleared(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = async (event) => {
@@ -201,6 +232,10 @@ export default function CampaignForm({
       setError("Lütfen bir kampanya görseli yükleyin.");
       return;
     }
+    if (mode === "edit" && imageCleared && !imageFile) {
+      setError("Görseli kaldırdınız. Kaydetmek için yeni görsel yükleyin.");
+      return;
+    }
 
     const payload = {
       name: name.trim(),
@@ -230,13 +265,32 @@ export default function CampaignForm({
     }
   };
 
-  const resetImage = () => {
+  const clearImage = () => {
     setImageFile(null);
+    setImagePreview("");
+    setImageCleared(true);
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const restoreImage = () => {
     if (initialCampaign?.image?.url) {
       setImagePreview(initialCampaign.image.url);
-    } else {
-      setImagePreview("");
+      setImageCleared(false);
     }
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const triggerFileDialog = (event) => {
+    event?.preventDefault?.();
+    fileInputRef.current?.click();
   };
 
   return (
@@ -398,7 +452,12 @@ export default function CampaignForm({
           <label className="flex cursor-pointer flex-1 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[var(--color-border-admin)]/80 bg-[var(--color-bg-admin)]/60 px-6 py-10 text-center text-sm text-[var(--color-text-admin-muted)] hover:border-[var(--color-text-admin)]">
             {imagePreview ? (
               <div className="w-full">
-                <div className="relative mx-auto h-40 w-full max-w-xs overflow-hidden rounded-xl border border-[var(--color-border-admin)]">
+                <div
+                  className="relative mx-auto h-40 w-full max-w-xs overflow-hidden rounded-xl border border-[var(--color-border-admin)]"
+                  onClick={triggerFileDialog}
+                  role="button"
+                  tabIndex={0}
+                >
                   <img
                     src={imagePreview}
                     alt="Kampanya önizleme"
@@ -408,7 +467,7 @@ export default function CampaignForm({
                     type="button"
                     onClick={(event) => {
                       event.preventDefault();
-                      resetImage();
+                      clearImage();
                     }}
                     className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
                     title="Görseli kaldır"
@@ -416,9 +475,19 @@ export default function CampaignForm({
                     <X className="h-4 w-4" />
                   </button>
                 </div>
-                <p className="mt-2 text-xs text-[var(--color-text-admin-muted)]">
-                  Değiştirmek için tıklayın
-                </p>
+                {imageCleared && initialCampaign?.image?.url ? (
+                  <button
+                    type="button"
+                    onClick={restoreImage}
+                    className="mt-2 text-xs font-semibold text-[var(--color-text-admin)] underline"
+                  >
+                    Mevcut görseli geri getir
+                  </button>
+                ) : (
+                  <p className="mt-2 text-xs text-[var(--color-text-admin-muted)]">
+                    Değiştirmek için tıklayın
+                  </p>
+                )}
               </div>
             ) : (
               <>
@@ -430,7 +499,9 @@ export default function CampaignForm({
                   </span>
                 </span>
                 <span className="text-[11px] text-[var(--color-text-admin-muted)]">
-                  Önerilen 1200x800 JPG/PNG
+                  Kartlar sabit yükseklikte kırpılır; oran korunur.
+                  <br />
+                  Öneri: Küçük 1200x800, Geniş 1600x800, Büyük 1600x1200
                 </span>
               </>
             )}
@@ -438,6 +509,7 @@ export default function CampaignForm({
               type="file"
               accept="image/*"
               onChange={handleFileChange}
+              ref={fileInputRef}
               className="hidden"
             />
           </label>
@@ -447,6 +519,10 @@ export default function CampaignForm({
             </div>
           )}
         </div>
+        <p className="mt-2 text-[11px] text-[var(--color-text-admin-muted)]">
+          Yüksek/dikey görseller üstten-alttan kırpılır. Ana sayfada görüntü
+          bozulmaması için yatay görseller tercih edin.
+        </p>
       </div>
 
       <div className="rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-admin)]/60 p-4 text-sm">

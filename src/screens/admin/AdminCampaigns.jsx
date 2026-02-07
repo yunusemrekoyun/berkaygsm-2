@@ -93,6 +93,7 @@ export default function AdminCampaigns() {
   const [formMode, setFormMode] = useState("create");
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [formSubmitting, setFormSubmitting] = useState(false);
+  const [formNonce, setFormNonce] = useState(0);
   const [translationState, setTranslationState] = useState({
     open: false,
     loading: false,
@@ -200,6 +201,7 @@ export default function AdminCampaigns() {
   function openCreateForm() {
     setFormMode("create");
     setEditingCampaign(null);
+    setFormNonce((prev) => prev + 1);
   }
 
   function openEditForm(campaign) {
@@ -476,6 +478,7 @@ export default function AdminCampaigns() {
 
         <div className="xl:col-span-5">
           <CampaignForm
+            key={`${formMode}-${editingCampaign?.id || "new"}-${formNonce}`}
             mode={formMode}
             initialCampaign={editingCampaign}
             onSubmit={handleFormSubmit}
