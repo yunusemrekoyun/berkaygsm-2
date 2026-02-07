@@ -496,12 +496,12 @@ export async function getCampaign(req, res) {
   try {
     const { id } = req.params;
     if (!isValidObjectId(id)) {
-      return res.status(400).json({ message: "Invalid campaign id" });
+      return res.status(400).json({ message: "Geçersiz kampanya id" });
     }
     const lang = normalizeLang(req.query.lang || DEFAULT_LANG);
     const campaign = await Campaign.findById(id);
     if (!campaign) {
-      return res.status(404).json({ message: "Campaign not found" });
+      return res.status(404).json({ message: "Kampanya bulunamadı" });
     }
     const localized = resolveTranslation(campaign, lang);
     const translations = composeResponseTranslations(
@@ -699,7 +699,7 @@ export async function createCampaign(req, res) {
     ) {
       return res
         .status(400)
-        .json({ message: "Campaign target must include at least one selection." });
+        .json({ message: "Kampanya hedefi en az bir seçim içermeli." });
     }
 
     payload.target.type = payload.target.sets?.length ? "SETS" : "PRODUCTS";
@@ -745,12 +745,12 @@ export async function updateCampaign(req, res) {
   try {
     const { id } = req.params;
     if (!isValidObjectId(id)) {
-      return res.status(400).json({ message: "Invalid campaign id" });
+      return res.status(400).json({ message: "Geçersiz kampanya id" });
     }
     const lang = normalizeLang(req.query.lang || DEFAULT_LANG);
     const campaign = await Campaign.findById(id);
     if (!campaign) {
-      return res.status(404).json({ message: "Campaign not found" });
+      return res.status(404).json({ message: "Kampanya bulunamadı" });
     }
 
     if (process.env.DEBUG_CAMPAIGNS === "true") {
@@ -771,7 +771,7 @@ export async function updateCampaign(req, res) {
     ) {
       return res
         .status(400)
-        .json({ message: "Campaign target must include at least one selection." });
+        .json({ message: "Kampanya hedefi en az bir seçim içermeli." });
     }
 
     if (payload.target) {
@@ -847,11 +847,11 @@ export async function deleteCampaign(req, res) {
   try {
     const { id } = req.params;
     if (!isValidObjectId(id)) {
-      return res.status(400).json({ message: "Invalid campaign id" });
+      return res.status(400).json({ message: "Geçersiz kampanya id" });
     }
     const campaign = await Campaign.findById(id);
     if (!campaign) {
-      return res.status(404).json({ message: "Campaign not found" });
+      return res.status(404).json({ message: "Kampanya bulunamadı" });
     }
     if (campaign.image?.publicId) {
       await deleteFromCloudinary(campaign.image.publicId);
@@ -896,12 +896,12 @@ export async function resolveCampaign(req, res) {
   try {
     const { id } = req.params;
     if (!isValidObjectId(id)) {
-      return res.status(400).json({ message: "Invalid campaign id" });
+      return res.status(400).json({ message: "Geçersiz kampanya id" });
     }
     const lang = normalizeLang(req.query.lang || DEFAULT_LANG);
     const campaign = await Campaign.findById(id);
     if (!campaign) {
-      return res.status(404).json({ message: "Campaign not found" });
+      return res.status(404).json({ message: "Kampanya bulunamadı" });
     }
     const targetType = campaign.target?.type || "PRODUCTS";
     const campaignObject = campaign.toObject();

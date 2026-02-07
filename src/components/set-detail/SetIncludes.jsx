@@ -16,15 +16,15 @@ export default function SetIncludes({ products = [] }) {
   const [idx, setIdx] = useState(0);
   const t = useStaticTranslation();
   const copy = t("setDetail") || {};
-  const qtyLabel = copy.qtyLabel || "Qty";
-  const productFallback = copy.productFallback || "Product";
-  const noImage = copy.noImage || "No image";
-  const noImagesAvailable = copy.noImagesAvailable || "No images available";
-  const closeLabel = copy.close || "Close";
+  const qtyLabel = copy.qtyLabel || "Adet";
+  const productFallback = copy.productFallback || "Ürün";
+  const noImage = copy.noImage || "Görsel yok";
+  const noImagesAvailable = copy.noImagesAvailable || "Görsel bulunmuyor";
+  const closeLabel = copy.close || "Kapat";
   const sliderCopy = copy.slider || {};
-  const prevLabel = sliderCopy.prev || "Previous image";
-  const nextLabel = sliderCopy.next || "Next image";
-  const goToLabel = sliderCopy.goTo || "Go to image {index}";
+  const prevLabel = sliderCopy.prev || "Önceki görsel";
+  const nextLabel = sliderCopy.next || "Sonraki görsel";
+  const goToLabel = sliderCopy.goTo || "{index}. görsele git";
 
   const openLightbox = (p) => {
     const pics = Array.isArray(p?.images) ? p.images : [];

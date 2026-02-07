@@ -6,8 +6,8 @@ export default function EntityPicker({
   options = [],
   value = [],
   onChange,
-  placeholder = "Search…",
-  emptyText = "No items found",
+  placeholder = "Ara…",
+  emptyText = "Öğe bulunamadı",
   helper,
   disabled = false,
 }) {
@@ -80,7 +80,7 @@ export default function EntityPicker({
                   type="button"
                   onClick={() => removeOption(item.id)}
                   className="text-[var(--color-text-admin-muted)] hover:text-[var(--color-text-admin)]"
-                  aria-label={`Remove ${item.label}`}
+                  aria-label={`${item.label} kaldır`}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -130,12 +130,12 @@ export default function EntityPicker({
                     type="button"
                     onClick={() => addOption(option)}
                     disabled={disabled}
-                    className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border-admin)] px-2.5 py-1 text-xs font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] disabled:opacity-60"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Add
-                  </button>
-                </li>
-              ))}
+                  className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border-admin)] px-2.5 py-1 text-xs font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] disabled:opacity-60"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Ekle
+                </button>
+              </li>
+            ))}
             </ul>
           )}
         </div>

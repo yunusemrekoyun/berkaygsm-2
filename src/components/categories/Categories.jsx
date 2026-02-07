@@ -15,9 +15,9 @@ export default function Categories({ title, items }) {
   const { lang } = useStorefrontLang();
   const t = useStaticTranslation();
   const copy = t("categoriesComponent") || {};
-  const resolvedTitle = title || copy.title || "Featured Categories";
-  const prevAria = copy.prev || "Previous categories";
-  const nextAria = copy.next || "Next categories";
+  const resolvedTitle = title || copy.title || "Öne Çıkan Kategoriler";
+  const prevAria = copy.prev || "Önceki kategoriler";
+  const nextAria = copy.next || "Sonraki kategoriler";
 
   useEffect(() => {
     if (items) return;

@@ -46,7 +46,7 @@ export default function HomePage() {
   const fallbackComments = t("homePage.fallbackComments") || [];
   const heroFallback = t("homePage.heroFallback") || [];
   const sectionCopy = t("homePage.sections") || {};
-  const allTabLabel = t("homeSets.tabsAll") || "All";
+  const allTabLabel = t("homeSets.tabsAll") || "Tümü";
   const campaignCopy = t("homeCampaigns") || {};
 
   // HERO fetch
@@ -214,14 +214,14 @@ export default function HomePage() {
         <div className="rounded-xl bg-surface shadow-sm">
           <HomeProducts
             variant="merge-top"
-            title={sectionCopy.newArrivalsTitle || "New Arrivals"}
+            title={sectionCopy.newArrivalsTitle || "Yeni Gelenler"}
             items={newArrivalCards}
             loading={loadingProducts && !newArrivalCards.length}
             className="rounded-t-xl"
           />
           <HomeProducts
             variant="merge-bottom"
-            title={sectionCopy.bestsellersTitle || "Bestsellers"}
+            title={sectionCopy.bestsellersTitle || "En Çok Satanlar"}
             items={bestsellerCards}
             loading={loadingProducts && !bestsellerCards.length}
             className="rounded-b-xl"
@@ -260,7 +260,7 @@ function mapProductsToHomeCards(products) {
 function mapSetsToCards(sets, { untitledSet, includesMoreLabel } = {}) {
   return (sets || []).map((s) => {
     const image = s.images?.[0]?.url || "/set-placeholder.jpg";
-    const title = s.name || untitledSet || "Untitled Set";
+    const title = s.name || untitledSet || "İsimsiz Set";
     const desc = s.description || "";
     const to = `/set/${s.slug || s.id}`;
     const price = Number(s.price ?? 0);
@@ -305,10 +305,10 @@ function mapCampaignsToHomeCards(list, { fallbackTitle, fallbackCta } = {}) {
     id: campaign.id,
     to: campaign.computedLink || "/shop",
     image: campaign.image?.url || "/cmp-1.jpg",
-    title: campaign.name || fallbackTitle || "Campaign",
+    title: campaign.name || fallbackTitle || "Kampanya",
     subtitle: campaign.description || "",
     badge: campaign.badge || "",
-    ctaText: campaign.ctaText || fallbackCta || "Shop Now",
+    ctaText: campaign.ctaText || fallbackCta || "Alışverişe Başla",
     variant: mapLayoutToVariant(campaign.layout),
   }));
 }

@@ -420,7 +420,7 @@ function OrdersTable() {
                 </span>
               </td>
               <td className="px-4 py-3 text-left font-semibold text-primary md:text-right" data-label="Toplam">
-                €{r.total}
+                ₺{r.total}
               </td>
             </tr>
           ))}
@@ -463,7 +463,7 @@ function TopProducts() {
             </div>
             <div className="text-right">
               <div className="text-sm font-semibold text-primary">
-                €{p.revenue.toLocaleString()}
+                ₺{p.revenue.toLocaleString()}
               </div>
               <div className="text-xs text-text-admin-muted">kategori payı</div>
             </div>

@@ -16,17 +16,17 @@ export async function createCoupon(req, res) {
     const { code, description = "", percentage, minSubtotal = 0, active = true } = req.body;
     const normalized = normalizeCode(code);
     if (!normalized) {
-      return res.status(400).json({ message: "Coupon code is required" });
+      return res.status(400).json({ message: "Kupon kodu gerekli" });
     }
     const parsedPercentage = Number(percentage);
     if (!Number.isFinite(parsedPercentage) || parsedPercentage <= 0 || parsedPercentage > 100) {
-      return res.status(400).json({ message: "Percentage must be between 1-100" });
+      return res.status(400).json({ message: "Yüzde 1-100 arasında olmalı" });
     }
     const parsedMin = Number(minSubtotal) || 0;
 
     const existing = await Coupon.findOne({ code: normalized });
     if (existing) {
-      return res.status(409).json({ message: "Coupon code already exists" });
+      return res.status(409).json({ message: "Kupon kodu zaten mevcut" });
     }
 
     const coupon = await Coupon.create({
@@ -47,18 +47,18 @@ export async function updateCoupon(req, res) {
     const { id } = req.params;
     const coupon = await Coupon.findById(id);
     if (!coupon) {
-      return res.status(404).json({ message: "Coupon not found" });
+      return res.status(404).json({ message: "Kupon bulunamadı" });
     }
 
     const { code, description, percentage, minSubtotal, active } = req.body;
     if (code !== undefined) {
       const normalized = normalizeCode(code);
       if (!normalized) {
-        return res.status(400).json({ message: "Coupon code cannot be empty" });
+        return res.status(400).json({ message: "Kupon kodu boş olamaz" });
       }
       const exists = await Coupon.findOne({ code: normalized, _id: { $ne: coupon._id } });
       if (exists) {
-        return res.status(409).json({ message: "Coupon code already exists" });
+        return res.status(409).json({ message: "Kupon kodu zaten mevcut" });
       }
       coupon.code = normalized;
     }
@@ -66,7 +66,7 @@ export async function updateCoupon(req, res) {
     if (percentage !== undefined) {
       const parsed = Number(percentage);
       if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 100) {
-        return res.status(400).json({ message: "Percentage must be between 1-100" });
+        return res.status(400).json({ message: "Yüzde 1-100 arasında olmalı" });
       }
       coupon.percentage = parsed;
     }
@@ -115,7 +115,7 @@ export async function applyCoupon(req, res) {
     const { code, subtotal } = req.body || {};
     const normalized = normalizeCode(code);
     if (!normalized) {
-      return res.status(400).json({ message: "Coupon code is required" });
+      return res.status(400).json({ message: "Kupon kodu gerekli" });
     }
     const subtotalValue = Number(subtotal) || 0;
 
@@ -130,12 +130,12 @@ export async function applyCoupon(req, res) {
     }).lean();
 
     if (!coupon) {
-      return res.status(404).json({ message: "Coupon not found or inactive" });
+      return res.status(404).json({ message: "Kupon bulunamadı veya pasif" });
     }
 
     if (subtotalValue < (coupon.minSubtotal || 0)) {
       return res.status(400).json({
-        message: `Coupon requires minimum subtotal of ${coupon.minSubtotal}`,
+        message: `Kupon için minimum ara toplam ${coupon.minSubtotal} olmalı`,
         reason: "minSubtotal",
         minSubtotal: coupon.minSubtotal,
       });

@@ -19,7 +19,7 @@ function rateLimit({ windowMs, max, message }) {
 
     entry.count += 1;
     if (entry.count > max) {
-      res.status(429).json(message || { message: "Too many requests" });
+      res.status(429).json(message || { message: "Çok fazla istek" });
       return;
     }
 
@@ -44,7 +44,7 @@ export const generalLimiter = rateLimit({
 export const strictLimiter = rateLimit({
   windowMs: strictWindow,
   max: strictMax,
-  message: { message: "Too many requests, please try again later." },
+  message: { message: "Çok fazla istek. Lütfen daha sonra tekrar deneyin." },
 });
 
 export const refreshLimiter = rateLimit({
@@ -55,5 +55,5 @@ export const refreshLimiter = rateLimit({
 export const mediaUploadLimiter = rateLimit({
   windowMs: mediaWindow,
   max: mediaMax,
-  message: { message: "Upload rate limit exceeded. Try again later." },
+  message: { message: "Yükleme limiti aşıldı. Lütfen daha sonra tekrar deneyin." },
 });

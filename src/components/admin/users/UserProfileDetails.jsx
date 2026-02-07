@@ -29,18 +29,19 @@ export default function UserProfileDetails({ user }) {
           </div>
           <div>
             <h3 className="text-xl font-semibold">
-              {user.fullName || "Unnamed customer"}
+              {user.fullName || "İsimsiz müşteri"}
             </h3>
             <p className="mt-1 text-sm text-[var(--color-text-admin-muted)]">
-              Joined {formatDate(user.createdAt)} ·{" "}
+              Katıldı {formatDate(user.createdAt)} ·{" "}
               {formatRelative(user.createdAt)}
             </p>
             {isDeleted && (
               <p className="mt-1 text-xs text-rose-700">
-                Deleted {user.deletedAt ? formatRelative(user.deletedAt) : ""}{" "}
+                Silindi {user.deletedAt ? formatRelative(user.deletedAt) : ""}{" "}
                 {user.deletedAlias ? (
                   <>
-                    · alias: <span className="italic">{user.deletedAlias}</span>
+                    · takma ad:{" "}
+                    <span className="italic">{user.deletedAlias}</span>
                   </>
                 ) : null}
               </p>
@@ -58,12 +59,10 @@ export default function UserProfileDetails({ user }) {
       {isDeleted && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700">
           <div className="flex items-center gap-2 text-sm font-semibold">
-            <UserX className="h-4 w-4" /> This account is deactivated (soft
-            deleted).
+            <UserX className="h-4 w-4" /> Bu hesap pasif (yumuşak silinmiş).
           </div>
           <p className="mt-1 text-xs">
-            Orders, reviews and history remain intact under the alias shown
-            above.
+            Siparişler, yorumlar ve geçmiş yukarıdaki takma ad altında korunur.
           </p>
         </div>
       )}
@@ -71,32 +70,32 @@ export default function UserProfileDetails({ user }) {
       <section className="grid gap-4 rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] p-5 md:grid-cols-2">
         <InfoItem
           icon={Mail}
-          label="Email"
+          label="E-posta"
           value={user.email}
           href={`mailto:${user.email}`}
-          helper="Primary communication"
+          helper="Birincil iletişim"
         />
         <InfoItem
           icon={Phone}
-          label="Phone"
-          value={user.phone || "Not provided"}
+          label="Telefon"
+          value={user.phone || "Belirtilmedi"}
           href={user.phone ? `tel:${user.phone}` : undefined}
-          helper={user.phone ? "Tap to call" : "Missing contact number"}
+          helper={user.phone ? "Aramak için dokunun" : "Telefon numarası yok"}
         />
 
         <InfoItem
           icon={IdCard}
-          label="Customer ID"
+          label="Müşteri ID"
           value={user.id}
-          helper={`Last updated ${
-            formatRelative(user.updatedAt) || "just now"
+          helper={`Son güncelleme ${
+            formatRelative(user.updatedAt) || "az önce"
           }`}
         />
         <InfoItem
           icon={CalendarClock}
-          label="Registered"
+          label="Kayıt Tarihi"
           value={formatDateTime(user.createdAt)}
-          helper="System timestamp"
+          helper="Sistem zamanı"
         />
       </section>
     </div>

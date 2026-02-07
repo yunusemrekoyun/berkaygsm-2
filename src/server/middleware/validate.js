@@ -9,12 +9,12 @@ export function validateBody(schema) {
     } catch (error) {
       if (error instanceof ZodError) {
         return res.status(400).json({
-          message: error.issues?.[0]?.message || "Invalid request payload",
+          message: error.issues?.[0]?.message || "Geçersiz istek içeriği",
           details: error.issues,
         });
       }
       return res.status(400).json({
-        message: error.message || "Invalid request payload",
+        message: error.message || "Geçersiz istek içeriği",
       });
     }
   };

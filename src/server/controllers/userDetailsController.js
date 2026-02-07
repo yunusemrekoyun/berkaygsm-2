@@ -150,13 +150,13 @@ export async function updateMyDetails(req, res) {
     const { firstName, lastName, phone, email, gender, birthDate } = req.body;
 
     const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ message: "Kullanıcı bulunamadı" });
 
     // Email duplicate kontrolü
     if (email && email !== user.email) {
       const exists = await User.findOne({ email });
       if (exists) {
-        return res.status(409).json({ message: "Email already in use" });
+        return res.status(409).json({ message: "E-posta zaten kullanılıyor" });
       }
       user.email = String(email).trim().toLowerCase();
     }
@@ -164,13 +164,13 @@ export async function updateMyDetails(req, res) {
     if (firstName !== undefined) {
       const v = String(firstName).trim();
       if (!v)
-        return res.status(400).json({ message: "First name cannot be empty" });
+        return res.status(400).json({ message: "Ad boş olamaz" });
       user.firstName = v;
     }
     if (lastName !== undefined) {
       const v = String(lastName).trim();
       if (!v)
-        return res.status(400).json({ message: "Last name cannot be empty" });
+        return res.status(400).json({ message: "Soyad boş olamaz" });
       user.lastName = v;
     }
     if (phone !== undefined) user.phone = String(phone).trim();
@@ -182,7 +182,7 @@ export async function updateMyDetails(req, res) {
       const allowed = ["male", "female", "other", ""];
       const g = String(gender).toLowerCase();
       if (!allowed.includes(g)) {
-        return res.status(400).json({ message: "Invalid gender" });
+        return res.status(400).json({ message: "Geçersiz cinsiyet" });
       }
       details.gender = g;
     }
@@ -210,7 +210,7 @@ export async function uploadAvatar(req, res) {
 
     const directAvatar = extractSingleAsset(req.body.avatar);
     if (!req.file?.buffer && !directAvatar) {
-      return res.status(400).json({ message: "No file uploaded" });
+      return res.status(400).json({ message: "Dosya yüklenmedi" });
     }
 
     // eski avatarı sil
@@ -308,7 +308,7 @@ export async function updateAddress(req, res) {
     const details = await ensureDetails(userId);
 
     const addr = details.addresses.id(addressId);
-    if (!addr) return res.status(404).json({ message: "Address not found" });
+    if (!addr) return res.status(404).json({ message: "Adres bulunamadı" });
 
     const {
       label,
@@ -360,7 +360,7 @@ export async function deleteAddress(req, res) {
     const details = await ensureDetails(userId);
 
     const addr = details.addresses.id(addressId);
-    if (!addr) return res.status(404).json({ message: "Address not found" });
+    if (!addr) return res.status(404).json({ message: "Adres bulunamadı" });
 
     addr.deleteOne();
     await details.save();
@@ -430,10 +430,10 @@ export async function toggleFavorite(req, res) {
     const { type, id } = req.body || {};
 
     if (!["product", "set"].includes(String(type))) {
-      return res.status(400).json({ message: "Invalid favorite type" });
+      return res.status(400).json({ message: "Geçersiz favori türü" });
     }
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid id" });
+      return res.status(400).json({ message: "Geçersiz id" });
     }
 
     const details = await ensureDetails(userId);
@@ -442,7 +442,7 @@ export async function toggleFavorite(req, res) {
       // opsiyonel: ürün var mı kontrolü
       const exists = await Product.exists({ _id: id });
       if (!exists)
-        return res.status(404).json({ message: "Product not found" });
+        return res.status(404).json({ message: "Ürün bulunamadı" });
 
       const idx = details.favoriteProducts.findIndex(
         (x) => String(x) === String(id)
@@ -451,7 +451,7 @@ export async function toggleFavorite(req, res) {
       else details.favoriteProducts.push(id);
     } else {
       const exists = await Set.exists({ _id: id });
-      if (!exists) return res.status(404).json({ message: "Set not found" });
+      if (!exists) return res.status(404).json({ message: "Set bulunamadı" });
 
       const idx = details.favoriteSets.findIndex(
         (x) => String(x) === String(id)

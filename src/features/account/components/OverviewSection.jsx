@@ -58,7 +58,7 @@ export default function OverviewSection({ user, profile, avatarSrc, onSave, copy
       await onSave({ ...form, avatarFile, removeAvatar });
       setAvatarFile(null);
       setRemoveAvatar(false);
-      setMessage({ type: "success", text: copy.success || "Profile updated" });
+      setMessage({ type: "success", text: copy.success || "Profil güncellendi" });
     } catch (error) {
       setMessage({ type: "error", text: extractErrorMessage(error) });
     } finally {
@@ -75,15 +75,15 @@ export default function OverviewSection({ user, profile, avatarSrc, onSave, copy
       ? `${profile?.firstName ?? user?.firstName ?? ""} ${
           profile?.lastName ?? user?.lastName ?? ""
         }`.trim()
-      : user?.name || profile?.email || user?.email || (fieldsCopy.customerFallback || "Customer");
+      : user?.name || profile?.email || user?.email || (fieldsCopy.customerFallback || "Müşteri");
 
   return (
     <div className="max-w-2xl">
       <h2 className="text-xl font-semibold text-primary">
-        {copy.heading || "Account Overview"}
+        {copy.heading || "Hesap Özeti"}
       </h2>
       <p className="mt-2 text-secondary">
-        {copy.description || "Update your personal info and profile picture."}
+        {copy.description || "Kişisel bilgilerinizi ve profil fotoğrafınızı güncelleyin."}
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -102,13 +102,13 @@ export default function OverviewSection({ user, profile, avatarSrc, onSave, copy
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field
-            label={fieldsCopy.firstName || "First Name"}
+            label={fieldsCopy.firstName || "Ad"}
             value={form.firstName}
             onChange={(v) => onChange("firstName", v)}
             icon={<UserIcon className="h-4 w-4" />}
           />
           <Field
-            label={fieldsCopy.lastName || "Last Name"}
+            label={fieldsCopy.lastName || "Soyad"}
             value={form.lastName}
             onChange={(v) => onChange("lastName", v)}
             icon={<UserIcon className="h-4 w-4" />}
@@ -116,15 +116,15 @@ export default function OverviewSection({ user, profile, avatarSrc, onSave, copy
         </div>
 
         <Field
-          label={fieldsCopy.email || "Email"}
+          label={fieldsCopy.email || "E-posta"}
           value={form.email}
           onChange={(v) => onChange("email", v)}
           icon={<Mail className="h-4 w-4" />}
-          help={fieldsCopy.emailHelp || "Changing email may require verification later."}
+          help={fieldsCopy.emailHelp || "E-posta değişikliği sonrasında doğrulama gerekebilir."}
         />
 
         <Field
-          label={fieldsCopy.phone || "Phone"}
+          label={fieldsCopy.phone || "Telefon"}
           value={form.phone}
           onChange={(v) => onChange("phone", v)}
           icon={<Phone className="h-4 w-4" />}
@@ -141,10 +141,10 @@ export default function OverviewSection({ user, profile, avatarSrc, onSave, copy
               />
               <div>
                 <div className="text-sm font-medium text-primary">
-                  {avatarCopy.title || "Profile Photo"}
+                  {avatarCopy.title || "Profil fotoğrafı"}
                 </div>
                 <div className="text-xs text-secondary">
-                  {avatarCopy.helper || "JPG/PNG only. We compress uploads automatically."}
+                  {avatarCopy.helper || "Sadece JPG/PNG. Yüklemeler otomatik sıkıştırılır."}
                 </div>
               </div>
             </div>
@@ -162,8 +162,8 @@ export default function OverviewSection({ user, profile, avatarSrc, onSave, copy
                   ].join(" ")}
                 >
                   {removeAvatar
-                    ? avatarCopy.removeActive || "Will remove"
-                    : avatarCopy.remove || "Remove"}
+                    ? avatarCopy.removeActive || "Kaldırılacak"
+                    : avatarCopy.remove || "Kaldır"}
                 </button>
               )}
 
@@ -174,7 +174,7 @@ export default function OverviewSection({ user, profile, avatarSrc, onSave, copy
                   className="hidden"
                   onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
                 />
-                {avatarCopy.upload || "Upload"}
+                {avatarCopy.upload || "Yükle"}
               </label>
             </div>
           </div>
@@ -186,7 +186,7 @@ export default function OverviewSection({ user, profile, avatarSrc, onSave, copy
                 type="button"
                 onClick={() => setAvatarFile(null)}
                 className="inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-surface-hover"
-                title={avatarCopy.removeFile || "Remove file"}
+                title={avatarCopy.removeFile || "Dosyayı kaldır"}
               >
                 <X className="h-4 w-4 text-secondary" />
               </button>
@@ -200,7 +200,7 @@ export default function OverviewSection({ user, profile, avatarSrc, onSave, copy
             disabled={saving}
             className="inline-flex items-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
           >
-            {buttonsCopy.save || "Save changes"}
+            {buttonsCopy.save || "Değişiklikleri kaydet"}
           </button>
         </div>
       </form>

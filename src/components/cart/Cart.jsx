@@ -39,7 +39,7 @@ export default function Cart() {
   const shippingFee = shippingInfo?.fee ?? 0;
   const baseShippingFee = shippingInfo?.baseFee ?? shippingFee;
   const freeThreshold = shippingInfo?.freeThreshold ?? 0;
-  const shippingName = shippingInfo?.name || rowCopy.shipping || "Shipping";
+  const shippingName = shippingInfo?.name || rowCopy.shipping || "Kargo";
 
   const totalWithDiscount = Math.max(0, grandTotal || total);
 
@@ -62,17 +62,17 @@ export default function Cart() {
     return (
       <div className="rounded-2xl border border-border bg-contact-bg p-10 text-center">
         <h2 className="text-2xl font-serif font-extrabold text-primary">
-          {copy.emptyTitle || "Your cart is empty"}
+          {copy.emptyTitle || "Sepetiniz boş"}
         </h2>
         <p className="mt-2 text-secondary">
           {copy.emptySubtitle ||
-            "Discover new cases, chargers, and accessory bundles."}
+            "Yeni kılıf, şarj cihazı ve aksesuar paketlerini keşfedin."}
         </p>
         <a
           href="/shop"
           className="mt-5 inline-flex items-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
         >
-          {copy.continueShopping || "Continue Shopping"}
+          {copy.continueShopping || "Alışverişe devam et"}
         </a>
       </div>
     );
@@ -85,10 +85,10 @@ export default function Cart() {
         <div className="rounded-2xl border border-border bg-white">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <h2 className="text-lg font-semibold text-primary">
-              {copy.heading || "Shopping Cart"}
+              {copy.heading || "Sepetim"}
             </h2>
             <span className="text-sm text-secondary/80">
-              {items.length} item{items.length > 1 ? "s" : ""}
+              {items.length} ürün
             </span>
           </div>
 
@@ -109,21 +109,21 @@ export default function Cart() {
               <input
                 value={couponInput}
                 onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                placeholder={copy.couponPlaceholder || "Enter coupon code"}
+                placeholder={copy.couponPlaceholder || "Kupon kodu girin"}
                 className="flex-1 rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none placeholder:text-secondary/60"
               />
               <button
                 onClick={handleApplyCoupon}
                 className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover"
               >
-                {copy.apply || "Apply"}
+                {copy.apply || "Uygula"}
               </button>
               {coupon && (
                 <button
                   onClick={clearCoupon}
                   className="rounded-lg border border-border px-3 py-2 text-sm text-primary hover:bg-surface-hover"
                 >
-                  {copy.clear || "Clear"}
+                  {copy.clear || "Temizle"}
                 </button>
               )}
             </div>
@@ -149,7 +149,7 @@ export default function Cart() {
       <aside className="md:col-span-4">
         <div className="rounded-2xl border border-border bg-contact-bg p-5">
           <h3 className="mb-4 text-lg font-semibold text-primary">
-            {copy.orderSummary || "Order Summary"}
+            {copy.orderSummary || "Sipariş özeti"}
           </h3>
 
           {/* Progress to free shipping */}
@@ -158,13 +158,13 @@ export default function Cart() {
               <p className="text-sm text-secondary">
                 {subTotal >= freeThreshold
                   ? copy.freeShippingUnlocked ||
-                    "You’ve unlocked Free Shipping 🎉"
+                    "Ücretsiz kargo kazandınız 🎉"
                   : formatStaticText(copy.freeShippingHint, {
                       amount: CURRENCY(Math.max(0, freeThreshold - subTotal)),
                     }) ||
-                    `Spend ${CURRENCY(
+                    `Ücretsiz kargo için ${CURRENCY(
                       Math.max(0, freeThreshold - subTotal)
-                    )} more to get Free Shipping`}
+                    )} daha ekleyin`}
               </p>
               <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface">
                 <div
@@ -182,28 +182,28 @@ export default function Cart() {
 
           <div className="space-y-2 text-sm">
             <Row
-              label={rowCopy.subtotal || "Subtotal"}
+              label={rowCopy.subtotal || "Ara toplam"}
               value={CURRENCY(subTotal)}
             />
             <Row
-              label={rowCopy.discount || "Discount"}
+              label={rowCopy.discount || "İndirim"}
               value={
                 couponDiscount ? `– ${CURRENCY(couponDiscount)}` : CURRENCY(0)
               }
             />
             <Row
-              label={`${rowCopy.shipping || "Shipping"}${
+              label={`${rowCopy.shipping || "Kargo"}${
                 shippingName ? ` (${shippingName})` : ""
               }`}
               value={
                 shippingFee === 0
-                  ? rowCopy.free || "Free"
+                  ? rowCopy.free || "Ücretsiz"
                   : CURRENCY(shippingFee)
               }
             />
             <div className="my-2 border-t border-border" />
             <Row
-              label={rowCopy.total || "Total"}
+              label={rowCopy.total || "Toplam"}
               value={CURRENCY(totalWithDiscount)}
               bold
             />
@@ -214,14 +214,14 @@ export default function Cart() {
             disabled={!items.length}
             onClick={() => navigate("/checkout")}
           >
-            {copy.checkoutCta || "Proceed to Checkout"}
+            {copy.checkoutCta || "Ödemeye geç"}
           </button>
 
           <a
             href="/shop"
             className="mt-3 block text-center text-sm text-secondary hover:text-accent"
           >
-            {copy.continueShoppingLink || "Continue Shopping"}
+            {copy.continueShoppingLink || "Alışverişe devam et"}
           </a>
         </div>
       </aside>

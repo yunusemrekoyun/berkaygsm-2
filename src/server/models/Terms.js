@@ -36,7 +36,7 @@ const TermsTranslationSchema = new mongoose.Schema(
 const TermsSchema = new mongoose.Schema(
   {
     singleton: { type: String, default: "terms", unique: true, index: true },
-    heroTitle: { type: String, default: "Terms of Service" },
+    heroTitle: { type: String, default: "Kullanım Koşulları" },
     heroIntro: { type: String, default: "" },
     sections: { type: [SectionSchema], default: [] },
     footerNote: { type: String, default: "" }, // ← ÖNEMLİ

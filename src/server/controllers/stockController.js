@@ -16,8 +16,8 @@ function toBool(v, fb = false) {
 
 async function assertOwner(ownerModel, owner) {
   if (!["Product", "Set"].includes(ownerModel))
-    throw new Error("ownerModel must be Product or Set");
-  if (!isId(owner)) throw new Error("owner is not a valid ObjectId");
+    throw new Error("ownerModel Product veya Set olmalı");
+  if (!isId(owner)) throw new Error("owner geçerli bir ObjectId değil");
   const Model = ownerModel === "Set" ? SetModel : Product;
   const exists = await Model.exists({ _id: owner });
   if (!exists) throw new Error(`${ownerModel} not found`);
@@ -104,7 +104,7 @@ export async function listStocks(req, res) {
       },
     });
   } catch (err) {
-    res.status(500).json({ message: err.message || "List failed" });
+    res.status(500).json({ message: err.message || "Listeleme başarısız" });
   }
 }
 
@@ -120,7 +120,7 @@ export async function listByOwner(req, res) {
     res.json({ stocks: rows });
   } catch (err) {
     const status = /owner|not a valid/.test(err.message) ? 400 : 500;
-    res.status(status).json({ message: err.message || "List by owner failed" });
+    res.status(status).json({ message: err.message || "Sahibe göre listeleme başarısız" });
   }
 }
 
@@ -155,7 +155,7 @@ export async function upsertStock(req, res) {
     if (base.ownerModel === "Set" && base.components.length === 0) {
       return res
         .status(400)
-        .json({ message: "Set stock row requires non-empty components" });
+        .json({ message: "Set stok satırı boş bileşen içeremez" });
     }
 
     // comboKey pre-hook’ta üretilecek — ama upsert için var olanı bulmak adına SAFE hesap
@@ -203,8 +203,8 @@ export async function upsertStock(req, res) {
     res.json({ stock: populated });
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.sku)
-      return res.status(400).json({ message: "SKU already exists" });
-    res.status(400).json({ message: err.message || "Upsert failed" });
+      return res.status(400).json({ message: "SKU zaten mevcut" });
+    res.status(400).json({ message: err.message || "Kaydetme başarısız" });
   }
 }
 
@@ -213,7 +213,7 @@ export async function updateStock(req, res) {
   try {
     const { id } = req.params;
     const stock = await StockItem.findById(id);
-    if (!stock) return res.status(404).json({ message: "Stock not found" });
+    if (!stock) return res.status(404).json({ message: "Stok bulunamadı" });
 
     const { qtyOnHand, delta, sku, isActive, note } = req.body;
     if (delta !== undefined) {
@@ -237,8 +237,8 @@ export async function updateStock(req, res) {
     res.json({ stock: populated });
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.sku)
-      return res.status(400).json({ message: "SKU already exists" });
-    res.status(400).json({ message: err.message || "Update failed" });
+      return res.status(400).json({ message: "SKU zaten mevcut" });
+    res.status(400).json({ message: err.message || "Güncelleme başarısız" });
   }
 }
 
@@ -247,11 +247,11 @@ export async function deleteStock(req, res) {
   try {
     const { id } = req.params;
     const stock = await StockItem.findById(id);
-    if (!stock) return res.status(404).json({ message: "Stock not found" });
+    if (!stock) return res.status(404).json({ message: "Stok bulunamadı" });
     await stock.deleteOne();
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ message: err.message || "Delete failed" });
+    res.status(500).json({ message: err.message || "Silme başarısız" });
   }
 }
 
@@ -322,12 +322,12 @@ export async function syncOwnerStocks(req, res) {
       );
       if (!txnUnsupported) {
         if (err?.code === 11000 && err?.keyPattern?.sku) {
-          return res.status(400).json({ message: "SKU already exists" });
+          return res.status(400).json({ message: "SKU zaten mevcut" });
         }
         const status = /ownerModel|valid ObjectId|not found/.test(message)
           ? 400
           : 500;
-        return res.status(status).json({ message: message || "Sync failed" });
+        return res.status(status).json({ message: message || "Senkronizasyon başarısız" });
       }
     } finally {
       session.endSession();
@@ -352,19 +352,19 @@ export async function syncOwnerStocks(req, res) {
       res.json({ ok: true, count: docs.length });
     } catch (err) {
       if (err?.code === 11000 && err?.keyPattern?.sku)
-        return res.status(400).json({ message: "SKU already exists" });
+        return res.status(400).json({ message: "SKU zaten mevcut" });
       const status = /ownerModel|valid ObjectId|not found/.test(err.message)
         ? 400
         : 500;
-      res.status(status).json({ message: err.message || "Sync failed" });
+      res.status(status).json({ message: err.message || "Senkronizasyon başarısız" });
     }
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.sku)
-      return res.status(400).json({ message: "SKU already exists" });
+      return res.status(400).json({ message: "SKU zaten mevcut" });
     const status = /ownerModel|valid ObjectId|not found/.test(err.message)
       ? 400
       : 500;
-    res.status(status).json({ message: err.message || "Sync failed" });
+    res.status(status).json({ message: err.message || "Senkronizasyon başarısız" });
   }
 }
 
@@ -376,9 +376,9 @@ export async function getStockSummary(req, res) {
     if (!["Product", "Set"].includes(ownerModel))
       return res
         .status(400)
-        .json({ message: "ownerModel must be Product or Set" });
+        .json({ message: "ownerModel Product veya Set olmalı" });
     if (!isId(owner))
-      return res.status(400).json({ message: "owner is not a valid ObjectId" });
+      return res.status(400).json({ message: "owner geçerli bir ObjectId değil" });
 
     const [{ total = 0 } = {}] = await StockItem.aggregate([
       {
@@ -396,6 +396,6 @@ export async function getStockSummary(req, res) {
 
     res.json({ ownerModel, owner, total });
   } catch (err) {
-    res.status(500).json({ message: err.message || "Summary failed" });
+    res.status(500).json({ message: err.message || "Özet alınamadı" });
   }
 }

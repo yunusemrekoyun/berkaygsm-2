@@ -40,11 +40,11 @@ function buildOptions(product = {}, lang) {
       const info = getColorInfo(raw, lang);
       if (!raw && !info.value) return;
       const key = (info.value || raw || "").toLowerCase();
-      if (!map.has(key)) {
+          if (!map.has(key)) {
         map.set(key, {
           key: key || String(map.size),
           value: raw,
-          label: info.label || raw || "Default",
+          label: info.label || raw || "Varsayılan",
           swatch: info.swatch,
           isHex: info.isHex,
         });
@@ -82,7 +82,7 @@ function buildOptions(product = {}, lang) {
     });
     const values = Array.from(map.values()).filter(Boolean);
     attribute = {
-      title: product.customAttribute.title || "Option",
+      title: product.customAttribute.title || "Seçenek",
       values,
     };
   }
@@ -122,7 +122,7 @@ export default function SetVariantPickerModal({
       const p = entry?.product || entry || {};
       return {
         productId: p.id || p._id || null,
-        name: p.name || "Product",
+        name: p.name || "Ürün",
         qtyInSet: Number(entry?.quantity) || 1,
         color: null,
         size: null,
@@ -138,7 +138,7 @@ export default function SetVariantPickerModal({
         const p = entry?.product || entry || {};
         return {
           productId: p.id || p._id || null,
-          name: p.name || "Product",
+          name: p.name || "Ürün",
           qtyInSet: Number(entry?.quantity) || 1,
           color: null,
           size: null,
@@ -220,13 +220,13 @@ export default function SetVariantPickerModal({
       <div className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-xl">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3">
           <h3 className="text-sm font-semibold text-primary">
-            Choose variants for set items
+            Set içeriği için varyant seç
           </h3>
           <button
             className="rounded-full border border-border px-3 py-1 text-sm text-primary hover:bg-surface-hover"
             onClick={onClose}
           >
-            Close
+            Kapat
           </button>
         </header>
 
@@ -240,10 +240,10 @@ export default function SetVariantPickerModal({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold text-primary">
-                      {row.product?.name || "Product"}
+                      {row.product?.name || "Ürün"}
                     </div>
                     <div className="text-xs text-secondary">
-                      In set: x{row.entryQty}
+                      Set içi: x{row.entryQty}
                     </div>
                   </div>
                   <div
@@ -255,8 +255,8 @@ export default function SetVariantPickerModal({
                     ].join(" ")}
                   >
                     {row.ok
-                      ? `Stock OK (${row.stock} ≥ ${row.required})`
-                      : `Insufficient (${row.stock} / ${row.required})`}
+                      ? `Stok uygun (${row.stock} ≥ ${row.required})`
+                      : `Yetersiz stok (${row.stock} / ${row.required})`}
                   </div>
                 </div>
 
@@ -264,7 +264,7 @@ export default function SetVariantPickerModal({
                 {row.colorOptions.length > 0 && (
                   <div className="mt-3">
                     <p className="mb-1 text-xs font-semibold text-primary">
-                      Colour
+                      Renk
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {row.colorOptions.map((opt) => {
@@ -298,7 +298,7 @@ export default function SetVariantPickerModal({
                 {row.sizeOptions.length > 0 && (
                   <div className="mt-3">
                     <p className="mb-1 text-xs font-semibold text-primary">
-                      Size
+                      Model
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {row.sizeOptions.map((size) => {
@@ -326,7 +326,7 @@ export default function SetVariantPickerModal({
                 {row.attribute && row.attribute.values.length > 0 && (
                   <div className="mt-3">
                     <p className="mb-1 text-xs font-semibold text-primary">
-                      {row.attribute.title || "Option"}
+                      {row.attribute.title || "Seçenek"}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {row.attribute.values.map((v) => {
@@ -356,16 +356,16 @@ export default function SetVariantPickerModal({
 
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3">
           <div className="text-xs text-secondary">
-            You’re adding{" "}
+            Sepete{" "}
             <strong className="text-primary">{setQuantity}</strong> set
-            {setQuantity > 1 ? "s" : ""}.
+            ekliyorsunuz.
           </div>
           <button
             onClick={confirm}
             disabled={!allOk || setQuantity <= 0}
             className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
           >
-            Confirm selections
+            Seçimleri onayla
           </button>
         </footer>
       </div>

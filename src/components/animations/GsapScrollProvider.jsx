@@ -10,7 +10,7 @@ let registered = false;
 const ensureRegistered = () => {
   if (registered) return;
   gsap.registerPlugin(ScrollTrigger);
-  ScrollTrigger.config({ ignoreMobileResize: true });
+  ScrollTrigger.config({ ignoreMobileResize: true, limitCallbacks: true });
   registered = true;
 };
 
@@ -21,9 +21,13 @@ const prefersReducedMotion = () => {
 
 const collectTargets = () => {
   const elements = new Set();
-  document.querySelectorAll("[data-animate]").forEach((el) => elements.add(el));
   document.querySelectorAll(".app-section").forEach((el) => {
-    if (!el.dataset.animate) elements.add(el);
+    if (el.dataset.animate === "none") return;
+    elements.add(el);
+  });
+  document.querySelectorAll('[data-animate="section"]').forEach((el) => {
+    if (el.dataset.animate === "none") return;
+    elements.add(el);
   });
   return Array.from(elements);
 };
@@ -84,16 +88,25 @@ export default function GsapScrollProvider() {
           elements.forEach((el) => {
             if (!el || el.dataset.animate === "none") return;
 
-            const type = el.dataset.animate || "fade-up";
-            const distance = Number(el.dataset.distance || 28);
-            const duration = Number(el.dataset.duration || 0.8);
+            const isSection = el.classList.contains("app-section") || el.dataset.animate === "section";
+            const type = isSection ? "section" : el.dataset.animate || "fade-up";
+            const distance = Number(el.dataset.distance || (type === "section" ? 18 : 18));
+            const duration = Number(el.dataset.duration || (type === "section" ? 0.8 : 0.8));
             const delay = Number(el.dataset.delay || 0);
-          const ease = el.dataset.ease || "power2.out";
-          const stagger = Number(el.dataset.stagger || 0.12);
-          const start = el.dataset.animateStart || "top 85%";
-          const end = el.dataset.animateEnd || "bottom 15%";
-          const childrenSelector =
-            el.dataset.animateChildren || "[data-animate-child]";
+            const ease = el.dataset.ease || (type === "section" ? "power2.out" : "power2.out");
+            const stagger = Number(el.dataset.stagger || 0.12);
+            const start = el.dataset.animateStart || (type === "section" ? "top 82%" : "top 85%");
+            const end = el.dataset.animateEnd || "bottom 15%";
+            const childrenSelector =
+              el.dataset.animateChildren || "[data-animate-child]";
+            const blur = Number(el.dataset.blur || 0);
+            const scrubRaw = el.dataset.scrub;
+            const scrubValue =
+              scrubRaw !== undefined
+                ? scrubRaw === "true"
+                  ? 0.2
+                  : Number(scrubRaw || 0.2)
+                : false;
 
             const isStagger = type === "stagger";
             let targets = el;
@@ -103,10 +116,10 @@ export default function GsapScrollProvider() {
             }
 
             const fromVars = {
-              opacity: 0,
+              autoAlpha: 0,
             };
 
-            if (type === "fade-up") {
+            if (type === "fade-up" || type === "section" || type === "stagger") {
               fromVars.y = distance;
             } else if (type === "fade-left") {
               fromVars.x = -distance;
@@ -116,36 +129,53 @@ export default function GsapScrollProvider() {
               fromVars.scale = 0.96;
             } else if (type === "clip") {
               fromVars.clipPath = "inset(0 0 100% 0)";
-              fromVars.opacity = 1;
+              fromVars.autoAlpha = 1;
             }
 
-            gsap.fromTo(
-              targets,
-              fromVars,
-              {
-                opacity: 1,
-                x: 0,
-                y: 0,
-                scale: 1,
-                clipPath: "inset(0 0 0% 0)",
-                duration,
-                delay,
-                ease,
-                stagger: isStagger ? stagger : 0,
+            if (blur > 0) {
+              fromVars.filter = `blur(${blur}px)`;
+            }
+
+            const toVars = {
+              autoAlpha: 1,
+              x: 0,
+              y: 0,
+              scale: 1,
+              duration,
+              delay,
+              ease,
+              stagger: isStagger ? stagger : 0,
               immediateRender: false,
               scrollTrigger: {
                 trigger: el,
                 start,
                 end,
-                toggleActions: "restart none restart none",
+                toggleActions: "play none none none",
+                once: true,
+                scrub: scrubValue,
+                invalidateOnRefresh: true,
+                fastScrollEnd: true,
               },
-                onStart: () => {
-                  gsap.set(targets, { willChange: "transform, opacity" });
-                },
-                onComplete: () => {
-                  gsap.set(targets, { clearProps: "willChange" });
-                },
-              }
+              onStart: () => {
+                gsap.set(targets, { willChange: "transform, opacity" });
+              },
+              onComplete: () => {
+                gsap.set(targets, { clearProps: "willChange" });
+              },
+            };
+
+            if (blur > 0) {
+              toVars.filter = "blur(0px)";
+            }
+
+            if (type === "clip") {
+              toVars.clipPath = "inset(0 0 0% 0)";
+            }
+
+            gsap.fromTo(
+              targets,
+              fromVars,
+              toVars
             );
           });
         });

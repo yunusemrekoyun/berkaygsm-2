@@ -23,10 +23,10 @@ export default function SetSummary({
   const t = useStaticTranslation();
   const copy = t("setDetail") || {};
   const summaryCopy = copy.summary || {};
-  const quantityLabel = summaryCopy.quantityLabel || "Quantity";
-  const totalLabelTemplate = summaryCopy.totalLabel || "Total {amount}";
-  const addToCartLabel = summaryCopy.addToCart || "Add to cart";
-  const addedToast = summaryCopy.addedToCart || "Set added to cart";
+  const quantityLabel = summaryCopy.quantityLabel || "Adet";
+  const totalLabelTemplate = summaryCopy.totalLabel || "Toplam {amount}";
+  const addToCartLabel = summaryCopy.addToCart || "Sepete ekle";
+  const addedToast = summaryCopy.addedToCart || "Set sepete eklendi";
 
   const hasStockInfo = stock !== null && stock !== undefined;
   const minQty = hasStockInfo && stock <= 0 ? 0 : 1;

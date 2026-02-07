@@ -66,9 +66,20 @@ const emitAdminAction = (type, detail) => {
   }
 };
 
+const emitUiLoading = (type, detail) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.dispatchEvent(
+      new CustomEvent("ui-loading", { detail: { type, ...detail } })
+    );
+  } catch {
+    // ignore dispatch failures
+  }
+};
+
 async function request(
   path,
-  { method = "GET", body, headers, auth = false } = {}
+  { method = "GET", body, headers, auth = false, ui = true } = {}
 ) {
   const resolvedHeaders = buildHeaders({ body, headers, auth });
   const methodUpper = String(method || "GET").toUpperCase();
@@ -77,9 +88,16 @@ async function request(
     auth && isMutating
       ? `${Date.now()}-${Math.random().toString(36).slice(2)}`
       : null;
+  const uiEnabled = ui !== false;
+  const uiId = uiEnabled
+    ? `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    : null;
 
   if (actionId) {
     emitAdminAction("start", { id: actionId, method: methodUpper, path });
+  }
+  if (uiId) {
+    emitUiLoading("start", { id: uiId, method: methodUpper, path });
   }
 
   try {
@@ -98,6 +116,9 @@ async function request(
     if (actionId) {
       emitAdminAction("end", { id: actionId });
     }
+    if (uiId) {
+      emitUiLoading("end", { id: uiId });
+    }
   }
 }
 
@@ -107,7 +128,10 @@ export function refreshAccessToken() {
   if (!refreshPromise) {
     refreshPromise = (async () => {
       try {
-        const response = await request("/auth/refresh", { method: "POST" });
+        const response = await request("/auth/refresh", {
+          method: "POST",
+          ui: false,
+        });
         if (!response.ok) return false;
         const data = await response.json();
         if (data?.accessToken) {
@@ -127,9 +151,16 @@ export function refreshAccessToken() {
 
 export async function http(
   path,
-  { method = "GET", body, headers = {}, auth = false, retry = true } = {}
+  {
+    method = "GET",
+    body,
+    headers = {},
+    auth = false,
+    retry = true,
+    ui = true,
+  } = {}
 ) {
-  const response = await request(path, { method, body, headers, auth });
+  const response = await request(path, { method, body, headers, auth, ui });
 
   if (auth && response.status === 401 && retry) {
     const ok = await refreshAccessToken();

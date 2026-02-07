@@ -10,7 +10,7 @@ const currency = new Intl.NumberFormat("tr-TR", {
 
 export default function ShopPageProductItem({ product }) {
   const imageSrc = product?.images?.[0]?.url || "/shop-1.jpg";
-  const title = product?.name || "Unnamed product";
+  const title = product?.name || "Adsız ürün";
   const slug = product?.slug || product?.id;
   const originalPrice = Number(product?.price ?? 0);
   const finalPrice = Number(product?.finalPrice ?? originalPrice);

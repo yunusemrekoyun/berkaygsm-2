@@ -31,10 +31,10 @@ export async function createUploadSignature(req, res) {
   try {
     const scopeConfig = resolveScopeConfig(req.body?.scope);
     if (!scopeConfig) {
-      return res.status(400).json({ message: "Invalid upload scope" });
+      return res.status(400).json({ message: "Geçersiz yükleme kapsamı" });
     }
     if (scopeConfig.adminOnly && req.userRole !== "admin") {
-      return res.status(403).json({ message: "Forbidden" });
+      return res.status(403).json({ message: "Erişim reddedildi" });
     }
 
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
@@ -43,7 +43,7 @@ export async function createUploadSignature(req, res) {
     if (!cloudName || !apiKey || !apiSecret) {
       return res
         .status(500)
-        .json({ message: "Cloudinary is not configured" });
+        .json({ message: "Cloudinary yapılandırılmamış" });
     }
 
     const requestedType = String(req.body?.resourceType || "image").toLowerCase();
@@ -157,7 +157,7 @@ export async function deleteCloudinaryResource(req, res) {
     const { publicId } = req.params;
     const { resourceType = "image", invalidate = "false" } = req.query;
     if (!publicId) {
-      return res.status(400).json({ message: "publicId is required" });
+      return res.status(400).json({ message: "publicId zorunlu" });
     }
 
     const result = await cloudinary.uploader.destroy(publicId, {
@@ -174,7 +174,7 @@ export async function deleteCloudinaryResource(req, res) {
 export async function uploadMediaAsset(req, res) {
   try {
     if (!req.file || !req.file.buffer) {
-      return res.status(400).json({ message: "File is required" });
+      return res.status(400).json({ message: "Dosya gerekli" });
     }
 
     const folder =

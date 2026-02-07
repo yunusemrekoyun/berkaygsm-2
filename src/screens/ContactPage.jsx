@@ -28,44 +28,44 @@ function buildDefaultConfig(copy = {}) {
   const blocks = copy.defaultBlocks || {};
   const form = copy.form || {};
   return {
-    heroTitle: hero.title || "We're here to help",
+    heroTitle: hero.title || "Size yardımcı olmak için buradayız",
     heroSubtitle:
       hero.subtitle ||
-      "Our customer care team is available Monday to Friday, 09:00–18:00 CET. Send us a note and we'll respond within one business day.",
+      "Müşteri hizmetlerimiz hafta içi 09:00–18:00 arasında hizmet verir. Mesaj bırakın, en kısa sürede dönüş yapalım.",
     heroImage: null,
     addressBlock: makeBlock(
-      blocks.addressTitle || "Visit our European studio",
+      blocks.addressTitle || "Mağazamızı ziyaret edin",
       blocks.addressLines || [
         "Kurfürstendamm 45, 10719 Berlin",
-        "Showroom & click-and-collect (appointment recommended)",
+        "Showroom & mağazadan teslim (randevu önerilir)",
       ]
     ),
     hoursBlock: makeBlock(
-      blocks.hoursTitle || "Opening hours (CET)",
+      blocks.hoursTitle || "Çalışma saatleri (CET)",
       blocks.hoursLines || [
-        "Mon – Fri: 09:00 – 18:00",
-        "Sat: 10:00 – 16:00 (showroom only)",
-        "Sun & public holidays: closed",
+        "Pzt – Cum: 09:00 – 18:00",
+        "Cmt: 10:00 – 16:00 (showroom)",
+        "Paz ve resmi tatiller: kapalı",
       ]
     ),
     emailBlock: makeBlock(
-      blocks.emailTitle || "Customer service",
+      blocks.emailTitle || "Müşteri hizmetleri",
       blocks.emailLines || [
-        "support@evimstil.com",
-        "Average response time: < 24 h",
+        "destek@berkaygsm.com",
+        "Ortalama dönüş süresi: < 24 saat",
       ]
     ),
     phoneBlock: makeBlock(
-      blocks.phoneTitle || "Phone",
+      blocks.phoneTitle || "Telefon",
       blocks.phoneLines || [
         "+49 (0) 30 234 567 89",
-        "WhatsApp & Signal available on the same number",
+        "WhatsApp & Signal aynı numaradan",
       ]
     ),
     formEnabled: true,
     successMessage:
       form.success ||
-      "Thank you for your message. We have received your enquiry and will reply via e-mail shortly. If you need immediate assistance, call us on the number below.",
+      "Mesajınız için teşekkürler. Talebinizi aldık, en kısa sürede e‑posta ile dönüş yapacağız. Acil durumlarda aşağıdaki numaradan bize ulaşabilirsiniz.",
   };
 }
 
@@ -228,8 +228,8 @@ export default function ContactPage() {
       <section className="mx-auto max-w-[1400px] px-4 pt-6 sm:px-6">
         <BreadCrumb
           items={[
-            { label: breadcrumbs.home || "Home", to: "/" },
-            { label: breadcrumbs.contact || "Contact" },
+            { label: breadcrumbs.home || "Ana Sayfa", to: "/" },
+            { label: breadcrumbs.contact || "İletişim" },
           ]}
         />
       </section>
@@ -282,30 +282,30 @@ export default function ContactPage() {
               {!config.formEnabled ? (
                 <div className="mb-6 rounded-xl border border-border bg-surface-light/70 p-5 text-sm text-secondary">
                   {formCopy.disabled ||
-                    "Our contact form is temporarily unavailable. Please reach us via the email or phone numbers listed on this page."}
+                    "İletişim formu geçici olarak kullanılamıyor. Bu sayfadaki e‑posta veya telefon üzerinden bize ulaşabilirsiniz."}
                 </div>
               ) : null}
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <TextField
-                    label={formFields.nameLabel || "Full name"}
+                    label={formFields.nameLabel || "Ad Soyad"}
                     id="contact-name"
                     name="name"
                     required
-                    placeholder={formFields.namePlaceholder || "Jane Doe"}
+                    placeholder={formFields.namePlaceholder || "Ayla Yılmaz"}
                     value={formData.name}
                     onChange={handleChange}
                     disabled={!config.formEnabled || submitting || loading}
                   />
                   <TextField
-                    label={formFields.emailLabel || "Email"}
+                    label={formFields.emailLabel || "E-posta"}
                     id="contact-email"
                     name="email"
                     type="email"
                     required
                     placeholder={
-                      formFields.emailPlaceholder || "you@example.com"
+                      formFields.emailPlaceholder || "ornek@eposta.com"
                     }
                     value={formData.email}
                     onChange={handleChange}
@@ -313,7 +313,7 @@ export default function ContactPage() {
                   />
                 </div>
                 <TextField
-                  label={formFields.phoneLabel || "Phone (optional)"}
+                  label={formFields.phoneLabel || "Telefon (opsiyonel)"}
                   id="contact-phone"
                   name="phone"
                   type="tel"
@@ -325,12 +325,12 @@ export default function ContactPage() {
                   disabled={!config.formEnabled || submitting || loading}
                 />
                 <TextField
-                  label={formFields.subjectLabel || "Subject"}
+                  label={formFields.subjectLabel || "Konu"}
                   id="contact-subject"
                   name="subject"
                   required
                   placeholder={
-                    formFields.subjectPlaceholder || "How can we support you?"
+                    formFields.subjectPlaceholder || "Size nasıl yardımcı olabiliriz?"
                   }
                   value={formData.subject}
                   onChange={handleChange}
@@ -341,7 +341,7 @@ export default function ContactPage() {
                     htmlFor="contact-message"
                     className="block text-sm font-semibold text-primary"
                   >
-                    {formFields.messageLabel || "Message"}
+                    {formFields.messageLabel || "Mesaj"}
                   </label>
                   <textarea
                     id="contact-message"
@@ -350,7 +350,7 @@ export default function ContactPage() {
                     rows={5}
                     placeholder={
                       formFields.messagePlaceholder ||
-                      "Tell us a little more about your question, order or project."
+                      "Sorunuz, siparişiniz veya talebiniz hakkında kısaca bilgi verin."
                     }
                     value={formData.message}
                     onChange={handleChange}
@@ -384,12 +384,12 @@ export default function ContactPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      {formCopy.submitting || "Sending…"}
+                      {formCopy.submitting || "Gönderiliyor…"}
                     </>
                   ) : (
                     <>
                       <Send className="h-4 w-4" />
-                      {formCopy.submit || "Send message"}
+                      {formCopy.submit || "Mesajı gönder"}
                     </>
                   )}
                 </button>
@@ -397,9 +397,9 @@ export default function ContactPage() {
 
               <p className="mt-6 text-xs text-secondary">
                 {formCopy.policyNote ||
-                  "By submitting this form you acknowledge that we will process your data to answer your enquiry in line with our"}{" "}
+                  "Bu formu göndererek talebinizi yanıtlamak için verilerinizi politikamız doğrultusunda işleyeceğimizi kabul etmiş olursunuz."}{" "}
                 <a href="/privacy" className="text-accent underline">
-                  {breadcrumbs.privacy || "Privacy Policy"}
+                  {breadcrumbs.privacy || "Gizlilik Politikası"}
                 </a>
                 .
               </p>
@@ -468,7 +468,7 @@ function ContactBlock({ icon: IconComponent, title, items }) {
           {IconComponent ? <IconComponent className="h-5 w-5" /> : null}
         </span>
         <h3 className="font-serif text-lg font-semibold">
-          {title || "Contact"}
+          {title || "İletişim"}
         </h3>
       </div>
       <ul className="mt-4 space-y-1 text-sm text-secondary">

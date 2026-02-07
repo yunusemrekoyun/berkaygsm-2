@@ -105,7 +105,7 @@ const serializeAdminReview = (review) => ({
   user: review?.user
     ? {
         id: toId(review.user),
-        name: fullName(review.user) || "Anonymous",
+        name: fullName(review.user) || "Anonim",
         email: review.user?.email || null,
       }
     : null,
@@ -160,7 +160,7 @@ export async function listApprovedForProduct(req, res) {
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
 
     const product = await findProductByIdOrSlug(idOrSlug);
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    if (!product) return res.status(404).json({ message: "Ürün bulunamadı" });
 
     const [items, total] = await Promise.all([
       Review.find({ product: product._id, approved: true })
@@ -183,7 +183,7 @@ export async function listApprovedForProduct(req, res) {
         id: r.user?._id?.toString?.() || null,
         name: r.user
           ? `${r.user.firstName} ${r.user.lastName}`.trim()
-          : "Anonymous",
+          : "Anonim",
       },
     }));
 
@@ -209,7 +209,7 @@ export async function productReviewStats(req, res) {
   try {
     const { idOrSlug } = req.params;
     const product = await findProductByIdOrSlug(idOrSlug);
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    if (!product) return res.status(404).json({ message: "Ürün bulunamadı" });
 
     const [agg] = await Review.aggregate([
       { $match: { product: product._id, approved: true } },
@@ -246,7 +246,7 @@ export async function listApprovedForSet(req, res) {
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
 
     const setDoc = await findSetByIdOrSlug(idOrSlug);
-    if (!setDoc) return res.status(404).json({ message: "Set not found" });
+    if (!setDoc) return res.status(404).json({ message: "Set bulunamadı" });
 
     const [items, total] = await Promise.all([
       Review.find({ set: setDoc._id, approved: true })
@@ -268,7 +268,7 @@ export async function listApprovedForSet(req, res) {
         id: r.user?._id?.toString?.() || null,
         name: r.user
           ? `${r.user.firstName} ${r.user.lastName}`.trim()
-          : "Anonymous",
+          : "Anonim",
       },
     }));
 
@@ -294,7 +294,7 @@ export async function setReviewStats(req, res) {
   try {
     const { idOrSlug } = req.params;
     const setDoc = await findSetByIdOrSlug(idOrSlug);
-    if (!setDoc) return res.status(404).json({ message: "Set not found" });
+    if (!setDoc) return res.status(404).json({ message: "Set bulunamadı" });
 
     const [agg] = await Review.aggregate([
       { $match: { set: setDoc._id, approved: true } },
@@ -349,20 +349,20 @@ export async function createReview(req, res) {
     if (product && set) {
       return res
         .status(400)
-        .json({ message: "Review cannot target both product and set" });
+        .json({ message: "Yorum aynı anda ürün ve sete bağlı olamaz" });
     }
 
     if (!product && !set) {
       return res
         .status(400)
-        .json({ message: "Invalid product or set reference" });
+        .json({ message: "Geçersiz ürün veya set referansı" });
     }
 
     const r = Number(rating);
     if (!Number.isFinite(r) || r < 1 || r > 5) {
       return res
         .status(400)
-        .json({ message: "Rating must be between 1 and 5" });
+        .json({ message: "Puan 1 ile 5 arasında olmalı" });
     }
 
     const targetFilter = product
@@ -398,7 +398,7 @@ export async function createReview(req, res) {
     // unique index ihlali (product+user / set+user) yakala
     if (err?.code === 11000) {
       return res.status(409).json({
-        message: "You have already submitted a review for this item",
+        message: "Bu içerik için zaten yorum gönderdiniz",
       });
     }
     res.status(400).json({ message: err.message });
@@ -443,9 +443,9 @@ export async function approveReview(req, res) {
   try {
     const { id } = req.params;
     const review = await Review.findById(id);
-    if (!review) return res.status(404).json({ message: "Review not found" });
+    if (!review) return res.status(404).json({ message: "Yorum bulunamadı" });
     if (review.approved)
-      return res.status(400).json({ message: "Already approved" });
+      return res.status(400).json({ message: "Zaten onaylanmış" });
 
     review.approved = true;
     review.approvedAt = new Date();
@@ -470,7 +470,7 @@ export async function deleteReview(req, res) {
   try {
     const { id } = req.params;
     const review = await Review.findById(id);
-    if (!review) return res.status(404).json({ message: "Review not found" });
+    if (!review) return res.status(404).json({ message: "Yorum bulunamadı" });
 
     await review.deleteOne();
     res.json({ ok: true });

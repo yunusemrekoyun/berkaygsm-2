@@ -87,10 +87,10 @@ export default function AddressesSection({ addresses, onCreate, onUpdate, onDele
     try {
       if (editingId === "new") {
         await onCreate(cleanAddress(form));
-        setBanner({ variant: "success", message: bannersCopy.added || "Address added" });
+        setBanner({ variant: "success", message: bannersCopy.added || "Adres eklendi" });
       } else if (editingId) {
         await onUpdate(editingId, cleanAddress(form));
-        setBanner({ variant: "success", message: bannersCopy.updated || "Address updated" });
+        setBanner({ variant: "success", message: bannersCopy.updated || "Adres güncellendi" });
       }
       cancel();
     } catch (error) {
@@ -106,7 +106,7 @@ export default function AddressesSection({ addresses, onCreate, onUpdate, onDele
   const handleDelete = async (id) => {
     try {
       await onDelete(id);
-      setBanner({ variant: "warning", message: bannersCopy.removed || "Address removed" });
+      setBanner({ variant: "warning", message: bannersCopy.removed || "Adres silindi" });
     } catch (error) {
       setBanner({ variant: "danger", message: extractErrorMessage(error) });
     }
@@ -126,19 +126,19 @@ export default function AddressesSection({ addresses, onCreate, onUpdate, onDele
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-primary">
-          {copy.heading || "Addresses"}
+          {copy.heading || "Adresler"}
         </h2>
         <button
           onClick={startNew}
           className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm text-primary hover:bg-surface-hover"
         >
           <Plus className="h-4 w-4" />
-          {copy.addNew || "Add New"}
+          {copy.addNew || "Yeni adres ekle"}
         </button>
       </div>
 
       {addresses.length === 0 && !editingId && (
-        <p className="mt-2 text-secondary">{copy.empty || "No saved addresses."}</p>
+        <p className="mt-2 text-secondary">{copy.empty || "Kayıtlı adres yok."}</p>
       )}
 
       <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -163,7 +163,7 @@ export default function AddressesSection({ addresses, onCreate, onUpdate, onDele
                 )}
                 {address.isDefault && (
                   <div className="mt-2 inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">
-                    {copy.badgeDefault || "Default"}
+                    {copy.badgeDefault || "Varsayılan"}
                   </div>
                 )}
               </div>
@@ -171,14 +171,14 @@ export default function AddressesSection({ addresses, onCreate, onUpdate, onDele
                 <button
                   onClick={() => startEdit(address)}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-surface-hover"
-                  title={copy.edit || "Edit"}
+                  title={copy.edit || "Düzenle"}
                 >
                   <Pencil className="h-4 w-4 text-secondary" />
                 </button>
                 <button
                   onClick={() => handleDelete(address.id)}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-surface-hover"
-                  title={copy.delete || "Delete"}
+                  title={copy.delete || "Sil"}
                 >
                   <Trash2 className="h-4 w-4 text-rose-500" />
                 </button>
@@ -196,18 +196,18 @@ export default function AddressesSection({ addresses, onCreate, onUpdate, onDele
           <LoadingOverlay show={saving} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <AddressField
-              label={fieldCopy.fullName || "Full Name"}
+              label={fieldCopy.fullName || "Ad Soyad"}
               value={form.fullName}
               onChange={(value) => setForm((prev) => ({ ...prev, fullName: value }))}
               required
             />
             <AddressField
-              label={fieldCopy.phone || "Phone"}
+              label={fieldCopy.phone || "Telefon"}
               value={form.phone}
               onChange={(value) => setForm((prev) => ({ ...prev, phone: value }))}
             />
             <AddressField
-              label={fieldCopy.address1 || "Address Line 1"}
+              label={fieldCopy.address1 || "Adres Satırı 1"}
               value={form.addressLine1}
               onChange={(value) =>
                 setForm((prev) => ({ ...prev, addressLine1: value }))
@@ -216,7 +216,7 @@ export default function AddressesSection({ addresses, onCreate, onUpdate, onDele
               wide
             />
             <AddressField
-              label={fieldCopy.address2 || "Address Line 2"}
+              label={fieldCopy.address2 || "Adres Satırı 2"}
               value={form.addressLine2}
               onChange={(value) =>
                 setForm((prev) => ({ ...prev, addressLine2: value }))
@@ -224,25 +224,25 @@ export default function AddressesSection({ addresses, onCreate, onUpdate, onDele
               wide
             />
             <AddressField
-              label={fieldCopy.city || "City"}
+              label={fieldCopy.city || "Şehir"}
               value={form.city}
               onChange={(value) => setForm((prev) => ({ ...prev, city: value }))}
               required
             />
             <AddressField
-              label={fieldCopy.state || "State"}
+              label={fieldCopy.state || "İl/İlçe"}
               value={form.state}
               onChange={(value) => setForm((prev) => ({ ...prev, state: value }))}
             />
             <AddressField
-              label={fieldCopy.postalCode || "Postal Code"}
+              label={fieldCopy.postalCode || "Posta Kodu"}
               value={form.postalCode}
               onChange={(value) =>
                 setForm((prev) => ({ ...prev, postalCode: value }))
               }
             />
             <AddressField
-              label={fieldCopy.country || "Country"}
+              label={fieldCopy.country || "Ülke"}
               value={form.country}
               onChange={(value) =>
                 setForm((prev) => ({ ...prev, country: value }))
@@ -257,7 +257,7 @@ export default function AddressesSection({ addresses, onCreate, onUpdate, onDele
               onClick={cancel}
               className="rounded-full border border-border px-4 py-2 text-sm text-secondary hover:bg-surface-hover"
             >
-              {buttonsCopy.cancel || "Cancel"}
+              {buttonsCopy.cancel || "Vazgeç"}
             </button>
             <button
               type="submit"
@@ -265,8 +265,8 @@ export default function AddressesSection({ addresses, onCreate, onUpdate, onDele
               className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
             >
               {saving
-                ? buttonsCopy.saving || "Saving..."
-                : buttonsCopy.save || "Save address"}
+                ? buttonsCopy.saving || "Kaydediliyor..."
+                : buttonsCopy.save || "Adresi kaydet"}
             </button>
           </div>
         </form>

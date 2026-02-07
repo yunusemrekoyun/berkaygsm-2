@@ -15,12 +15,21 @@ function StatusBadge({ status, copy = {} }) {
     completed: "bg-slate-900 text-white border-slate-800",
     cancelled: "bg-rose-50 text-rose-700 border-rose-200",
   };
+  const fallbackLabels = {
+    created: "Oluşturuldu",
+    pending: "Beklemede",
+    paid: "Ödendi",
+    processing: "Hazırlanıyor",
+    shipped: "Kargoda",
+    completed: "Tamamlandı",
+    cancelled: "İptal edildi",
+  };
   const cls = classes[state] || classes.created;
   return (
     <span
       className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium ${cls}`}
     >
-      {copy[state] || state.charAt(0).toUpperCase() + state.slice(1)}
+      {copy[state] || fallbackLabels[state] || state.charAt(0).toUpperCase() + state.slice(1)}
     </span>
   );
 }
@@ -36,7 +45,7 @@ export default function OrdersSection({ copy = {} }) {
     [locale]
   );
   const statusCopy = copy.status || {};
-  const totalLabel = copy.totalLabel || "Total";
+  const totalLabel = copy.totalLabel || "Toplam";
 
   useEffect(() => {
     let mounted = true;
@@ -59,7 +68,7 @@ export default function OrdersSection({ copy = {} }) {
     return (
       <div>
         <h2 className="text-xl font-semibold text-primary">
-          {copy.heading || "Orders"}
+          {copy.heading || "Siparişler"}
         </h2>
         <div className="mt-4 h-28 rounded-xl border border-border bg-surface animate-pulse" />
       </div>
@@ -70,10 +79,10 @@ export default function OrdersSection({ copy = {} }) {
     return (
       <div>
         <h2 className="text-xl font-semibold text-primary">
-          {copy.heading || "Orders"}
+          {copy.heading || "Siparişler"}
         </h2>
         <p className="mt-2 text-secondary">
-          {copy.empty || "You don't have any orders yet."}
+          {copy.empty || "Henüz bir siparişiniz yok."}
         </p>
       </div>
     );
@@ -82,7 +91,7 @@ export default function OrdersSection({ copy = {} }) {
   return (
     <div>
       <h2 className="text-xl font-semibold text-primary">
-        {copy.heading || "Orders"}
+        {copy.heading || "Siparişler"}
       </h2>
 
       <ul className="mt-4 divide-y divide-border rounded-2xl border border-border overflow-hidden">
@@ -102,7 +111,7 @@ export default function OrdersSection({ copy = {} }) {
             >
               <div className="min-w-0">
                 <div className="text-sm font-medium text-primary">
-                  {formatStaticText(copy.orderLabel || "Order #{number}", { number })}
+                  {formatStaticText(copy.orderLabel || "Sipariş #{number}", { number })}
                 </div>
                 <div className="mt-0.5 text-xs text-secondary flex flex-wrap items-center gap-1">
                   <span>{created}</span>
@@ -112,7 +121,7 @@ export default function OrdersSection({ copy = {} }) {
                     <span className="text-secondary">
                       •
                       {formatStaticText(
-                        copy.shippingLine || "Shipping: {name} (€{amount})",
+                        copy.shippingLine || "Kargo: {name} (₺{amount})",
                         {
                           name: order.shippingName,
                           amount: shippingAmount,
@@ -124,13 +133,13 @@ export default function OrdersSection({ copy = {} }) {
               </div>
               <div className="mt-3 sm:mt-0 flex items-center gap-3">
                 <div className="text-sm text-primary font-semibold">
-                  {totalLabel}: €{total}
+                  {totalLabel}: ₺{total}
                 </div>
                 <button
                   onClick={() => setSelectedId(id)}
                   className="inline-flex rounded-full border border-border px-3 py-1.5 text-sm text-primary hover:bg-surface-hover"
                 >
-                  {copy.viewDetails || "View details"}
+                  {copy.viewDetails || "Detayları gör"}
                 </button>
               </div>
             </li>

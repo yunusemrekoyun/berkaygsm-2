@@ -28,26 +28,25 @@ export default function SuccessPage() {
     <section className="bg-surface-light/60">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6">
         <BreadCrumb
-          items={[{ label: "Home", to: "/" }, { label: "Success" }]}
+          items={[{ label: "Ana Sayfa", to: "/" }, { label: "Başarılı" }]}
         />
       </div>
 
       <div className="mx-auto max-w-xl px-4 sm:px-6 pb-16">
         <div className="rounded-2xl border border-border bg-white p-6 text-center">
-          <h1 className="text-2xl font-semibold text-primary">Thank you!</h1>
+          <h1 className="text-2xl font-semibold text-primary">Teşekkürler!</h1>
           <p className="mt-2 text-secondary">
-            Your order was placed successfully.
+            Siparişiniz başarıyla oluşturuldu.
           </p>
 
           {order && (
             <div className="mt-4 text-left text-sm">
               <div className="font-medium text-primary">
-                Order #{order.orderNumber || order.id}
+                Sipariş #{order.orderNumber || order.id}
               </div>
               <div className="text-xs text-secondary">
-                Status: <span className="capitalize">{order.status}</span> •
-                {" "}
-                {order.shippingName || "Shipping"}: €
+                Durum: <span className="capitalize">{order.status}</span> •{" "}
+                {order.shippingName || "Kargo"}: ₺
                 {Number(order.shipping || 0).toFixed(2)}
               </div>
               <ul className="mt-2 space-y-1">
@@ -57,15 +56,15 @@ export default function SuccessPage() {
                       {it.name} × {it.qty}
                     </span>
                     <span className="text-secondary">
-                      €{Number(it.unitPrice * it.qty).toFixed(2)}
+                      ₺{Number(it.unitPrice * it.qty).toFixed(2)}
                     </span>
                   </li>
                 ))}
               </ul>
               <div className="mt-3 border-t border-border pt-3 flex justify-between">
-                <span className="text-primary font-semibold">Total</span>
+                <span className="text-primary font-semibold">Toplam</span>
                 <span className="text-primary font-semibold">
-                  €{Number(order.total).toFixed(2)}
+                  ₺{Number(order.total).toFixed(2)}
                 </span>
               </div>
             </div>
@@ -76,13 +75,13 @@ export default function SuccessPage() {
               to="/"
               className="rounded-full border border-border px-4 py-2 text-sm text-primary hover:bg-surface-hover"
             >
-              Continue Shopping
+              Alışverişe devam et
             </Link>
             <Link
               to="/account?tab=Orders"
               className="rounded-full bg-accent px-4 py-2 text-sm text-white hover:bg-accent-hover"
             >
-              View Orders
+              Siparişlerimi gör
             </Link>
           </div>
         </div>

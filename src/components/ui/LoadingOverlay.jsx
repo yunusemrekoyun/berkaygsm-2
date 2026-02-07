@@ -1,6 +1,6 @@
 export default function LoadingOverlay({
   show,
-  label = "Loading...",
+  label = "Yükleniyor...",
   fullscreen = false,
 }) {
   if (!show) return null;

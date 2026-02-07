@@ -14,7 +14,7 @@ function WishlistCard({ title, price, image, href, onRemove, copy = {} }) {
             />
           ) : (
             <div className="grid h-full place-items-center text-secondary/70">
-              {copy.noImage || "No image"}
+              {copy.noImage || "Görsel yok"}
             </div>
           )}
         </div>
@@ -25,13 +25,13 @@ function WishlistCard({ title, price, image, href, onRemove, copy = {} }) {
             {title}
           </div>
           <div className="text-xs text-secondary">
-            €{Number(price || 0).toFixed(2)}
+            ₺{Number(price || 0).toFixed(2)}
           </div>
         </div>
         <button
           onClick={onRemove}
           className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-surface-hover"
-          title={copy.remove || "Remove from wishlist"}
+          title={copy.remove || "Favorilerden çıkar"}
         >
           <Heart className="h-4 w-4 fill-rose-500 text-rose-500" />
         </button>
@@ -49,10 +49,10 @@ export default function WishlistSection({ favorites, onToggle, copy = {} }) {
     return (
       <div>
         <h2 className="text-xl font-semibold text-primary">
-          {copy.heading || "Wishlist"}
+          {copy.heading || "Favoriler"}
         </h2>
         <p className="mt-2 text-secondary">
-          {copy.empty || "Your wishlist is empty for now."}
+          {copy.empty || "Favori listeniz şimdilik boş."}
         </p>
       </div>
     );
@@ -61,7 +61,7 @@ export default function WishlistSection({ favorites, onToggle, copy = {} }) {
   return (
     <div>
       <h2 className="text-xl font-semibold text-primary">
-        {copy.heading || "Wishlist"}
+        {copy.heading || "Favoriler"}
       </h2>
 
       <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">

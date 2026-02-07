@@ -52,29 +52,29 @@ async function getOrCreateConfig() {
     cfg = await ContactConfig.create({
       key: "default",
       addressBlock: {
-        title: "Visit our European studio",
+        title: "Mağazamızı ziyaret edin",
         lines: [
           "Kurfürstendamm 45, 10719 Berlin",
-          "Showroom & click-and-collect (appointment recommended)",
+          "Showroom & mağazadan teslim (randevu önerilir)",
         ],
       },
       hoursBlock: {
-        title: "Opening hours (CET)",
+        title: "Çalışma saatleri (CET)",
         lines: [
-          "Mon – Fri: 09:00 – 18:00",
-          "Sat: 10:00 – 16:00 (showroom only)",
-          "Sun & public holidays: closed",
+          "Pzt – Cum: 09:00 – 18:00",
+          "Cmt: 10:00 – 16:00 (showroom)",
+          "Paz ve resmi tatiller: kapalı",
         ],
       },
       emailBlock: {
-        title: "Customer service",
-        lines: ["support@evimstil.com", "Average response time: < 24 h"],
+        title: "Müşteri hizmetleri",
+        lines: ["destek@berkaygsm.com", "Ortalama dönüş süresi: < 24 saat"],
       },
       phoneBlock: {
-        title: "Phone",
+        title: "Telefon",
         lines: [
           "+49 (0) 30 234 567 89",
-          "WhatsApp & Signal available on the same number",
+          "WhatsApp & Signal aynı numaradan",
         ],
       },
     });
@@ -306,7 +306,7 @@ export async function submitMessage(req, res) {
     if (!name || !email || !subject || !message) {
       return res
         .status(400)
-        .json({ message: "Please fill in all required fields." });
+        .json({ message: "Lütfen tüm zorunlu alanları doldurun." });
     }
 
     const doc = await ContactMessage.create({
@@ -395,10 +395,10 @@ export async function updateMessageStatus(req, res) {
     const { id } = req.params;
     const { status } = req.body;
     if (!["new", "resolved"].includes(status))
-      return res.status(400).json({ message: "Invalid status" });
+      return res.status(400).json({ message: "Geçersiz durum" });
 
     const msg = await ContactMessage.findById(id);
-    if (!msg) return res.status(404).json({ message: "Message not found" });
+    if (!msg) return res.status(404).json({ message: "Mesaj bulunamadı" });
 
     msg.status = status;
     await msg.save();

@@ -16,7 +16,7 @@ export async function handleApi(request, context = {}) {
 
   const match = findRoute(request.method, pathSegments);
   if (!match) {
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
+    return NextResponse.json({ message: "Bulunamadı" }, { status: 404 });
   }
 
   await connectDB();

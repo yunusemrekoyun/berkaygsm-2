@@ -96,10 +96,10 @@ export default function Header() {
   };
 
   const saleCtaTitle =
-    t("header.saleCtaTitle") || "Discover current deals";
+    t("header.saleCtaTitle") || "Güncel indirimleri keşfet";
   const saleCtaDescription =
     t("header.saleCtaDescription") ||
-    "Browse discounted collections curated for you.";
+    "Sana özel seçilmiş indirimli koleksiyonları incele.";
 
   const renderMobileCategoryList = (nodes = [], depth = 0) => {
     if (!nodes?.length) return null;
@@ -421,23 +421,48 @@ function buildMegaMenuData(node) {
   const children = node.children || [];
   if (!children.length) return [];
 
+  const resolveCategoryImage = (category) => {
+    if (!category) return null;
+    if (category.image) return category.image;
+    const stack = [...(category.children || [])];
+    while (stack.length) {
+      const current = stack.shift();
+      if (!current) continue;
+      if (current.image) return current.image;
+      if (current.children?.length) stack.push(...current.children);
+    }
+    return null;
+  };
+
+  const fallbackImage = resolveCategoryImage(node) || "/cat-1.jpg";
+  const resolveWithFallback = (category, fallback = fallbackImage) =>
+    resolveCategoryImage(category) || fallback || "/cat-1.jpg";
+
+  const viewAllChildren = children.map((child) => ({
+    title: child.name,
+    to: `/shop?category=${child.id}`,
+    key: `${child.id}-viewall`,
+    image: resolveWithFallback(child),
+  }));
+
   return [
     {
-      title: `View all ${node.name}`,
+      title: `Tüm ${node.name} ürünleri`,
       to: `/shop?category=${node.id}`,
       key: `${node.id}-all`,
-      children: [],
+      children: viewAllChildren,
+      image: fallbackImage,
     },
     ...children.map((child) => ({
       title: child.name,
       to: `/shop?category=${child.id}`,
       key: child.id,
-      image: child.image,
+      image: resolveWithFallback(child),
       children: (child.children || []).map((grand) => ({
         title: grand.name,
         to: `/shop?category=${grand.id}`,
         key: grand.id,
-        image: grand.image,
+        image: resolveWithFallback(grand, resolveWithFallback(child)),
       })),
     })),
   ];

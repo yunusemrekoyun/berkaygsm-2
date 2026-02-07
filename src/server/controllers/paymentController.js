@@ -72,7 +72,7 @@ export async function createPayPalCheckout(req, res) {
     if (err instanceof PayPalError || err.status) {
       const status = err.status || 500;
       const payload = {
-        message: err.message || "Unable to create PayPal order",
+        message: err.message || "PayPal siparişi oluşturulamadı",
       };
       if (err.data || err.extra) {
         payload.details = err.data || err.extra;
@@ -80,7 +80,7 @@ export async function createPayPalCheckout(req, res) {
       return res.status(status).json(payload);
     }
     res.status(500).json({
-      message: err.message || "Unable to initiate PayPal checkout",
+      message: err.message || "PayPal ödeme süreci başlatılamadı",
     });
   }
 }
@@ -91,19 +91,19 @@ export async function capturePayPalCheckout(req, res) {
     const { paypalOrderId, draftId } = req.body || {};
 
     if (!paypalOrderId) {
-      return res.status(400).json({ message: "PayPal order id is required" });
+      return res.status(400).json({ message: "PayPal order id zorunlu" });
     }
     if (!draftId || !mongoose.Types.ObjectId.isValid(draftId)) {
       return res
         .status(400)
-        .json({ message: "Invalid PayPal checkout draft id" });
+        .json({ message: "Geçersiz PayPal taslak id" });
     }
 
     const draft = await PayPalCheckout.findOne({ _id: draftId, user: userId });
     if (!draft) {
       return res
         .status(404)
-        .json({ message: "PayPal checkout session not found" });
+        .json({ message: "PayPal ödeme oturumu bulunamadı" });
     }
 
     if (draft.status === "completed" && draft.completedOrder) {
@@ -114,7 +114,7 @@ export async function capturePayPalCheckout(req, res) {
     }
 
     if (draft.paypalOrderId !== paypalOrderId) {
-      return res.status(400).json({ message: "PayPal order mismatch" });
+      return res.status(400).json({ message: "PayPal sipariş uyuşmazlığı" });
     }
 
     if (draft.expiresAt && draft.expiresAt.getTime() < Date.now()) {
@@ -122,7 +122,7 @@ export async function capturePayPalCheckout(req, res) {
       await draft.save();
       return res
         .status(410)
-        .json({ message: "PayPal checkout session expired" });
+        .json({ message: "PayPal ödeme oturumunun süresi doldu" });
     }
 
     const payload = draft.payload || {};
@@ -144,7 +144,7 @@ export async function capturePayPalCheckout(req, res) {
     ) {
       return res.status(409).json({
         message:
-          "Order total has changed. Please restart the checkout process.",
+          "Sipariş tutarı değişti. Lütfen ödeme sürecini yeniden başlatın.",
       });
     }
 
@@ -159,7 +159,7 @@ export async function capturePayPalCheckout(req, res) {
       throw new PayPalError(
         500,
         captureResponse,
-        "PayPal capture response is missing capture details"
+        "PayPal tahsilat yanıtında detaylar eksik"
       );
     }
 
@@ -175,7 +175,7 @@ export async function capturePayPalCheckout(req, res) {
       throw new PayPalError(
         409,
         captureResponse,
-        "PayPal captured amount does not match order total"
+        "PayPal tahsilat tutarı sipariş toplamıyla uyuşmuyor"
       );
     }
 
@@ -226,7 +226,7 @@ export async function capturePayPalCheckout(req, res) {
     if (err instanceof PayPalError || err.status) {
       const status = err.status || 500;
       const payload = {
-        message: err.message || "Unable to capture PayPal payment",
+        message: err.message || "PayPal ödemesi tahsil edilemedi",
       };
       if (err.data || err.extra) {
         payload.details = err.data || err.extra;
@@ -234,7 +234,7 @@ export async function capturePayPalCheckout(req, res) {
       return res.status(status).json(payload);
     }
     res.status(500).json({
-      message: err.message || "Unable to finalize PayPal checkout",
+      message: err.message || "PayPal ödeme süreci tamamlanamadı",
     });
   }
 }
@@ -270,11 +270,11 @@ function buildPayPalPurchaseUnits(summary, details) {
         value: formatAmount(summary?.total || 0),
         breakdown,
       },
-      description: summary?.shippingName || "Order",
+      description: summary?.shippingName || "Sipariş",
       items,
       shipping: {
         name: {
-          full_name: (details?.addressSnap?.fullName || "Customer").slice(
+          full_name: (details?.addressSnap?.fullName || "Müşteri").slice(
             0,
             127
           ),
@@ -294,7 +294,7 @@ function mapOrderItemsToPaypalLineItems(orderItems, currency) {
   if (!safeItems.length) {
     return [
       {
-        name: "Order subtotal",
+        name: "Sipariş ara toplamı",
         quantity: "1",
         unit_amount: {
           currency_code: currency,
@@ -306,7 +306,7 @@ function mapOrderItemsToPaypalLineItems(orderItems, currency) {
   }
 
   return safeItems.map((item, index) => ({
-    name: String(item.name || `Item ${index + 1}`).slice(0, 127),
+    name: String(item.name || `Ürün ${index + 1}`).slice(0, 127),
     quantity: String(Math.max(1, Number(item.qty || 1))),
     unit_amount: {
       currency_code: currency,
@@ -319,10 +319,10 @@ function mapOrderItemsToPaypalLineItems(orderItems, currency) {
 
 function mapAddressToPaypal(addressSnap = {}) {
   const line = String(addressSnap?.addressLine || "").trim();
-  const line1 = line.slice(0, 100) || "Address";
+  const line1 = line.slice(0, 100) || "Adres";
   const line2 = line.length > 100 ? line.slice(100, 200) : "";
   const city =
-    String(addressSnap?.city || "Berlin").slice(0, 120) || "Berlin";
+    String(addressSnap?.city || "İstanbul").slice(0, 120) || "İstanbul";
   const district = addressSnap?.district
     ? String(addressSnap.district).slice(0, 120)
     : null;
@@ -341,9 +341,9 @@ function mapAddressToPaypal(addressSnap = {}) {
 }
 
 function extractCountryCode(value) {
-  if (!value) return "DE";
+  if (!value) return "TR";
   const trimmed = String(value).trim();
-  if (!trimmed) return "DE";
+  if (!trimmed) return "TR";
   if (trimmed.length === 2) return trimmed.toUpperCase();
   const normalized = trimmed.toLowerCase();
   if (normalized.includes("germany") || normalized.includes("deutschland")) {

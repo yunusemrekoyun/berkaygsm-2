@@ -9,7 +9,7 @@ const ShippingConfigTranslationSchema = new mongoose.Schema(
 
 const ShippingConfigSchema = new mongoose.Schema(
   {
-    name: { type: String, default: "Standard Shipping" },
+    name: { type: String, default: "Standart Kargo" },
     fee: { type: Number, default: 0 },
     freeThreshold: { type: Number, default: 0 },
     translations: {

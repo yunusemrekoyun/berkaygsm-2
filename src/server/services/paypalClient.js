@@ -4,13 +4,13 @@ const PAYPAL_API_BASE =
   PAYPAL_ENV === "live"
     ? "https://api-m.paypal.com"
     : "https://api-m.sandbox.paypal.com";
-const PAYPAL_LOCALE = process.env.PAYPAL_LOCALE || "de-DE";
+const PAYPAL_LOCALE = process.env.PAYPAL_LOCALE || "tr-TR";
 const PAYPAL_BRAND_NAME =
   process.env.PAYPAL_BRAND_NAME || "Berkay GSM";
 
 class PayPalError extends Error {
   constructor(status, data, message) {
-    super(message || data?.message || "PayPal request failed");
+    super(message || data?.message || "PayPal isteği başarısız");
     this.name = "PayPalError";
     this.status = status;
     this.data = data;
@@ -29,7 +29,7 @@ function getCredentials() {
     throw new PayPalError(
       500,
       null,
-      "PayPal credentials are not configured on the server"
+      "Sunucuda PayPal bilgileri yapılandırılmamış"
     );
   }
   return { clientId, clientSecret };
@@ -49,7 +49,7 @@ async function fetchAccessToken() {
   });
   const data = await response.json().catch(() => null);
   if (!response.ok || !data?.access_token) {
-    throw new PayPalError(response.status, data, "Unable to obtain PayPal token");
+    throw new PayPalError(response.status, data, "PayPal tokenı alınamadı");
   }
   const expiresIn = Number(data.expires_in || 0);
   tokenCache.value = data.access_token;
@@ -81,7 +81,7 @@ export async function paypalCreateOrder({
     throw new PayPalError(
       400,
       null,
-      "purchaseUnits are required for PayPal order creation"
+      "PayPal siparişi için purchaseUnits zorunlu"
     );
   }
   const token = await getAccessToken();
@@ -110,7 +110,7 @@ export async function paypalCreateOrder({
 
 export async function paypalCaptureOrder(orderId) {
   if (!orderId) {
-    throw new PayPalError(400, null, "PayPal order id is required for capture");
+    throw new PayPalError(400, null, "Tahsilat için PayPal order id zorunlu");
   }
   const token = await getAccessToken();
   const response = await fetch(
@@ -129,7 +129,7 @@ export async function paypalCaptureOrder(orderId) {
 
 export async function paypalRefundCapture(captureId, amount, currency) {
   if (!captureId) {
-    throw new PayPalError(400, null, "Capture id is required to issue refund");
+    throw new PayPalError(400, null, "İade için capture id zorunlu");
   }
   const token = await getAccessToken();
   const body =

@@ -7,7 +7,7 @@ import {
   useSearchParams as useNextSearchParams,
   useParams as useNextParams,
 } from "next/navigation";
-import { forwardRef, useEffect, useMemo } from "react";
+import { forwardRef, useCallback, useEffect, useMemo } from "react";
 
 export const Link = forwardRef(function Link(
   { to, href, replace, prefetch, scroll, ...props },
@@ -40,11 +40,14 @@ export const NavLink = forwardRef(function NavLink(
 
 export function useNavigate() {
   const router = useRouter();
-  return (to, options = {}) => {
-    const href = typeof to === "string" ? to : String(to);
-    if (options?.replace) router.replace(href);
-    else router.push(href);
-  };
+  return useCallback(
+    (to, options = {}) => {
+      const href = typeof to === "string" ? to : String(to);
+      if (options?.replace) router.replace(href);
+      else router.push(href);
+    },
+    [router]
+  );
 }
 
 export function useLocation() {

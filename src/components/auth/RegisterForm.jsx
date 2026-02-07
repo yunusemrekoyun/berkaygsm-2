@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function RegisterForm({ onSubmit, loadingText = "Loading..." }) {
+export default function RegisterForm({ onSubmit, loadingText = "Yükleniyor..." }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
@@ -23,7 +23,7 @@ export default function RegisterForm({ onSubmit, loadingText = "Loading..." }) {
     <form onSubmit={submit} className="space-y-4">
       <div>
         <label className="mb-1 block text-sm font-medium text-primary">
-          Full Name
+          Ad Soyad
         </label>
         <input
           value={name}
@@ -36,21 +36,21 @@ export default function RegisterForm({ onSubmit, loadingText = "Loading..." }) {
 
       <div>
         <label className="mb-1 block text-sm font-medium text-primary">
-          Email
+          E-posta
         </label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-primary outline-none placeholder:text-secondary/60"
-          placeholder="you@example.com"
+          placeholder="ornek@eposta.com"
           required
         />
       </div>
 
       <div>
         <label className="mb-1 block text-sm font-medium text-primary">
-          Phone
+          Telefon
         </label>
         <input
           value={phone}
@@ -62,14 +62,14 @@ export default function RegisterForm({ onSubmit, loadingText = "Loading..." }) {
 
       <div>
         <label className="mb-1 block text-sm font-medium text-primary">
-          Password
+          Şifre
         </label>
         <input
           type="password"
           value={pass}
           onChange={(e) => setPass(e.target.value)}
           className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-primary outline-none placeholder:text-secondary/60"
-          placeholder="Minimum 8 characters"
+          placeholder="En az 8 karakter"
           required
         />
       </div>
@@ -81,7 +81,7 @@ export default function RegisterForm({ onSubmit, loadingText = "Loading..." }) {
           onChange={(e) => setAgree(e.target.checked)}
           className="mt-1"
         />
-        I agree to the Terms & Privacy Policy.
+        Kullanım Koşulları ve Gizlilik Politikası’nı kabul ediyorum.
       </label>
 
       <button
@@ -89,7 +89,7 @@ export default function RegisterForm({ onSubmit, loadingText = "Loading..." }) {
         disabled={!agree || loading}
         className="mt-2 w-full rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-50"
       >
-        {loading ? loadingText : "Create Account"}
+        {loading ? loadingText : "Hesap oluştur"}
       </button>
     </form>
   );

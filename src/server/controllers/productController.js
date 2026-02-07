@@ -389,11 +389,11 @@ export async function createProduct(req, res) {
     if (!name || price == null)
       return res
         .status(400)
-        .json({ message: "Product name and price are required" });
+        .json({ message: "Ürün adı ve fiyatı gerekli" });
 
     const priceNum = Number(price);
     if (!Number.isFinite(priceNum) || priceNum < 0)
-      return res.status(400).json({ message: "Price must be a valid number" });
+      return res.status(400).json({ message: "Fiyat geçerli bir sayı olmalı" });
 
     const categoryDoc = category ? await resolveCategory(category) : null;
 
@@ -460,8 +460,8 @@ export async function createProduct(req, res) {
     });
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.sku)
-      return res.status(400).json({ message: "SKU already exists" });
-    res.status(400).json({ message: err.message || "Create failed" });
+      return res.status(400).json({ message: "SKU zaten mevcut" });
+    res.status(400).json({ message: err.message || "Oluşturma başarısız" });
   }
 }
 
@@ -509,7 +509,7 @@ export async function listProducts(req, res) {
       },
     });
   } catch (err) {
-    res.status(500).json({ message: err.message || "List failed" });
+    res.status(500).json({ message: err.message || "Listeleme başarısız" });
   }
 }
 
@@ -524,13 +524,13 @@ export async function getProduct(req, res) {
       ? await Product.findById(idOrSlug).populate("category")
       : await Product.findOne({ slug: idOrSlug }).populate("category");
 
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    if (!product) return res.status(404).json({ message: "Ürün bulunamadı" });
     if (
       !includeHidden &&
       !isAdmin &&
       (!product.isActive || !product.listedInCatalog)
     ) {
-      return res.status(404).json({ message: "Product not found" });
+      return res.status(404).json({ message: "Ürün bulunamadı" });
     }
     await hydrateProductsWithInventory([product]);
     await annotateProductsWithSetUsage([product]);
@@ -538,7 +538,7 @@ export async function getProduct(req, res) {
     const discount = discountMap.get(resolveDocId(product)) || null;
     res.json({ product: presentProduct(product, lang, discount) });
   } catch (err) {
-    res.status(500).json({ message: err.message || "Get failed" });
+    res.status(500).json({ message: err.message || "Getirme başarısız" });
   }
 }
 
@@ -549,7 +549,7 @@ export async function updateProduct(req, res) {
     const product = isId(idOrSlug)
       ? await Product.findById(idOrSlug)
       : await Product.findOne({ slug: idOrSlug });
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    if (!product) return res.status(404).json({ message: "Ürün bulunamadı" });
 
     const {
       name,
@@ -588,7 +588,7 @@ export async function updateProduct(req, res) {
       if (!Number.isFinite(n) || n < 0)
         return res
           .status(400)
-          .json({ message: "Price must be a valid number" });
+          .json({ message: "Fiyat geçerli bir sayı olmalı" });
       product.price = n;
     }
     if (description !== undefined) {
@@ -742,8 +742,8 @@ export async function updateProduct(req, res) {
     res.json({ product: presentProduct(populated, lang, discount) });
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.sku)
-      return res.status(400).json({ message: "SKU already exists" });
-    res.status(400).json({ message: err.message || "Update failed" });
+      return res.status(400).json({ message: "SKU zaten mevcut" });
+    res.status(400).json({ message: err.message || "Güncelleme başarısız" });
   }
 }
 
@@ -754,7 +754,7 @@ export async function deleteProduct(req, res) {
       ? await Product.findById(idOrSlug)
       : await Product.findOne({ slug: idOrSlug });
     if (!product)
-      return res.status(404).json({ message: "Product not found" });
+      return res.status(404).json({ message: "Ürün bulunamadı" });
 
     const setActionRaw = req.query.setAction;
     const setAction = setActionRaw
@@ -844,7 +844,7 @@ export async function deleteProduct(req, res) {
     await product.deleteOne();
     res.json({ ok: true, ...responseMeta });
   } catch (err) {
-    res.status(500).json({ message: err.message || "Delete failed" });
+    res.status(500).json({ message: err.message || "Silme başarısız" });
   }
 }
 
@@ -856,7 +856,7 @@ export async function listProductSets(req, res) {
       ? await Product.findById(idOrSlug)
       : await Product.findOne({ slug: idOrSlug });
     if (!product)
-      return res.status(404).json({ message: "Product not found" });
+      return res.status(404).json({ message: "Ürün bulunamadı" });
 
     const sets = await fetchSetsForProduct(product._id);
     const localizedProduct = resolveTranslation(product, lang);
@@ -869,6 +869,6 @@ export async function listProductSets(req, res) {
       sets,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message || "Unable to fetch sets" });
+    res.status(500).json({ message: err.message || "Setler alınamadı" });
   }
 }

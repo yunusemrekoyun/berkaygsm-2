@@ -36,7 +36,7 @@ export default function UserAccountPage({ onLogout }) {
   const accountCopy = t("userAccount") || {};
   const sidebarCopy = accountCopy.sidebar || {};
   const tabsCopy = sidebarCopy.tabs || {};
-  const logoutLabel = sidebarCopy.logout || "Logout";
+  const logoutLabel = sidebarCopy.logout || "Çıkış yap";
 
   useEffect(() => {
     const cachedUser = getUser();

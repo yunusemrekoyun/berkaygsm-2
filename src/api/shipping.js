@@ -7,7 +7,7 @@ export const shippingApi = {
     const data = await http(`/shipping${qs}`);
     return (
       data?.shipping || {
-        name: "Standard Shipping",
+        name: "Standart Kargo",
         fee: 0,
         freeThreshold: 0,
       }

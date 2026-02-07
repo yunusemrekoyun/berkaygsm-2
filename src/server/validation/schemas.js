@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const objectId = z
   .string()
-  .regex(/^[0-9a-fA-F]{24}$/, "owner must be a valid ObjectId");
+  .regex(/^[0-9a-fA-F]{24}$/, "owner geçerli bir ObjectId olmalı");
 
 const optionalTrimmed = (schema) =>
   z.union([schema, z.literal(""), z.null(), z.undefined()]).transform((val) => {
@@ -79,7 +79,7 @@ export const stockSyncSchema = z.object({
   owner: objectId,
   rows: z
     .array(stockSyncRowSchema)
-    .min(1, "rows must include at least one entry"),
+    .min(1, "Satırlar en az bir kayıt içermeli"),
 });
 
 export const stockUpdateSchema = z
@@ -97,11 +97,11 @@ export const stockUpdateSchema = z
       data.sku !== undefined ||
       data.isActive !== undefined ||
       data.note !== undefined,
-    "Provide at least one field to update"
+    "Güncellemek için en az bir alan gönderin"
   );
 
 const orderSetSelection = z.object({
-  productId: z.string().min(1, "selection productId is required"),
+  productId: z.string().min(1, "Seçim için productId zorunlu"),
   color: optionalTrimmed(z.string().min(1)),
   size: optionalTrimmed(z.string().min(1)),
   attribute: optionalTrimmed(z.string().min(1)),
@@ -109,7 +109,7 @@ const orderSetSelection = z.object({
 });
 
 const orderItemBase = z.object({
-  id: z.string().min(1, "item id is required"),
+  id: z.string().min(1, "Öğe id zorunlu"),
   qty: z.coerce.number().int().min(1).max(999).optional(),
 });
 
@@ -126,7 +126,7 @@ const orderProductItemSchema = orderItemBase.extend({
 
 const orderSetItemSchema = orderItemBase.extend({
   kind: z.literal("set"),
-  selections: z.array(orderSetSelection).min(1, "set selections are required"),
+  selections: z.array(orderSetSelection).min(1, "Set seçimleri zorunlu"),
 });
 
 export const orderItemsSchema = z
@@ -135,7 +135,7 @@ export const orderItemsSchema = z
       .discriminatedUnion("kind", [orderProductItemSchema, orderSetItemSchema])
       .or(orderProductItemSchema)
   )
-  .min(1, "Cart is empty");
+  .min(1, "Sepet boş");
 // 1) Base schema (refine eklemeden)
 const orderCreateBaseSchema = z.object({
   addressId: z.string().optional(),
@@ -157,7 +157,7 @@ const orderCreateBaseSchema = z.object({
 // 2) Esas orderCreateSchema → refine eklenmiş hali
 export const orderCreateSchema = orderCreateBaseSchema.refine(
   (data) => data.addressId || data.addressSnapshot,
-  "addressId or addressSnapshot is required"
+  "addressId veya addressSnapshot zorunlu"
 );
 
 // 3) PayPal için subset schema → pick artık burada çalışır
@@ -169,11 +169,11 @@ export const paypalCreateSchema = orderCreateBaseSchema
   })
   .refine(
     (data) => Boolean(data.addressId),
-    "addressId is required for PayPal"
+    "PayPal için addressId zorunlu"
   );
 
 // 4) PayPal capture için schema (BUNUN EXPORT’U ŞART)
 export const paypalCaptureSchema = z.object({
-  paypalOrderId: z.string().min(1, "PayPal order id is required"),
-  draftId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid draft id"),
+  paypalOrderId: z.string().min(1, "PayPal order id zorunlu"),
+  draftId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Geçersiz taslak id"),
 });

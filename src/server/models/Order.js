@@ -101,7 +101,7 @@ const OrderSchema = new mongoose.Schema(
 
     subtotal: { type: Number, required: true },
     shipping: { type: Number, required: true, default: 0 },
-    shippingName: { type: String, default: "Standard Shipping" },
+    shippingName: { type: String, default: "Standart Kargo" },
     total: { type: Number, required: true },
 
     coupon: {

@@ -17,7 +17,7 @@ export default function SimilarSets({ items = [] }) {
     <div className="rounded-xl bg-white ring-1 ring-black/5 p-5">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-primary">
-          {copy.heading || "You might also like"}
+          {copy.heading || "Bunları da sevebilirsiniz"}
         </h2>
       </div>
 

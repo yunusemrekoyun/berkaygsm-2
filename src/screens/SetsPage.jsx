@@ -23,52 +23,52 @@ export default function SetsPage() {
   const t = useStaticTranslation();
   const breadcrumbs = useMemo(() => t("breadcrumbs") || {}, [t, lang]);
   const setsCopy = useMemo(() => t("setsPage") || {}, [t, lang]);
-  const bannerCopy = setsCopy.campaignBanner || {};
-  const ctaCopy = setsCopy.cta || {};
-  const cardCopy = setsCopy.cards || {};
-  const gridCopy = setsCopy.grid || {};
+  const bannerCopy = useMemo(
+    () => setsCopy.campaignBanner || {},
+    [setsCopy.campaignBanner]
+  );
+  const ctaCopy = useMemo(() => setsCopy.cta || {}, [setsCopy.cta]);
+  const cardCopy = useMemo(() => setsCopy.cards || {}, [setsCopy.cards]);
+  const gridCopy = useMemo(() => setsCopy.grid || {}, [setsCopy.grid]);
+  const cardIncludesMore = cardCopy.includesMore || "+{count}";
+  const cardUntitled = cardCopy.untitled || "İsimsiz Set";
 
   const campaignId = searchParams.get("campaign");
 
   useEffect(() => {
+    if (campaignId) return;
     let mounted = true;
     (async () => {
       try {
         setLoading(true);
+        setCampaignContext(null);
+        setCampaignError("");
 
-        if (campaignContext?.items) {
-          const mapped = mapSetsToCards(campaignContext.items, {
-            includesMoreLabel: cardCopy.includesMore,
-            untitledLabel: cardCopy.untitled,
-          });
-          if (mounted) setItems(mapped);
-        } else {
-          let res = await setApi.list({}, lang);
-          let sets = normalizeSetsResponse(res);
+        let res = await setApi.list({}, lang);
+        let sets = normalizeSetsResponse(res);
 
-          if (!sets.length) {
-            const res2 = await setApi.list({ includeHidden: true }, lang);
-            sets = normalizeSetsResponse(res2);
-          }
-
-          if (!sets.length && lang !== DEFAULT_LANG) {
-            let fallback = await setApi.list({}, DEFAULT_LANG);
-            sets = normalizeSetsResponse(fallback);
-            if (!sets.length) {
-              const fallbackHidden = await setApi.list(
-                { includeHidden: true },
-                DEFAULT_LANG
-              );
-              sets = normalizeSetsResponse(fallbackHidden);
-            }
-          }
-
-          const mapped = mapSetsToCards(sets, {
-            includesMoreLabel: cardCopy.includesMore,
-            untitledLabel: cardCopy.untitled,
-          });
-          if (mounted) setItems(mapped);
+        if (!sets.length) {
+          const res2 = await setApi.list({ includeHidden: true }, lang);
+          sets = normalizeSetsResponse(res2);
         }
+
+        if (!sets.length && lang !== DEFAULT_LANG) {
+          let fallback = await setApi.list({}, DEFAULT_LANG);
+          sets = normalizeSetsResponse(fallback);
+          if (!sets.length) {
+            const fallbackHidden = await setApi.list(
+              { includeHidden: true },
+              DEFAULT_LANG
+            );
+            sets = normalizeSetsResponse(fallbackHidden);
+          }
+        }
+
+        const mapped = mapSetsToCards(sets, {
+          includesMoreLabel: cardIncludesMore,
+          untitledLabel: cardUntitled,
+        });
+        if (mounted) setItems(mapped);
       } catch (e) {
         console.error("SETS PAGE - fetch error:", e);
         if (mounted) setItems([]);
@@ -79,18 +79,14 @@ export default function SetsPage() {
     return () => {
       mounted = false;
     };
-  }, [campaignContext, lang, cardCopy]);
+  }, [campaignId, lang, cardIncludesMore, cardUntitled]);
 
   useEffect(() => {
-    if (!campaignId) {
-      setCampaignContext(null);
-      setCampaignError("");
-      return;
-    }
-
+    if (!campaignId) return;
     let mounted = true;
     (async () => {
       try {
+        setLoading(true);
         setCampaignError("");
         const data = await campaignApi.resolve(campaignId, lang);
         if (!mounted) return;
@@ -99,22 +95,30 @@ export default function SetsPage() {
           return;
         }
         setCampaignContext(data);
+        const mapped = mapSetsToCards(data.items || [], {
+          includesMoreLabel: cardIncludesMore,
+          untitledLabel: cardUntitled,
+        });
+        setItems(mapped);
       } catch (e) {
         if (!mounted) return;
         setCampaignContext(null);
+        setItems([]);
         setCampaignError(extractMessage(e));
+      } finally {
+        if (mounted) setLoading(false);
       }
     })();
 
     return () => {
       mounted = false;
     };
-  }, [campaignId, lang, navigate]);
+  }, [campaignId, lang, navigate, cardIncludesMore, cardUntitled]);
 
   const tabs = useMemo(() => {
     const tagSet = new Set();
     for (const s of items) (s.tags || []).forEach((t) => tagSet.add(String(t)));
-    return [setsCopy.tabsAll || "All", ...Array.from(tagSet)];
+    return [setsCopy.tabsAll || "Tümü", ...Array.from(tagSet)];
   }, [items, setsCopy.tabsAll]);
 
   const activeCampaign = campaignContext?.campaign || null;
@@ -131,13 +135,13 @@ export default function SetsPage() {
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-8">
           <BreadCrumb
             items={[
-              { label: breadcrumbs.home || "Home", to: "/" },
-              { label: setsCopy.breadcrumb || "Accessory Bundles" },
+              { label: breadcrumbs.home || "Ana Sayfa", to: "/" },
+              { label: setsCopy.breadcrumb || "Aksesuar Paketleri" },
             ]}
           />
           {/* <div className="mt-4 text-center">
             <h1 className="text-4xl font-serif font-extrabold tracking-tight text-primary">
-              {setsCopy.title || "Trousseau Packages"}
+              {setsCopy.title || "Aksesuar Paketleri"}
             </h1>
             <p className="mx-auto mt-2 max-w-2xl text-secondary">
               {setsCopy.subtitle ||
@@ -156,7 +160,7 @@ export default function SetsPage() {
               onClick={handleClearCampaign}
               className="text-rose-700 underline underline-offset-4 hover:text-rose-800"
             >
-              {bannerCopy.errorAction || "Clear campaign filter"}
+              {bannerCopy.errorAction || "Kampanya filtresini temizle"}
             </button>
           </div>
         </div>
@@ -166,7 +170,7 @@ export default function SetsPage() {
         <div className="mx-auto mt-6 max-w-[1400px] px-4 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
             <div>
-              {bannerCopy.prefix || "Showing campaign"}{" "}
+              {bannerCopy.prefix || "Gösterilen kampanya"}{" "}
               <span className="font-semibold">“{activeCampaign.name}”</span>
               {activeCampaign.description
                 ? ` — ${activeCampaign.description}`
@@ -177,37 +181,38 @@ export default function SetsPage() {
               onClick={handleClearCampaign}
               className="text-primary underline underline-offset-4 hover:text-primary/80"
             >
-              {bannerCopy.clear || "Clear"}
+              {bannerCopy.clear || "Temizle"}
             </button>
           </div>
         </div>
       )}
 
       <SetsSets
-        title={setsCopy.listTitle || setsCopy.title || "Accessory Bundles"}
+        title={setsCopy.listTitle || setsCopy.title || "Aksesuar Paketleri"}
         subtitle={setsCopy.listSubtitle || setsCopy.subtitle}
         tabs={tabs}
         items={items}
         loading={loading}
-        emptyLabel={gridCopy.empty || "No packages match this filter."}
+        emptyLabel={gridCopy.empty || "Bu filtreye uygun paket bulunamadı."}
         cardCopy={cardCopy}
-        allLabel={setsCopy.tabsAll || "All"}
+        allLabel={setsCopy.tabsAll || "Tümü"}
       />
 
       <section className="mx-auto mb-12 max-w-[1400px] px-4 sm:px-6">
         <div className="rounded-xl border border-border bg-contact-bg p-6 text-center">
           <h3 className="text-xl font-semibold text-primary">
-            {ctaCopy.heading || "Need help choosing a bundle?"}
+            {ctaCopy.heading || "Set seçerken yardıma mı ihtiyacınız var?"}
           </h3>
           <p className="mt-1 text-secondary">
-            {ctaCopy.text || "Our team can help you match the right accessories."}
+            {ctaCopy.text ||
+              "Ekibimiz cihazınıza uygun aksesuarları eşleştirmenize yardımcı olur."}
           </p>
           <div className="mt-4">
             <a
               href="/contact"
               className="inline-flex items-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
             >
-              {ctaCopy.button || "Talk to an Expert"}
+              {ctaCopy.button || "Uzmanla görüş"}
             </a>
           </div>
         </div>
@@ -226,11 +231,11 @@ function normalizeSetsResponse(res) {
 /** backend set -> kart */
 function mapSetsToCards(
   sets,
-  { includesMoreLabel = "+{count}", untitledLabel = "Untitled Set" } = {}
+  { includesMoreLabel = "+{count}", untitledLabel = "İsimsiz Set" } = {}
 ) {
   return (sets || []).map((s) => {
     const image = s?.images?.[0]?.url || "/set-placeholder.jpg";
-    const title = s?.name || untitledLabel || "Untitled Set";
+    const title = s?.name || untitledLabel || "İsimsiz Set";
     const desc = s?.description || "";
 
     const productNames = (s?.products || [])

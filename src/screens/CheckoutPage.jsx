@@ -193,7 +193,7 @@ export default function CheckoutPage() {
   );
   const subtotal = Number(subTotal ?? computedSubtotal) || 0;
   const shippingFee = Number(shippingInfo?.fee ?? 0) || 0;
-  const shippingName = shippingInfo?.name || "Shipping";
+  const shippingName = shippingInfo?.name || "Kargo";
   const normalizedCouponDiscount = Number(couponDiscount) || 0;
   const derivedTotal = Math.max(0, subtotal + shippingFee - normalizedCouponDiscount);
   const totalDue = Number.isFinite(Number(grandTotal))
@@ -249,12 +249,11 @@ export default function CheckoutPage() {
         setAddressId(list.find((a) => a.isDefault)?.id || list[0]?.id || "");
         if (!list.length) {
           setBanner((prev) =>
-            prev?.variant === "danger"
+                prev?.variant === "danger"
               ? prev
               : {
                   variant: "warning",
-                  message:
-                    "Please add a delivery address before placing an order.",
+                  message: "Sipariş vermeden önce teslimat adresi ekleyin.",
                 }
           );
         } else {
@@ -273,7 +272,7 @@ export default function CheckoutPage() {
         setAddressId("");
         setBanner({
           variant: "danger",
-          message: message || "Unable to load saved addresses.",
+          message: message || "Kayıtlı adresler yüklenemedi.",
         });
       } finally {
         if (mounted) setLoading(false);
@@ -422,7 +421,7 @@ export default function CheckoutPage() {
           onError: (error) => {
             const message = getErrorMessage(
               error,
-              "Unexpected PayPal integration error"
+              "Beklenmeyen PayPal entegrasyon hatası"
             );
             setPayPalError(message);
           },
@@ -434,7 +433,7 @@ export default function CheckoutPage() {
       } catch (error) {
         if (!cancelled) {
           setPayPalError(
-            error?.message || "Unable to load PayPal payment buttons"
+            error?.message || "PayPal ödeme butonları yüklenemedi"
           );
         }
       }
@@ -478,7 +477,7 @@ export default function CheckoutPage() {
     );
   }
 
-  const getErrorMessage = (error, fallback = "Unexpected error") => {
+  const getErrorMessage = (error, fallback = "Beklenmeyen hata") => {
     const { message } = parseError(error);
     return message || fallback;
   };
@@ -487,14 +486,14 @@ export default function CheckoutPage() {
     if (!hasAddress) {
       setBanner({
         variant: "warning",
-        message: "Please add a delivery address before placing an order.",
+        message: "Sipariş vermeden önce teslimat adresi ekleyin.",
       });
       return;
     }
     if (!hasItems) {
       setBanner({
         variant: "warning",
-        message: "Your cart is empty.",
+        message: "Sepetiniz boş.",
       });
       return;
     }
@@ -520,7 +519,7 @@ export default function CheckoutPage() {
       }
       setBanner({
         variant: "danger",
-        message: `Order failed: ${message || "Unexpected error"}`,
+        message: `Sipariş başarısız: ${message || "Beklenmeyen hata"}`,
       });
     } finally {
       setPlacing(false);
@@ -531,7 +530,7 @@ export default function CheckoutPage() {
     <section className="bg-surface-light/60">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6">
         <BreadCrumb
-          items={[{ label: "Home", to: "/" }, { label: "Checkout" }]}
+          items={[{ label: "Ana Sayfa", to: "/" }, { label: "Ödeme" }]}
         />
       </div>
 
@@ -550,19 +549,19 @@ export default function CheckoutPage() {
         <div className="md:col-span-7 lg:col-span-8">
           <div className="rounded-2xl border border-border bg-white p-6">
             <h2 className="text-xl font-semibold text-primary">
-              Delivery Address
+              Teslimat adresi
             </h2>
 
             {addresses.length === 0 ? (
               <p className="mt-3 text-secondary">
-                No saved address. Please add one from{" "}
+                Kayıtlı adres yok. Lütfen{" "}
                 <a
                   className="text-accent underline"
                   href="/account?tab=Addresses"
                 >
-                  Account &gt; Addresses
+                  Hesabım &gt; Adresler
                 </a>
-                .
+                {" "}kısmından ekleyin.
               </p>
             ) : (
               <div className="mt-4 space-y-3">
@@ -599,7 +598,7 @@ export default function CheckoutPage() {
                       )}
                       {a.isDefault && (
                         <span className="mt-1 inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700 ring-1 ring-emerald-200">
-                          Default
+                          Varsayılan
                         </span>
                       )}
                     </div>
@@ -614,7 +613,7 @@ export default function CheckoutPage() {
         <div className="md:col-span-5 lg:col-span-4">
           <div className="rounded-2xl border border-border bg-white p-6">
             <h2 className="text-xl font-semibold text-primary">
-              Order Summary
+              Sipariş özeti
             </h2>
 
             <ul className="mt-4 space-y-3 max-h-56 overflow-auto pr-1">
@@ -624,7 +623,7 @@ export default function CheckoutPage() {
                     {it.name} × {it.qty}
                   </span>
                   <span className="text-secondary">
-                    €{Number(it.unitPrice * it.qty).toFixed(2)}
+                    ₺{Number(it.unitPrice * it.qty).toFixed(2)}
                   </span>
                 </li>
               ))}
@@ -632,34 +631,32 @@ export default function CheckoutPage() {
 
             <div className="mt-4 border-t border-border pt-4 space-y-1 text-sm">
               <div className="flex justify-between">
-                <span className="text-secondary">Subtotal</span>
-                <span className="text-primary">€{subtotal.toFixed(2)}</span>
+                <span className="text-secondary">Ara toplam</span>
+                <span className="text-primary">₺{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-secondary">
-                  {shippingName ? `Shipping (${shippingName})` : "Shipping"}
+                  {shippingName ? `Kargo (${shippingName})` : "Kargo"}
                 </span>
-                <span className="text-primary">€{shippingFee.toFixed(2)}</span>
+                <span className="text-primary">₺{shippingFee.toFixed(2)}</span>
               </div>
               {coupon && (
                 <div className="flex justify-between text-rose-600">
-                  <span className="text-sm">Coupon ({coupon.code})</span>
-                  <span>– €{normalizedCouponDiscount.toFixed(2)}</span>
+                  <span className="text-sm">Kupon ({coupon.code})</span>
+                  <span>– ₺{normalizedCouponDiscount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between text-base font-semibold">
-                <span className="text-primary">Total</span>
-                <span className="text-primary">€{totalDue.toFixed(2)}</span>
+                <span className="text-primary">Toplam</span>
+                <span className="text-primary">₺{totalDue.toFixed(2)}</span>
               </div>
             </div>
 
             <div className="mt-6">
-            <h3 className="text-lg font-semibold text-primary">
-              Payment Method
-            </h3>
+            <h3 className="text-lg font-semibold text-primary">Ödeme yöntemi</h3>
             {!hasAddress && (
               <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                Add a delivery address to enable checkout options.
+                Ödeme seçeneklerini görmek için adres ekleyin.
               </div>
             )}
             <div className="mt-3 space-y-2 text-sm text-secondary">
@@ -673,10 +670,10 @@ export default function CheckoutPage() {
                     disabled={!paypalEnabled || !hasAddress}
                   />
                   <span className="flex-1">
-                    PayPal (Germany)
+                    PayPal (Almanya)
                     {!paypalEnabled && (
                       <span className="ml-2 text-xs text-rose-600">
-                        Set NEXT_PUBLIC_PAYPAL_CLIENT_ID to enable.
+                        Etkinleştirmek için NEXT_PUBLIC_PAYPAL_CLIENT_ID değerini girin.
                       </span>
                     )}
                   </span>
@@ -689,7 +686,7 @@ export default function CheckoutPage() {
                     checked={paymentMethod === "cod"}
                     onChange={() => setPaymentMethod("cod")}
                   />
-                  <span className="flex-1">Cash on Delivery</span>
+                  <span className="flex-1">Kapıda ödeme</span>
                 </label>
               </div>
 
@@ -705,18 +702,18 @@ export default function CheckoutPage() {
                     {paypalSummary && (
                       <div className="mb-3 space-y-1 text-xs text-secondary">
                         <div className="flex justify-between">
-                          <span>Subtotal</span>
+                          <span>Ara toplam</span>
                           <span>
-                            €
+                            ₺
                             {Number(
                               paypalSummary.subtotal ?? subtotal
                             ).toFixed(2)}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Shipping</span>
+                          <span>Kargo</span>
                           <span>
-                            €
+                            ₺
                             {Number(
                               paypalSummary.shipping ?? shippingFee
                             ).toFixed(2)}
@@ -724,9 +721,9 @@ export default function CheckoutPage() {
                         </div>
                         {paypalSummary.discountAmount > 0 && (
                           <div className="flex justify-between text-emerald-600">
-                            <span>Discount</span>
+                            <span>İndirim</span>
                             <span>
-                              − €
+                              − ₺
                               {Number(
                                 paypalSummary.discountAmount
                               ).toFixed(2)}
@@ -734,9 +731,9 @@ export default function CheckoutPage() {
                           </div>
                         )}
                         <div className="mt-2 flex justify-between font-semibold text-primary">
-                          <span>PayPal Total</span>
+                          <span>PayPal Toplamı</span>
                           <span>
-                            €
+                            ₺
                             {Number(
                               paypalSummary.total ?? totalDue
                             ).toFixed(2)}
@@ -747,7 +744,7 @@ export default function CheckoutPage() {
                     <div ref={paypalContainerRef} />
                     {!paypalError && (
                       <p className="mt-3 text-xs text-secondary">
-                        You will complete your payment securely on PayPal.
+                        Ödemenizi güvenli şekilde PayPal üzerinden tamamlayacaksınız.
                       </p>
                     )}
                   </div>
@@ -758,11 +755,10 @@ export default function CheckoutPage() {
                 <>
                   <div className="mt-6 rounded-xl border border-border bg-surface p-4 text-sm">
                     <p className="font-semibold text-primary">
-                      Payment Simulation
+                      Ödeme simülasyonu
                     </p>
                     <p className="mt-1 text-xs text-secondary">
-                      Choose how the mock payment should respond while testing
-                      offline payments.
+                      Test amaçlı ödemelerde simülasyonun nasıl davranacağını seçin.
                     </p>
                     <div className="mt-3 space-y-2">
                       <label className="flex items-center gap-2 text-secondary">
@@ -773,7 +769,7 @@ export default function CheckoutPage() {
                           checked={simulationMode === "success"}
                           onChange={() => setSimulationMode("success")}
                         />
-                        <span>Simulate successful payment</span>
+                        <span>Başarılı ödeme simüle et</span>
                       </label>
                       <label className="flex items-center gap-2 text-secondary">
                         <input
@@ -783,7 +779,7 @@ export default function CheckoutPage() {
                           checked={simulationMode === "failure"}
                           onChange={() => setSimulationMode("failure")}
                         />
-                        <span>Simulate failed payment</span>
+                        <span>Başarısız ödeme simüle et</span>
                       </label>
                     </div>
                   </div>
@@ -795,7 +791,7 @@ export default function CheckoutPage() {
                       className="mt-5 w-full rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
                       onClick={placeOrder}
                     >
-                      {placing ? "Placing..." : "Place Order"}
+                      {placing ? "Sipariş veriliyor..." : "Siparişi tamamla"}
                     </button>
                   </div>
                 </>

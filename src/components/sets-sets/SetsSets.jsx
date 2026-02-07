@@ -7,26 +7,26 @@ const pillActive = "bg-accent border-accent text-white shadow";
 const pillIdle = "border-border text-primary hover:bg-surface-hover";
 
 export default function SetsSets({
-  title = "Trousseau Packages",
+  title = "Aksesuar Paketleri",
   subtitle,
   tabs = [],
   items = [],
   loading = false,
-  emptyLabel = "No packages match this filter.",
+  emptyLabel = "Bu filtreye uygun paket bulunamadı.",
   cardCopy = {},
-  allLabel = "All",
+  allLabel = "Tümü",
 }) {
-  const initialTab = tabs?.[0] ?? allLabel ?? "All";
+  const initialTab = tabs?.[0] ?? allLabel ?? "Tümü";
   const [active, setActive] = useState(initialTab);
 
   useEffect(() => {
-    const first = tabs?.[0] ?? allLabel ?? "All";
+    const first = tabs?.[0] ?? allLabel ?? "Tümü";
     if (!tabs?.includes(active)) setActive(first);
   }, [tabs, allLabel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const shown = useMemo(() => {
     if (!items?.length) return [];
-    const normalizedAll = String(allLabel || "All").toLowerCase();
+    const normalizedAll = String(allLabel || "Tümü").toLowerCase();
     const isAll = String(active || "").toLowerCase() === normalizedAll;
     const activeIsValid = tabs?.includes(active);
     if (isAll || !activeIsValid) return items;

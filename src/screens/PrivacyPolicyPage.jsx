@@ -21,7 +21,7 @@ export default function PrivacyPolicyPage() {
         setError("");
       } catch (e) {
         if (!mounted) return;
-        setError(extractMessage(e) || "Failed to load privacy policy.");
+        setError(extractMessage(e) || "Gizlilik politikası yüklenemedi.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -31,10 +31,10 @@ export default function PrivacyPolicyPage() {
     };
   }, [lang]);
 
-  const title = data?.heroTitle || "Privacy Policy";
+  const title = data?.heroTitle || "Gizlilik Politikası";
   const intro =
     data?.heroIntro ||
-    "Your privacy matters. This policy explains how we process personal data in compliance with the EU General Data Protection Regulation (GDPR).";
+    "Gizliliğiniz bizim için önemlidir. Bu politika, kişisel verileri KVKK ve ilgili mevzuata uygun şekilde nasıl işlediğimizi açıklar.";
   const sections = useMemo(
     () => (Array.isArray(data?.sections) ? data.sections : []),
     [data]
@@ -45,7 +45,7 @@ export default function PrivacyPolicyPage() {
     <main className="bg-surface-light/60">
       <section className="mx-auto max-w-[1400px] px-4 sm:px-6 pt-6">
         <BreadCrumb
-          items={[{ label: "Home", to: "/" }, { label: "Privacy Policy" }]}
+          items={[{ label: "Ana Sayfa", to: "/" }, { label: "Gizlilik Politikası" }]}
         />
       </section>
 
@@ -105,11 +105,11 @@ export default function PrivacyPolicyPage() {
               ))
             ) : !isActive ? (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-700">
-                Privacy policy page is currently not active.
+                Gizlilik Politikası sayfası şu anda aktif değil.
               </div>
             ) : sections.length === 0 ? (
               <div className="rounded-xl border border-border bg-surface p-6 text-center text-secondary">
-                No privacy content yet.
+                Henüz Gizlilik Politikası içeriği yok.
               </div>
             ) : (
               sections.map((section) => {
@@ -141,16 +141,16 @@ export default function PrivacyPolicyPage() {
             </footer>
           ) : (
             <footer className="mt-12 rounded-2xl border border-border bg-contact-bg/70 p-6 text-sm text-secondary">
-              If you have questions about this policy or wish to exercise your
-              data protection rights, e-mail us at{" "}
+              Bu politika hakkında sorularınız varsa veya veri koruma
+              haklarınızı kullanmak isterseniz{" "}
               <a
                 href="mailto:privacy@berkaygsm.com"
                 className="text-accent underline"
               >
                 privacy@berkaygsm.com
               </a>{" "}
-              or write to Berkay GSM GmbH, Kurfürstendamm 45, 10719
-              Berlin, Germany.
+              adresine e‑posta gönderebilir ya da Berkay GSM GmbH,
+              Kurfürstendamm 45, 10719 Berlin, Almanya adresine yazabilirsiniz.
             </footer>
           )}
         </div>
@@ -169,7 +169,7 @@ function normalizeIncoming(v) {
     sections: Array.isArray(d.sections)
       ? d.sections.map((s) => ({
           id: String(s.id || s.title || "").trim(),
-          title: String(s.title || "Untitled").trim(),
+          title: String(s.title || "Başlıksız").trim(),
           content: Array.isArray(s.content)
             ? s.content.map((p) => String(p || ""))
             : [],
@@ -186,7 +186,7 @@ function normalizeIncoming(v) {
 }
 
 function extractMessage(err) {
-  if (!err) return "";
+  if (!err) return "Beklenmeyen hata";
   try {
     const parsed = JSON.parse(String(err.message || err));
     if (parsed?.message) return parsed.message;

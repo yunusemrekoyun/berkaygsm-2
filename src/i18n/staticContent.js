@@ -420,7 +420,7 @@ const STATIC_CONTENT = {
         orderLabel: "Order #{number}",
         totalLabel: "Total",
         shippingLabel: "Shipping",
-        shippingLine: "Shipping: {name} (€{amount})",
+        shippingLine: "Shipping: {name} (₺{amount})",
         viewDetails: "View details",
         status: {
           created: "Created",
@@ -665,7 +665,7 @@ const STATIC_CONTENT = {
       description:
         "Mağazamızda kılıf, şarj ve aksesuarları deneyin. Ekibimiz cihazınıza en uygun modeli bulmanızda yardımcı olur.",
       storeName: "Berkay GSM",
-      address: "Kurfürstendamm 123, 10711 Berlin, Almanya",
+      address: "Bağdat Caddesi 123, Kadıköy / İstanbul",
       hoursLabel: "Çalışma Saatleri:",
       hours: [
         { k: "Pzt - Cmt", v: "10:00 - 20:00" },
@@ -687,7 +687,7 @@ const STATIC_CONTENT = {
       fallbackName: "Ürün",
       descriptionFallback: "Ürün açıklaması bulunmuyor.",
       colorLabel: "Renk",
-      sizeLabel: "Beden",
+      sizeLabel: "Model",
       optionLabel: "Seçenek",
       addToCart: "Sepete Ekle",
       addedToCart: "Ürün sepete eklendi.",
@@ -784,10 +784,10 @@ const STATIC_CONTENT = {
           "Müşteri destek ekibimiz hafta içi 09:00–18:00 saatleri arasında hizmet verir. Mesajınızı iletin, en geç bir iş günü içinde dönüş yapalım.",
       },
       defaultBlocks: {
-        addressTitle: "Avrupa stüdyomuzu ziyaret edin",
+        addressTitle: "Mağazamızı ziyaret edin",
         addressLines: [
-          "Kurfürstendamm 45, 10719 Berlin",
-          "Showroom & click-and-collect (randevu önerilir)",
+          "Bağdat Caddesi 45, Kadıköy / İstanbul",
+          "Showroom ve mağazadan teslim (randevu önerilir)",
         ],
         hoursTitle: "Çalışma saatleri",
         hoursLines: [
@@ -797,13 +797,13 @@ const STATIC_CONTENT = {
         ],
         emailTitle: "Müşteri hizmetleri",
         emailLines: [
-          "support@evimstil.com",
+          "destek@berkaygsm.com",
           "Ortalama dönüş süresi: < 24 saat",
         ],
         phoneTitle: "Telefon",
         phoneLines: [
-          "+49 (0) 30 234 567 89",
-          "Aynı numaradan WhatsApp & Signal",
+          "+90 (212) 000 00 00",
+          "Aynı numaradan WhatsApp ve Signal",
         ],
       },
       form: {
@@ -928,7 +928,7 @@ const STATIC_CONTENT = {
         orderLabel: "Sipariş #{number}",
         totalLabel: "Toplam",
         shippingLabel: "Kargo",
-        shippingLine: "Kargo: {name} (€{amount})",
+        shippingLine: "Kargo: {name} (₺{amount})",
         viewDetails: "Detayları gör",
         status: {
           created: "Oluşturuldu",
@@ -1436,7 +1436,7 @@ const STATIC_CONTENT = {
         orderLabel: "Bestellung #{number}",
         totalLabel: "Gesamt",
         shippingLabel: "Versand",
-        shippingLine: "Versand: {name} (€{amount})",
+        shippingLine: "Versand: {name} (₺{amount})",
         viewDetails: "Details anzeigen",
         status: {
           created: "Erstellt",

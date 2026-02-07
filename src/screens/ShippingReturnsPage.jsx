@@ -21,7 +21,7 @@ export default function ShippingReturnsPage() {
         setErr(null);
       } catch (e) {
         if (!mounted) return;
-        setErr(extractMessage(e) || "Unable to load Shipping & Returns.");
+        setErr(extractMessage(e) || "Kargo & İade sayfası yüklenemedi.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -32,13 +32,13 @@ export default function ShippingReturnsPage() {
   }, [lang]);
 
   const heroTitle = useMemo(
-    () => page?.heroTitle || "Shipping & Returns",
+    () => page?.heroTitle || "Kargo & İade",
     [page]
   );
   const heroSubtitle = useMemo(
     () =>
       page?.heroSubtitle ||
-      "Transparent delivery times, EU-compliant returns and stress-free exchanges.",
+      "Şeffaf teslimat süreleri, kolay iade ve zahmetsiz değişim süreçleri.",
     [page]
   );
 
@@ -46,7 +46,7 @@ export default function ShippingReturnsPage() {
     <main className="bg-surface-light/60">
       <section className="mx-auto max-w-[1400px] px-4 sm:px-6 pt-6">
         <BreadCrumb
-          items={[{ label: "Home", to: "/" }, { label: "Shipping & Returns" }]}
+          items={[{ label: "Ana Sayfa", to: "/" }, { label: "Kargo & İade" }]}
         />
       </section>
 
@@ -64,7 +64,7 @@ export default function ShippingReturnsPage() {
                 {heroTitle}
               </h1>
               <p className="mt-3 text-secondary">
-                This page is currently unavailable.
+                Bu sayfa şu anda kullanılamıyor.
               </p>
             </header>
           ) : null}
@@ -109,7 +109,7 @@ export default function ShippingReturnsPage() {
                   ))
                 ) : (
                   <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-secondary">
-                    No content yet.
+                    Henüz içerik yok.
                   </div>
                 )}
               </article>
@@ -118,7 +118,7 @@ export default function ShippingReturnsPage() {
               <aside className="lg:col-span-5">
                 <div className="space-y-6 rounded-2xl border border-border bg-contact-bg/80 p-6 sm:p-8">
                   <h2 className="font-serif text-2xl font-semibold text-primary">
-                    Quick facts
+                    Hızlı bilgiler
                   </h2>
                   <ul className="space-y-4 text-sm text-secondary">
                     {(page?.sidebar?.quickFacts || []).length ? (
@@ -126,7 +126,7 @@ export default function ShippingReturnsPage() {
                         <li key={`${item}-${i}`}>• {item}</li>
                       ))
                     ) : (
-                      <li className="text-secondary/70">No quick facts.</li>
+                      <li className="text-secondary/70">Hızlı bilgi yok.</li>
                     )}
                   </ul>
 
@@ -136,7 +136,7 @@ export default function ShippingReturnsPage() {
                     dangerouslySetInnerHTML={{
                       __html:
                         page?.sidebar?.helpBoxHtml ||
-                        `Need assistance? Reach us at <a href="mailto:returns@evimstil.com" class="text-accent underline">returns@evimstil.com</a>.`,
+                        `Desteğe mi ihtiyacınız var? <a href="mailto:returns@berkaygsm.com" class="text-accent underline">returns@berkaygsm.com</a> adresinden bize ulaşabilirsiniz.`,
                     }}
                   />
                 </div>

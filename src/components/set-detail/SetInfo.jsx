@@ -25,20 +25,20 @@ export default function SetInfo({
   });
 
   let stockState = "variant";
-  let stockText = stockCopy.variantDependent || "Stock depends on selections.";
+  let stockText = stockCopy.variantDependent || "Stok, seçilen parçalara göre değişir.";
 
   if (stock !== null && stock !== undefined) {
     if (stock > 0) {
       stockState = "in";
-      stockText =
-        stock >= Number.MAX_SAFE_INTEGER / 2
-          ? stockCopy.infinite || "In stock"
-          : formatStaticText(stockCopy.inStockCount || "In stock: {count}", {
+        stockText =
+          stock >= Number.MAX_SAFE_INTEGER / 2
+          ? stockCopy.infinite || "Stokta"
+          : formatStaticText(stockCopy.inStockCount || "Stokta: {count}", {
               count: stock,
             });
     } else {
       stockState = "out";
-      stockText = stockCopy.outOfStock || "Out of stock";
+      stockText = stockCopy.outOfStock || "Stokta yok";
     }
   }
 

@@ -248,7 +248,7 @@ export async function createDiscount(req, res) {
     if (!name || percentage === undefined)
       return res
         .status(400)
-        .json({ message: "Name and percentage are required" });
+        .json({ message: "Ad ve yüzde gerekli" });
 
     const parsedPercentage = Number(percentage);
     if (
@@ -258,7 +258,7 @@ export async function createDiscount(req, res) {
     )
       return res
         .status(400)
-        .json({ message: "Percentage must be between 1-100" });
+        .json({ message: "Yüzde 1-100 arasında olmalı" });
 
     const productIds = await validateObjectIds(products, Product, "product");
     const setIds = await validateObjectIds(sets, Set, "set");
@@ -269,7 +269,7 @@ export async function createDiscount(req, res) {
     );
 
     if (!productIds.length && !setIds.length && !categoryIds.length)
-      return res.status(400).json({ message: "Select at least one target" });
+      return res.status(400).json({ message: "En az bir hedef seçin" });
 
     const now = new Date();
     const allActiveFlagged = await Discount.find({ active: true }).lean();
@@ -291,7 +291,7 @@ export async function createDiscount(req, res) {
       });
       if (directOverlap && !resolve) {
         return res.status(409).json({
-          message: "Discount conflicts detected",
+          message: "İndirim çakışmaları tespit edildi",
           conflicts: [
             {
               id: null,
@@ -313,7 +313,7 @@ export async function createDiscount(req, res) {
 
     if (conflicts.length && !resolve)
       return res.status(409).json({
-        message: "Discount conflicts detected",
+        message: "İndirim çakışmaları tespit edildi",
         conflicts: serializeConflicts(conflicts),
       });
 
@@ -348,7 +348,7 @@ export async function createDiscount(req, res) {
         )
           return res
             .status(400)
-            .json({ message: "No targets remain after skipping conflicts" });
+            .json({ message: "Çakışmalar çıkarıldıktan sonra hedef kalmadı" });
       } else if (resolve === "overwrite") {
         const conflictIds = conflicts.map((e) => e.discount._id);
         await Discount.updateMany(
@@ -427,7 +427,7 @@ export async function updateDiscount(req, res) {
     const { id } = req.params;
     const discount = await Discount.findById(id);
     if (!discount)
-      return res.status(404).json({ message: "Discount not found" });
+      return res.status(404).json({ message: "İndirim bulunamadı" });
 
     const {
       name,
@@ -472,7 +472,7 @@ export async function updateDiscount(req, res) {
       if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 100)
         return res
           .status(400)
-          .json({ message: "Percentage must be between 1-100" });
+          .json({ message: "Yüzde 1-100 arasında olmalı" });
       discount.percentage = parsed;
     }
     if (active !== undefined) discount.active = Boolean(active);
@@ -487,7 +487,7 @@ export async function updateDiscount(req, res) {
       categoryIds = await validateObjectIds(categories, Category, "category");
 
       if (!productIds.length && !setIds.length && !categoryIds.length)
-        return res.status(400).json({ message: "Select at least one target" });
+        return res.status(400).json({ message: "En az bir hedef seçin" });
 
       const now = new Date();
       const allActiveFlagged = await Discount.find({
@@ -513,7 +513,7 @@ export async function updateDiscount(req, res) {
         });
         if (directOverlap && !resolve) {
           return res.status(409).json({
-            message: "Discount conflicts detected",
+            message: "İndirim çakışmaları tespit edildi",
             conflicts: [
               {
                 id: null,
@@ -535,7 +535,7 @@ export async function updateDiscount(req, res) {
 
       if (conflicts.length && !resolve)
         return res.status(409).json({
-          message: "Discount conflicts detected",
+          message: "İndirim çakışmaları tespit edildi",
           conflicts: serializeConflicts(conflicts),
         });
 
@@ -559,7 +559,7 @@ export async function updateDiscount(req, res) {
           if (!productIds.length && !setIds.length && !categoryIds.length)
             return res
               .status(400)
-              .json({ message: "No targets remain after skipping conflicts" });
+              .json({ message: "Çakışmalar çıkarıldıktan sonra hedef kalmadı" });
         } else if (resolve === "overwrite") {
           const conflictIds = conflicts.map((e) => e.discount._id);
           await Discount.updateMany(
