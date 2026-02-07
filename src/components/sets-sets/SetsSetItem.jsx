@@ -17,10 +17,10 @@ export default function SetsSetItem({
   const basePrice = Number(price ?? 0);
   const computedFinal = Number(finalPrice ?? basePrice);
   const showStrike = Number.isFinite(basePrice) && computedFinal < basePrice;
-  const includesLabel = copy.includes || "Includes:";
-  const viewDetailsLabel = copy.viewDetails || "View details →";
+  const includesLabel = copy.includes || "İçindekiler:";
+  const viewDetailsLabel = copy.viewDetails || "Detayları gör →";
   const untitledLabel = copy.untitled || "Set";
-  const ariaLabelTemplate = copy.ariaLabel || "Open {title}";
+  const ariaLabelTemplate = copy.ariaLabel || "{title} sayfasını aç";
 
   const Wrapper = ({ children }) =>
     isDisabled ? (

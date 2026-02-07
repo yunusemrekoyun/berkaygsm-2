@@ -7,7 +7,7 @@ export default function SimilarProducts({ items = [] }) {
   return (
     <section className="rounded-2xl border border-border bg-surface-light p-6">
       <h2 className="mb-4 text-center font-serif text-2xl font-extrabold text-primary">
-        {copy.heading || "Similar Products"}
+        {copy.heading || "Benzer Ürünler"}
       </h2>
       <div
         className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"

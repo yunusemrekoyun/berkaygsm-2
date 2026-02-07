@@ -46,10 +46,10 @@ function setRefreshCookie(res, token) {
 export const register = async (req, res) => {
   const { firstName, lastName, email, phone, password, role } = req.body;
   if (!firstName || !lastName || !email || !password)
-    return res.status(400).json({ message: "Missing required fields" });
+    return res.status(400).json({ message: "Zorunlu alanlar eksik" });
 
   const exists = await User.findOne({ email });
-  if (exists) return res.status(409).json({ message: "Email already in use" });
+  if (exists) return res.status(409).json({ message: "E-posta zaten kullanılıyor" });
 
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await User.create({
@@ -78,24 +78,24 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
-    return res.status(400).json({ message: "Missing credentials" });
+    return res.status(400).json({ message: "Giriş bilgileri eksik" });
 
   const user = await User.findOne({ email });
   if (!user)
-    return res.status(401).json({ message: "Invalid email or password" });
+    return res.status(401).json({ message: "E-posta veya şifre hatalı" });
 
   // 🚫 Silinmiş hesap login yapamaz
   if (user.isDeleted) {
     return res.status(403).json({
       message: user.deletedAlias
-        ? `Account is deactivated (${user.deletedAlias})`
-        : "Account is deactivated",
+        ? `Hesap pasif (${user.deletedAlias})`
+        : "Hesap pasif",
     });
   }
 
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok)
-    return res.status(401).json({ message: "Invalid email or password" });
+    return res.status(401).json({ message: "E-posta veya şifre hatalı" });
 
   const accessToken = signAccessToken({ sub: user._id, role: user.role });
   const refreshToken = signRefreshToken({ sub: user._id, role: user.role });
@@ -110,18 +110,18 @@ export const login = async (req, res) => {
 /** POST /api/auth/refresh */
 export const refresh = async (req, res) => {
   const token = req.cookies?.refreshToken;
-  if (!token) return res.status(401).json({ message: "No refresh token" });
+  if (!token) return res.status(401).json({ message: "Refresh token yok" });
 
   try {
     const payload = jwt.verify(token, REFRESH_SECRET);
     const user = await User.findById(payload.sub);
 
     if (!user || user.refreshToken !== token)
-      return res.status(401).json({ message: "Invalid refresh token" });
+      return res.status(401).json({ message: "Geçersiz refresh token" });
 
     // 🚫 Silinmiş hesap token yenileyemez
     if (user.isDeleted) {
-      return res.status(403).json({ message: "Account is deactivated" });
+      return res.status(403).json({ message: "Hesap pasif" });
     }
 
     const newAccess = signAccessToken({ sub: user._id, role: user.role });
@@ -133,7 +133,7 @@ export const refresh = async (req, res) => {
     setRefreshCookie(res, newRefresh);
     res.json({ accessToken: newAccess, expiresIn: ACCESS_EXPIRES });
   } catch (e) {
-    return res.status(401).json({ message: "Refresh failed" });
+    return res.status(401).json({ message: "Token yenileme başarısız" });
   }
 };
 
@@ -163,14 +163,14 @@ export const logout = async (req, res) => {
 /** GET /api/auth/me (Access Token gerekli) */
 export const me = async (req, res) => {
   const user = await User.findById(req.userId);
-  if (!user) return res.status(404).json({ message: "User not found" });
+  if (!user) return res.status(404).json({ message: "Kullanıcı bulunamadı" });
 
   // 🚫 Soft-deleted kullanıcıya 403 dön
   if (user.isDeleted) {
     return res.status(403).json({
       message: user.deletedAlias
-        ? `Account is deactivated (${user.deletedAlias})`
-        : "Account is deactivated",
+        ? `Hesap pasif (${user.deletedAlias})`
+        : "Hesap pasif",
     });
   }
 

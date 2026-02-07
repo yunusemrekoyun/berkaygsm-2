@@ -33,7 +33,7 @@ export default function SetDetailsPage() {
         const resp = await setApi.get(slug, lang);
         const detail = resp?.set ?? resp;
         if (!mounted) return;
-        if (!detail) throw new Error("Set not found");
+        if (!detail) throw new Error("Set bulunamadı");
         setSetDoc(detail);
 
         // ---- similar
@@ -86,7 +86,7 @@ export default function SetDetailsPage() {
     const tags = extractSetTags(setDoc);
     const firstTag = tags?.[0];
     return [
-      { label: breadcrumbCopy.home || "Home", to: "/" },
+      { label: breadcrumbCopy.home || "Ana Sayfa", to: "/" },
       firstTag
         ? {
             label: firstTag,
@@ -131,7 +131,7 @@ export default function SetDetailsPage() {
       <section className="bg-surface-light/60">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-16">
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-6 py-8 text-center text-rose-700">
-            {error || setPageCopy.notFound || "Set not found"}
+            {error || setPageCopy.notFound || "Set bulunamadı"}
           </div>
         </div>
       </section>

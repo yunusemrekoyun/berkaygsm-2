@@ -3,7 +3,7 @@ import HomeProductItem from "./HomeProductItem";
 import { useStaticTranslation } from "../../i18n/staticContent.js";
 
 export default function HomeProducts({
-  title = "New Arrivals",
+  title = "Yeni Gelenler",
   items = [],
   variant = "boxed", // "boxed" | "merge-top" | "merge-bottom"
   className = "",
@@ -12,7 +12,7 @@ export default function HomeProducts({
   const t = useStaticTranslation();
   const isBoxed = variant === "boxed";
   const innerPad = "px-4 py-12 sm:px-6 lg:px-8";
-  const emptyLabel = t("homeProducts.empty") || "Products coming soon.";
+  const emptyLabel = t("homeProducts.empty") || "Ürünler yakında eklenecek.";
 
   if (!isBoxed) {
     // Merge modunda: arka plan ve radius parent'ta; sadece içerik render'la

@@ -186,10 +186,10 @@ export async function createSet(req, res) {
       sku,
     } = req.body;
     if (!name || price == null)
-      return res.status(400).json({ message: "Name and price are required" });
+      return res.status(400).json({ message: "Ad ve fiyat gerekli" });
     const priceNum = Number(price);
     if (!Number.isFinite(priceNum) || priceNum < 0)
-      return res.status(400).json({ message: "Price must be a valid number" });
+      return res.status(400).json({ message: "Fiyat geçerli bir sayı olmalı" });
 
     const files = Array.isArray(req.files) ? req.files : [];
     const directImages = extractAssetList(req.body.images);
@@ -228,7 +228,7 @@ export async function createSet(req, res) {
     res.status(201).json({ set: presentSet(doc, lang) });
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.sku)
-      return res.status(400).json({ message: "SKU already exists" });
+      return res.status(400).json({ message: "SKU zaten mevcut" });
     res.status(400).json({ message: err.message || "Create failed" });
   }
 }
@@ -283,7 +283,7 @@ export async function getSet(req, res) {
     const set = isId(idOrSlug)
       ? await Set.findById(idOrSlug)
       : await Set.findOne({ slug: idOrSlug });
-    if (!set) return res.status(404).json({ message: "Set not found" });
+    if (!set) return res.status(404).json({ message: "Set bulunamadı" });
     await set.populate({ path: "products.product" });
     const componentProducts = set.products
       .map((entry) => entry?.product)
@@ -305,7 +305,7 @@ export async function updateSet(req, res) {
     const set = isId(idOrSlug)
       ? await Set.findById(idOrSlug)
       : await Set.findOne({ slug: idOrSlug });
-    if (!set) return res.status(404).json({ message: "Set not found" });
+    if (!set) return res.status(404).json({ message: "Set bulunamadı" });
 
     const {
       name,
@@ -348,7 +348,7 @@ export async function updateSet(req, res) {
       if (!Number.isFinite(n) || n < 0)
         return res
           .status(400)
-          .json({ message: "Price must be a valid number" });
+          .json({ message: "Fiyat geçerli bir sayı olmalı" });
       set.price = n;
     }
     if (show !== undefined)
@@ -426,7 +426,7 @@ export async function updateSet(req, res) {
     res.json({ set: presentSet(set, lang, { discount }) });
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.sku)
-      return res.status(400).json({ message: "SKU already exists" });
+      return res.status(400).json({ message: "SKU zaten mevcut" });
     res.status(400).json({ message: err.message || "Update failed" });
   }
 }
@@ -437,7 +437,7 @@ export async function deleteSet(req, res) {
     const set = isId(idOrSlug)
       ? await Set.findById(idOrSlug)
       : await Set.findOne({ slug: idOrSlug });
-    if (!set) return res.status(404).json({ message: "Set not found" });
+    if (!set) return res.status(404).json({ message: "Set bulunamadı" });
     if (Array.isArray(set.images) && set.images.length) {
       await Promise.allSettled(
         set.images

@@ -195,7 +195,7 @@ export async function runHandlers(request, { params = {}, handlers = [], bodyTyp
   } catch (error) {
     const status = error?.status || 400;
     return NextResponse.json(
-      { message: error?.message || "Invalid request payload" },
+      { message: error?.message || "Geçersiz istek içeriği" },
       { status }
     );
   }
@@ -210,7 +210,7 @@ export async function runHandlers(request, { params = {}, handlers = [], bodyTyp
     } catch (error) {
       const status = error?.status || 400;
       return NextResponse.json(
-        { message: error?.message || "Upload rejected" },
+        { message: error?.message || "Yükleme reddedildi" },
         { status }
       );
     }
@@ -258,7 +258,7 @@ export async function runHandlers(request, { params = {}, handlers = [], bodyTyp
   } catch (error) {
     const status = error?.status || 500;
     return NextResponse.json(
-      { message: error?.message || "Server error" },
+      { message: error?.message || "Sunucu hatası" },
       { status }
     );
   }

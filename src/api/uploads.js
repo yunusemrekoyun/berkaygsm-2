@@ -57,7 +57,7 @@ async function uploadWithSignature(file, signature) {
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new Error(text || "Upload failed");
+    throw new Error(text || "Yükleme başarısız");
   }
 
   const result = await response.json();

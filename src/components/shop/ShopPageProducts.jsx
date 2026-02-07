@@ -4,7 +4,7 @@ import ShopPageProductItem from "./ShopPageProductItem";
 export default function ShopPageProducts({
   products = [],
   loading = false,
-  emptyLabel = "No products found for selected filters.",
+  emptyLabel = "Seçili filtrelere uygun ürün bulunamadı.",
 }) {
   return (
     <div>

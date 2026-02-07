@@ -21,10 +21,10 @@ export default function Hero({
 }) {
   const t = useStaticTranslation();
   const heroCopy = t("heroComponent") || {};
-  const noMediaLabel = heroCopy.noMedia || "No media";
-  const prevLabel = heroCopy.prev || "Previous";
-  const nextLabel = heroCopy.next || "Next";
-  const goToSlideLabel = heroCopy.goToSlide || "Go to slide {index}";
+  const noMediaLabel = heroCopy.noMedia || "Medya yok";
+  const prevLabel = heroCopy.prev || "Önceki";
+  const nextLabel = heroCopy.next || "Sonraki";
+  const goToSlideLabel = heroCopy.goToSlide || "{index}. slayta git";
 
   const [index, setIndex] = useState(0);
   const active = slides[index] || null;

@@ -157,7 +157,7 @@ export async function createCategory(req, res) {
     }
     const { name, parent = null } = req.body;
     if (!name) {
-      return res.status(400).json({ message: "Category name is required" });
+      return res.status(400).json({ message: "Kategori adı gerekli" });
     }
 
     let parentDoc = null;
@@ -166,7 +166,7 @@ export async function createCategory(req, res) {
         ? await Category.findById(parent)
         : await Category.findOne({ slug: parent });
       if (!parentDoc) {
-        return res.status(400).json({ message: "Parent category not found" });
+        return res.status(400).json({ message: "Üst kategori bulunamadı" });
       }
     }
 
@@ -238,7 +238,7 @@ export async function listCategories(req, res) {
         ? await Category.findById(parent)
         : await Category.findOne({ slug: parent });
       if (!parentDoc) {
-        return res.status(400).json({ message: "Parent category not found" });
+        return res.status(400).json({ message: "Üst kategori bulunamadı" });
       }
       filter.parent = parentDoc._id;
     }
@@ -274,7 +274,7 @@ export async function getCategory(req, res) {
       : await Category.findOne({ slug: idOrSlug });
 
     if (!category) {
-      return res.status(404).json({ message: "Category not found" });
+      return res.status(404).json({ message: "Kategori bulunamadı" });
     }
 
     const localized = resolveTranslation(category, lang);
@@ -307,7 +307,7 @@ export async function updateCategory(req, res) {
       : await Category.findOne({ slug: idOrSlug });
 
     if (!category) {
-      return res.status(404).json({ message: "Category not found" });
+      return res.status(404).json({ message: "Kategori bulunamadı" });
     }
 
     const incomingTranslations = pickLocalizedPayload(req.body) || {};
@@ -332,17 +332,17 @@ export async function updateCategory(req, res) {
           ? await Category.findById(parent)
           : await Category.findOne({ slug: parent });
         if (!parentDoc) {
-          return res.status(400).json({ message: "Parent category not found" });
+          return res.status(400).json({ message: "Üst kategori bulunamadı" });
         }
         if (String(parentDoc._id) === String(category._id)) {
           return res
             .status(400)
-            .json({ message: "Category cannot be its own parent" });
+            .json({ message: "Kategori kendi üstü olamaz" });
         }
         if (parentDoc.ancestors?.includes(category._id)) {
           return res
             .status(400)
-            .json({ message: "Cannot set a descendant as parent" });
+            .json({ message: "Alt kategori üst olarak seçilemez" });
         }
         category.parent = parentDoc._id;
       }
@@ -416,13 +416,13 @@ export async function deleteCategory(req, res) {
       : await Category.findOne({ slug: idOrSlug });
 
     if (!category) {
-      return res.status(404).json({ message: "Category not found" });
+      return res.status(404).json({ message: "Kategori bulunamadı" });
     }
 
     const hasChildren = await Category.exists({ parent: category._id });
     if (hasChildren) {
       return res.status(400).json({
-        message: "Category has child categories and cannot be removed",
+        message: "Kategori alt kategorilere sahip, silinemez",
       });
     }
 
@@ -430,7 +430,7 @@ export async function deleteCategory(req, res) {
     if (hasProducts) {
       return res
         .status(400)
-        .json({ message: "Category has products and cannot be removed" });
+        .json({ message: "Kategoriye bağlı ürünler var, silinemez" });
     }
 
     if (category.image?.publicId) {

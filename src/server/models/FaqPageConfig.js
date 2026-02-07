@@ -80,7 +80,7 @@ const FaqPageConfigSchema = new mongoose.Schema(
   {
     heroTitle: {
       type: String,
-      default: "Frequently Asked Questions",
+      default: "Sıkça Sorulan Sorular",
       trim: true,
     },
     heroIntro: { type: String, default: "", trim: true },

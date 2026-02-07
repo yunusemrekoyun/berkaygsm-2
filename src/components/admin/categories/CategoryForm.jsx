@@ -112,9 +112,6 @@ export default function CategoryForm({
           </div>
         ) : (
           <>
-            <div className="rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)]/80 px-3 py-2 text-[11px] text-[var(--color-text-admin-muted)]">
-              Bu form yalnızca Türkçe (TR) içerik için kullanılır.
-            </div>
             <label className="block">
               <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
                 Kategori adı
@@ -125,7 +122,7 @@ export default function CategoryForm({
                 onChange={(event) => setName(event.target.value)}
                 maxLength={120}
                 className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2.5 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
-                placeholder="örn. İç Çamaşırı"
+                placeholder="örn. Kılıf"
               />
             </label>
 
@@ -245,8 +242,8 @@ export default function CategoryForm({
               {submitting
                 ? "Kaydediliyor..."
                 : isEditing
-                ? "Değişiklikleri kaydet"
-                : "Kategori oluştur"}
+                  ? "Değişiklikleri kaydet"
+                  : "Kategori oluştur"}
             </button>
           </div>
         </div>

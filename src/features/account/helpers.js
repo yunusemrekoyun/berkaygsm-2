@@ -49,6 +49,6 @@ export function extractErrorMessage(error) {
     const parsed = JSON.parse(text);
     return parsed?.message || text;
   } catch {
-    return error?.message || "Unexpected error";
+    return error?.message || "Beklenmeyen bir hata oluştu";
   }
 }

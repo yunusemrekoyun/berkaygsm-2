@@ -34,24 +34,24 @@ export default function TermsPage() {
   // Fallback başlık/intro — stil korunur
   const title = useMemo(
     () =>
-      data?.heroTitle?.trim() ? data.heroTitle.trim() : "Terms of Service",
+      data?.heroTitle?.trim() ? data.heroTitle.trim() : "Kullanım Koşulları",
     [data]
   );
   const intro =
     data?.heroIntro?.trim() ||
-    "Please read these terms carefully before placing an order. They outline your rights and obligations when shopping with Berkay GSM.";
+    "Lütfen sipariş vermeden önce bu koşulları okuyun. Berkay GSM’den alışveriş yaparken hak ve yükümlülüklerinizi açıklar.";
   const sections = Array.isArray(data?.sections) ? data.sections : [];
   const footerNote =
     typeof data?.footerNote === "string" && data.footerNote.trim()
       ? data.footerNote
-      : "Last updated: 8 October 2025. We may revise these terms from time to time. The version displayed here is always the most current.";
+      : "Son güncelleme: 8 Ekim 2025. Bu koşulları zaman zaman güncelleyebiliriz. Burada görünen sürüm her zaman en güncel olandır.";
   const isActive = data?.isActive !== false; // kayıt yoksa aktif varsay
 
   return (
     <main className="bg-surface-light/60">
       <section className="mx-auto max-w-[1400px] px-4 sm:px-6 pt-6">
         <BreadCrumb
-          items={[{ label: "Home", to: "/" }, { label: "Terms of Service" }]}
+          items={[{ label: "Ana Sayfa", to: "/" }, { label: "Kullanım Koşulları" }]}
         />
       </section>
 
@@ -91,11 +91,11 @@ export default function TermsPage() {
               ))
             ) : !isActive ? (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-700">
-                The Terms of Service page is currently not active.
+                Kullanım Koşulları sayfası şu anda aktif değil.
               </div>
             ) : sections.length === 0 ? (
               <div className="rounded-xl border border-border bg-surface p-6 text-center text-secondary">
-                No Terms content yet.
+                Henüz Kullanım Koşulları içeriği yok.
               </div>
             ) : (
               sections.map((section, si) => (
@@ -123,7 +123,7 @@ export default function TermsPage() {
 
 /** ---------- Item renderer ---------- */
 function SectionBlock({ section }) {
-  const title = section?.title?.trim() || "Untitled section";
+  const title = section?.title?.trim() || "Başlıksız bölüm";
   const paragraphs = Array.isArray(section?.paragraphs)
     ? section.paragraphs
     : [];
@@ -168,7 +168,7 @@ function safeIncoming(doc) {
 }
 
 function extractMessage(err) {
-  if (!err) return "Unexpected error";
+  if (!err) return "Beklenmeyen hata";
   try {
     const parsed = JSON.parse(String(err.message || err));
     if (parsed?.message) return parsed.message;

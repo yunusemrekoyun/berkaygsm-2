@@ -87,7 +87,7 @@ const shape = (doc, { includeTranslations = false } = {}, translations = null) =
   const d = typeof doc.toObject === "function" ? doc.toObject() : doc;
   const shaped = {
     id: d._id?.toString?.() || d.id,
-    heroTitle: d.heroTitle || "Privacy Policy",
+    heroTitle: d.heroTitle || "Gizlilik Politikası",
     heroIntro: d.heroIntro || "",
     sections: Array.isArray(d.sections) ? d.sections : [],
     footerHtml: d.footerHtml || "",
@@ -116,11 +116,11 @@ export async function getPublicPrivacy(req, res) {
     if (!doc || doc.isActive === false) {
       return res.json({
         privacy: {
-          heroTitle: "Privacy Policy",
+          heroTitle: "Gizlilik Politikası",
           heroIntro: "",
           sections: [],
           footerHtml:
-            'If you have questions, email <a href="mailto:privacy@evimstil.com" class="text-accent underline">privacy@evimstil.com</a>.',
+            'Sorularınız için <a href="mailto:privacy@berkaygsm.com" class="text-accent underline">privacy@berkaygsm.com</a> adresine e‑posta gönderebilirsiniz.',
           isActive: doc ? false : true,
           seo: { title: "", description: "", keywords: [] },
         },
@@ -144,7 +144,7 @@ export async function getManagePrivacy(req, res) {
     if (!doc) {
       return res.json({
         privacy: {
-          heroTitle: "Privacy Policy",
+          heroTitle: "Gizlilik Politikası",
           heroIntro: "",
           sections: [],
           footerHtml: "",
@@ -172,7 +172,7 @@ export async function upsertPrivacy(req, res) {
     const lang = normalizeLang(req.query.lang || DEFAULT_LANG);
     const isDefaultLang = lang === DEFAULT_LANG;
     const body = req.body || {};
-    const heroTitle = String(body.heroTitle ?? "Privacy Policy").trim();
+    const heroTitle = String(body.heroTitle ?? "Gizlilik Politikası").trim();
     const heroIntro = String(body.heroIntro ?? "").trim();
     const sectionsRaw = Array.isArray(body.sections) ? body.sections : [];
     const sections = sectionsRaw.map(sanitizeSection);

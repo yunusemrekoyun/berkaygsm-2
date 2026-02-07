@@ -126,7 +126,7 @@ export default function ShippingSettingsCard() {
 
           <label className="block text-sm text-[var(--color-text-admin)]">
             <span className="mb-1 block font-medium">
-              Temel kargo ücreti (€)
+              Temel kargo ücreti (₺)
             </span>
             <div className="flex items-center gap-2">
               <Coins className="h-4 w-4 text-[var(--color-text-admin-muted)]" />
@@ -144,7 +144,7 @@ export default function ShippingSettingsCard() {
 
           <label className="block text-sm text-[var(--color-text-admin)]">
             <span className="mb-1 block font-medium">
-              Ücretsiz kargo eşiği (€)
+              Ücretsiz kargo eşiği (₺)
             </span>
             <input
               type="number"
@@ -163,8 +163,8 @@ export default function ShippingSettingsCard() {
 
         <footer className="flex flex-col gap-2 border-t border-[var(--color-border-admin)]/60 bg-[var(--color-bg-admin)]/10 px-4 py-3 text-[var(--color-text-admin)] md:flex-row md:items-center md:justify-between">
           <div className="text-xs">
-            Mevcut: {initialConfig.name} • Ücret €{summary.fee} • Ücretsiz kargo
-            eşiği €{summary.threshold}
+            Mevcut: {initialConfig.name} • Ücret ₺{summary.fee} • Ücretsiz kargo
+            eşiği ₺{summary.threshold}
           </div>
           <button
             type="submit"

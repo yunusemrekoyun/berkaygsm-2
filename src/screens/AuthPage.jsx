@@ -1,6 +1,7 @@
 // src/pages/AuthPage.jsx
 import { useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import toast from "react-hot-toast";
 import LoginForm from "../components/auth/LoginForm";
 import RegisterForm from "../components/auth/RegisterForm";
 import { authApi } from "../api/auth";
@@ -40,6 +41,8 @@ export default function AuthPage({ initialView = "register", onAuthSuccess }) {
         role: "user",
       });
 
+      toast.success("Hesabın oluşturuldu!");
+
       // Guard'tan geldiyse oraya dön; değilse standart akış
       if (redirectTarget) {
         navigate(redirectTarget, { replace: true });
@@ -59,6 +62,8 @@ export default function AuthPage({ initialView = "register", onAuthSuccess }) {
         password: vals.pass,
       });
 
+      toast.success("Giriş başarılı!");
+
       // Guard'tan geldiyse oraya dön; değilse standart akış
       if (redirectTarget) {
         navigate(redirectTarget, { replace: true });
@@ -75,12 +80,12 @@ export default function AuthPage({ initialView = "register", onAuthSuccess }) {
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-12">
         <div className="mx-auto max-w-md rounded-2xl border border-border bg-white p-6 shadow-sm">
           <h1 className="text-center font-serif text-3xl font-extrabold text-primary">
-            {view === "login" ? "Welcome Back" : "Create Account"}
+            {view === "login" ? "Tekrar hoş geldin" : "Hesap oluştur"}
           </h1>
           <p className="mt-2 text-center text-secondary">
             {view === "login"
-              ? "Log in to manage your orders and wishlist."
-              : "Join us to enjoy a faster checkout and curated picks."}
+              ? "Siparişlerini ve favorilerini yönetmek için giriş yap."
+              : "Daha hızlı ödeme ve seçili öneriler için hesabını oluştur."}
           </p>
 
           {error && (
@@ -91,11 +96,11 @@ export default function AuthPage({ initialView = "register", onAuthSuccess }) {
 
           <div className="mt-6">
             {view === "login" ? (
-              <LoginForm onSubmit={handleLogin} loadingText="Signing in..." />
+              <LoginForm onSubmit={handleLogin} loadingText="Giriş yapılıyor..." />
             ) : (
               <RegisterForm
                 onSubmit={handleRegister}
-                loadingText="Creating account..."
+                loadingText="Hesap oluşturuluyor..."
               />
             )}
           </div>
@@ -103,22 +108,22 @@ export default function AuthPage({ initialView = "register", onAuthSuccess }) {
           <div className="mt-6 text-center text-sm">
             {view === "login" ? (
               <span className="text-secondary">
-                Not a member?{" "}
+                Üye değil misin?{" "}
                 <button
                   className="text-accent hover:text-accent-hover underline"
                   onClick={() => setView("register")}
                 >
-                  Create an account
+                  Hesap oluştur
                 </button>
               </span>
             ) : (
               <span className="text-secondary">
-                Already have an account?{" "}
+                Zaten hesabın var mı?{" "}
                 <button
                   className="text-accent hover:text-accent-hover underline"
                   onClick={() => setView("login")}
                 >
-                  Log in
+                  Giriş yap
                 </button>
               </span>
             )}
@@ -136,5 +141,5 @@ function parseErr(e) {
   } catch {
     // ignore
   }
-  return e.message?.replace(/^Error:\s?/, "") || "Something went wrong";
+  return e.message?.replace(/^Error:\s?/, "") || "Bir hata oluştu";
 }

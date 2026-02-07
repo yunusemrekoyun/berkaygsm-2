@@ -1,10 +1,10 @@
-const dateFormatter = new Intl.DateTimeFormat("en-GB", {
+const dateFormatter = new Intl.DateTimeFormat("tr-TR", {
   day: "2-digit",
   month: "short",
   year: "numeric",
 });
 
-const dateTimeFormatter = new Intl.DateTimeFormat("en-GB", {
+const dateTimeFormatter = new Intl.DateTimeFormat("tr-TR", {
   day: "2-digit",
   month: "short",
   year: "numeric",
@@ -12,7 +12,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat("en-GB", {
   minute: "2-digit",
 });
 
-const relativeFormatter = new Intl.RelativeTimeFormat("en", {
+const relativeFormatter = new Intl.RelativeTimeFormat("tr", {
   numeric: "auto",
 });
 
@@ -53,19 +53,19 @@ export function formatRelative(value) {
       return relativeFormatter.format(amount, unit);
     }
   }
-  return "just now";
+  return "az önce";
 }
 
 export function roleBadge(role) {
   const normalized = (role || "user").toLowerCase();
   if (normalized === "admin") {
     return {
-      label: "Administrator",
+      label: "Yönetici",
       className: "border border-indigo-200 bg-indigo-50 text-indigo-700",
     };
   }
   return {
-    label: "Customer",
+    label: "Müşteri",
     className: "border border-slate-200 bg-slate-50 text-slate-700",
   };
 }

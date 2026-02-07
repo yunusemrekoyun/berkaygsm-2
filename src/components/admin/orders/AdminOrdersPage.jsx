@@ -37,7 +37,7 @@ const money = (value) => {
       currency: "TRY",
     }).format(Number(value || 0));
   } catch {
-    return `€${Number(value || 0).toFixed(2)}`;
+    return `₺${Number(value || 0).toFixed(2)}`;
   }
 };
 

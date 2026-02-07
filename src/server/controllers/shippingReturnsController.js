@@ -169,7 +169,7 @@ const shapeToPage = (doc) => {
 
   return {
     id: d._id?.toString?.() || d.id,
-    heroTitle: (d.heroTitle ?? "Shipping & Returns").toString(),
+    heroTitle: (d.heroTitle ?? "Kargo & İade").toString(),
     heroSubtitle,
     sections: Array.isArray(d.sections) ? d.sections : [],
     sidebar: {
@@ -199,7 +199,7 @@ export async function getPublicShippingReturns(req, res) {
     if (!doc || doc.isActive === false) {
       return res.json({
         page: {
-          heroTitle: "Shipping & Returns",
+          heroTitle: "Kargo & İade",
           heroSubtitle: "",
           sections: [],
           sidebar: { quickFacts: [], helpBoxHtml: "" },
@@ -228,7 +228,7 @@ export async function getManageShippingReturns(req, res) {
     if (!doc) {
       return res.json({
         page: {
-          heroTitle: "Shipping & Returns",
+          heroTitle: "Kargo & İade",
           heroSubtitle: "",
           sections: [],
           sidebar: { quickFacts: [], helpBoxHtml: "" },
@@ -257,7 +257,7 @@ export async function upsertShippingReturns(req, res) {
     const isDefaultLang = lang === DEFAULT_LANG;
     const payload = req.body || {};
 
-    const heroTitle = String(payload.heroTitle ?? "Shipping & Returns").trim();
+    const heroTitle = String(payload.heroTitle ?? "Kargo & İade").trim();
     const heroSubtitle = String(
       payload.heroSubtitle ?? payload.heroIntro ?? ""
     ).trim();

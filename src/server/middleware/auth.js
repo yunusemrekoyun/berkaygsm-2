@@ -4,7 +4,7 @@ import User from "../models/User.js";
 export async function requireAuth(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
-  if (!token) return res.status(401).json({ message: "No token" });
+  if (!token) return res.status(401).json({ message: "Token bulunamadı" });
 
   try {
     const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
@@ -14,13 +14,13 @@ export async function requireAuth(req, res, next) {
     );
 
     if (!user)
-      return res.status(401).json({ message: "User not found" });
+      return res.status(401).json({ message: "Kullanıcı bulunamadı" });
 
     if (user.isDeleted) {
       return res.status(403).json({
         message: user.deletedAlias
-          ? `Account is deactivated (${user.deletedAlias})`
-          : "Account is deactivated",
+          ? `Hesap pasif (${user.deletedAlias})`
+          : "Hesap pasif",
       });
     }
 
@@ -29,6 +29,6 @@ export async function requireAuth(req, res, next) {
     req.user = user;
     return next();
   } catch {
-    return res.status(401).json({ message: "Invalid or expired token" });
+    return res.status(401).json({ message: "Geçersiz veya süresi dolmuş token" });
   }
 }

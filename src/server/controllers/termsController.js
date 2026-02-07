@@ -31,7 +31,7 @@ const shape = (doc, { includeTranslations = false } = {}, translations = null) =
   const d = typeof doc.toObject === "function" ? doc.toObject() : doc;
   const shaped = {
     id: d._id?.toString?.() || d.id,
-    heroTitle: d.heroTitle || "Terms of Service",
+    heroTitle: d.heroTitle || "Kullanım Koşulları",
     heroIntro: d.heroIntro || "",
     sections: Array.isArray(d.sections) ? d.sections : [],
     footerNote: d.footerNote || "", // ← ÖNEMLİ (public/manage dönüşünde var)
@@ -120,7 +120,7 @@ export async function getPublicTerms(req, res) {
     if (!doc || doc.isActive === false) {
       return res.json({
         terms: {
-          heroTitle: "Terms of Service",
+          heroTitle: "Kullanım Koşulları",
           heroIntro: "",
           sections: [],
           footerNote: "", // ← ÖNEMLİ (public fallback’te de var)
@@ -144,7 +144,7 @@ export async function getManageTerms(req, res) {
     if (!doc) {
       return res.json({
         terms: {
-          heroTitle: "Terms of Service",
+          heroTitle: "Kullanım Koşulları",
           heroIntro: "",
           sections: [],
           footerNote: "", // ← ÖNEMLİ
@@ -171,7 +171,7 @@ export async function upsertTerms(req, res) {
     const lang = normalizeLang(req.query.lang || DEFAULT_LANG);
     const isDefaultLang = lang === DEFAULT_LANG;
     const p = req.body || {};
-    const heroTitle = String(p.heroTitle ?? "Terms of Service").trim();
+    const heroTitle = String(p.heroTitle ?? "Kullanım Koşulları").trim();
     const heroIntro = String(p.heroIntro ?? "").trim();
     const footerNote = String(p.footerNote ?? "").trim(); // ← ÖNEMLİ
 

@@ -38,7 +38,7 @@ export default function AboutPage() {
   if (!about)
     return (
       <main className="flex h-[70vh] items-center justify-center text-secondary">
-        <p>No about data found.</p>
+        <p>Hakkımızda içeriği bulunamadı.</p>
       </main>
     );
 
@@ -62,7 +62,9 @@ export default function AboutPage() {
     <main className="bg-surface-light/60">
       {/* Breadcrumb */}
       <section className="mx-auto max-w-[1400px] px-4 sm:px-6 pt-6">
-        <BreadCrumb items={[{ label: "Home", to: "/" }, { label: "About" }]} />
+        <BreadCrumb
+          items={[{ label: "Ana Sayfa", to: "/" }, { label: "Hakkımızda" }]}
+        />
       </section>
 
       {/* Hero */}
@@ -79,7 +81,7 @@ export default function AboutPage() {
             <div className="mt-8 overflow-hidden rounded-xl ring-1 ring-border">
               <img
                 src={heroImage.url}
-                alt="About hero"
+                alt="Hakkımızda görseli"
                 className="h-[340px] w-full object-cover"
                 draggable="false"
               />
@@ -96,7 +98,7 @@ export default function AboutPage() {
               <div className="overflow-hidden rounded-2xl border border-border bg-white">
                 <img
                   src={leftImage.url}
-                  alt="Store"
+                  alt="Mağaza"
                   className="h-full w-full object-cover md:h-[560px]"
                   draggable="false"
                 />

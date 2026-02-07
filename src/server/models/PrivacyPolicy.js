@@ -41,7 +41,7 @@ const PrivacyPolicyTranslationSchema = new mongoose.Schema(
 const PrivacyPolicySchema = new mongoose.Schema(
   {
     singleton: { type: String, unique: true, default: "privacy_policy" },
-    heroTitle: { type: String, default: "Privacy Policy" },
+    heroTitle: { type: String, default: "Gizlilik Politikası" },
     heroIntro: { type: String, default: "" },
     sections: { type: [SectionSchema], default: [] },
     footerHtml: { type: String, default: "" },

@@ -59,7 +59,7 @@ export async function listUsers(req, res) {
       appliedFilters: { search, role, sort, includeDeleted: includeDel },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message || "Unable to list users" });
+    res.status(500).json({ message: error.message || "Kullanıcılar listelenemedi" });
   }
 }
 
@@ -71,10 +71,10 @@ export async function getUser(req, res) {
       ? await User.findById(idOrKey)
       : await User.findOne({ email: idOrKey });
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ message: "Kullanıcı bulunamadı" });
     res.json({ user: shapeUser(user) });
   } catch (error) {
-    res.status(500).json({ message: error.message || "Unable to fetch user" });
+    res.status(500).json({ message: error.message || "Kullanıcı alınamadı" });
   }
 }
 
@@ -86,21 +86,21 @@ export async function updateUser(req, res) {
       ? await User.findById(idOrKey)
       : await User.findOne({ email: idOrKey });
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ message: "Kullanıcı bulunamadı" });
 
     const { firstName, lastName, phone, role } = req.body;
 
     if (firstName !== undefined) {
       const v = String(firstName).trim();
       if (!v)
-        return res.status(400).json({ message: "First name cannot be empty" });
+        return res.status(400).json({ message: "Ad boş olamaz" });
       user.firstName = v;
     }
 
     if (lastName !== undefined) {
       const v = String(lastName).trim();
       if (!v)
-        return res.status(400).json({ message: "Last name cannot be empty" });
+        return res.status(400).json({ message: "Soyad boş olamaz" });
       user.lastName = v;
     }
 
@@ -111,7 +111,7 @@ export async function updateUser(req, res) {
     if (role !== undefined) {
       const normalized = String(role).toLowerCase();
       if (!["user", "admin"].includes(normalized)) {
-        return res.status(400).json({ message: "Invalid role" });
+        return res.status(400).json({ message: "Geçersiz rol" });
       }
       if (user.role !== normalized) {
         if (user.role === "admin" && normalized !== "admin") {
@@ -123,7 +123,7 @@ export async function updateUser(req, res) {
           if (otherAdmins === 0) {
             return res
               .status(400)
-              .json({ message: "At least one admin must remain" });
+              .json({ message: "En az bir yönetici kalmalı" });
           }
         }
         user.role = normalized;
@@ -133,7 +133,7 @@ export async function updateUser(req, res) {
     await user.save();
     res.json({ user: shapeUser(user) });
   } catch (error) {
-    res.status(500).json({ message: error.message || "Unable to update user" });
+    res.status(500).json({ message: error.message || "Kullanıcı güncellenemedi" });
   }
 }
 
@@ -141,13 +141,13 @@ export async function updateUser(req, res) {
 export async function softDeleteUser(req, res) {
   try {
     const { idOrKey } = req.params;
-    const { deletedAlias = "Deleted account" } = req.body || {};
+    const { deletedAlias = "Silinen hesap" } = req.body || {};
 
     const isId = mongoose.Types.ObjectId.isValid(idOrKey);
     const user = isId
       ? await User.findById(idOrKey)
       : await User.findOne({ email: idOrKey });
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ message: "Kullanıcı bulunamadı" });
 
     if (user.isDeleted) {
       return res.status(200).json({ user: shapeUser(user) }); // zaten silik
@@ -163,19 +163,19 @@ export async function softDeleteUser(req, res) {
       if (otherAdmins === 0) {
         return res
           .status(400)
-          .json({ message: "At least one active admin must remain" });
+          .json({ message: "En az bir aktif yönetici kalmalı" });
       }
     }
 
     user.isDeleted = true;
     user.deletedAt = new Date();
     user.deletedBy = req.userId || null;
-    user.deletedAlias = String(deletedAlias).trim() || "Deleted account";
+    user.deletedAlias = String(deletedAlias).trim() || "Silinen hesap";
 
     await user.save();
     res.json({ user: shapeUser(user) });
   } catch (error) {
-    res.status(500).json({ message: error.message || "Unable to delete user" });
+    res.status(500).json({ message: error.message || "Kullanıcı silinemedi" });
   }
 }
 
@@ -188,7 +188,7 @@ export async function restoreUser(req, res) {
       ? await User.findById(idOrKey)
       : await User.findOne({ email: idOrKey });
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ message: "Kullanıcı bulunamadı" });
     if (!user.isDeleted) {
       return res.status(200).json({ user: shapeUser(user) }); // zaten aktif
     }
@@ -203,7 +203,7 @@ export async function restoreUser(req, res) {
   } catch (error) {
     res
       .status(500)
-      .json({ message: error.message || "Unable to restore user" });
+      .json({ message: error.message || "Kullanıcı geri yüklenemedi" });
   }
 }
 

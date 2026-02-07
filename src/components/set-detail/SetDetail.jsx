@@ -17,8 +17,8 @@ export default function SetDetail({ setDoc }) {
   const navigate = useNavigate();
   const t = useStaticTranslation();
   const favoritesCopy = t("favorites") || {};
-  const favoriteAddLabel = favoritesCopy.add || "Add to favorites";
-  const favoriteRemoveLabel = favoritesCopy.remove || "Remove from favorites";
+  const favoriteAddLabel = favoritesCopy.add || "Favorilere ekle";
+  const favoriteRemoveLabel = favoritesCopy.remove || "Favorilerden çıkar";
 
   // setDoc olmasa da güvenli hesaplama
   const maxStock = useMemo(() => {

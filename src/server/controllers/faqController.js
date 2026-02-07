@@ -270,7 +270,7 @@ function shapePublic(config) {
 
   return {
     id: config._id?.toString(),
-    heroTitle: config.heroTitle || "Frequently Asked Questions",
+    heroTitle: config.heroTitle || "Sıkça Sorulan Sorular",
     heroIntro: config.heroIntro || "",
     isActive: !!config.isActive,
     sections,
@@ -323,7 +323,7 @@ function shapeManage(config) {
 function sanitizePayload(body = {}) {
   const clean = {};
 
-  clean.heroTitle = normStr(body.heroTitle, "Frequently Asked Questions");
+  clean.heroTitle = normStr(body.heroTitle, "Sıkça Sorulan Sorular");
   clean.heroIntro = normStr(body.heroIntro, "");
   clean.isActive = normBool(body.isActive, true);
 

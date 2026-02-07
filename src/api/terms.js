@@ -17,7 +17,7 @@ export const termsApi = {
     const data = await http(`/terms/manage${qs}`, { auth: true });
     return (
       data?.terms || {
-        heroTitle: "Terms of Service",
+        heroTitle: "Kullanım Koşulları",
         heroIntro: "",
         sections: [],
         footerNote: "", // ← ÖNEMLİ

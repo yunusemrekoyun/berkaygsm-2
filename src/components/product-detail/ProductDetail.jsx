@@ -31,19 +31,20 @@ export default function ProductDetail({ product = {} }) {
   const copy = t("productDetail") || {};
   const stockCopy = copy.stock || {};
   const favoritesCopy = t("favorites") || {};
-  const colorLabel = copy.colorLabel || "Colour";
-  const sizeLabel = copy.sizeLabel || "Size";
-  const optionLabel = copy.optionLabel || "Option";
+  const colorLabel = copy.colorLabel || "Renk";
+  const sizeLabel = copy.sizeLabel || "Model";
+  const optionLabel = copy.optionLabel || "Seçenek";
   // eslint-disable-next-line no-unused-vars
-  const careTitle = copy.careTitle || "Care";
+  const careTitle = copy.careTitle || "Bakım";
   // eslint-disable-next-line no-unused-vars
-  const detailsTitle = copy.detailsTitle || "Details";
-  const descriptionFallback = copy.descriptionFallback || "No description provided.";
-  const addToCartLabel = copy.addToCart || "Add to Cart";
-  const addedToast = copy.addedToCart || "Added to cart";
-  const fallbackName = copy.fallbackName || "Product";
-  const favoriteAddLabel = favoritesCopy.add || "Add to favorites";
-  const favoriteRemoveLabel = favoritesCopy.remove || "Remove from favorites";
+  const detailsTitle = copy.detailsTitle || "Detaylar";
+  const descriptionFallback =
+    copy.descriptionFallback || "Ürün açıklaması bulunmuyor.";
+  const addToCartLabel = copy.addToCart || "Sepete Ekle";
+  const addedToast = copy.addedToCart || "Ürün sepete eklendi.";
+  const fallbackName = copy.fallbackName || "Ürün";
+  const favoriteAddLabel = favoritesCopy.add || "Favorilere ekle";
+  const favoriteRemoveLabel = favoritesCopy.remove || "Favorilerden çıkar";
 
   const gallery = useMemo(() => {
     const imgs = (product.images || [])
@@ -75,7 +76,7 @@ export default function ProductDetail({ product = {} }) {
         map.set(key, {
           key: key || String(map.size),
           value: raw,
-          label: info.label || raw || "Default",
+          label: info.label || raw || "Varsayılan",
           swatch: info.swatch,
           isHex: info.isHex,
         });
@@ -246,12 +247,12 @@ export default function ProductDetail({ product = {} }) {
 
   const stockLabel =
     currentStock === null
-      ? stockCopy.inStock || "In stock"
+      ? stockCopy.inStock || "Stokta"
       : currentStock > 0
-      ? formatStaticText(stockCopy.inStockCount || "{count} in stock", {
+      ? formatStaticText(stockCopy.inStockCount || "{count} adet stokta", {
           count: currentStock,
         })
-      : stockCopy.outOfStock || "Out of stock";
+      : stockCopy.outOfStock || "Stokta yok";
 
   const description = product.description || descriptionFallback;
   const care = product.careInstructions || "";

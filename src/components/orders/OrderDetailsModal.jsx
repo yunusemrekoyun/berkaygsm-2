@@ -7,7 +7,7 @@ import { orderApi } from "../../api/orders";
 /** Küçük yardımcılar */
 function money(v) {
   const n = Number(v || 0);
-  return `€${n.toFixed(2)}`;
+  return `₺${n.toFixed(2)}`;
 }
 function cls(...a) {
   return a.filter(Boolean).join(" ");
@@ -22,6 +22,25 @@ function badgeClass(status) {
     return "bg-rose-50 text-rose-700 ring-rose-200";
   return "bg-surface text-secondary ring-border";
 }
+
+const STATUS_LABELS = {
+  created: "Oluşturuldu",
+  pending: "Beklemede",
+  paid: "Ödendi",
+  processing: "Hazırlanıyor",
+  shipped: "Kargoda",
+  delivered: "Teslim edildi",
+  completed: "Tamamlandı",
+  cancelled: "İptal edildi",
+  refunded: "İade edildi",
+  failed: "Başarısız",
+};
+
+const PAYMENT_STATUS_LABELS = {
+  success: "Başarılı",
+  pending: "Beklemede",
+  failed: "Başarısız",
+};
 function normalizeImage(img) {
   if (!img) return null;
   const u =
@@ -67,7 +86,7 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
       const product = it.product || it.item?.product || null;
       const set = it.set || it.item?.set || null;
 
-      const name = it.name || product?.name || set?.name || it.title || "Item";
+      const name = it.name || product?.name || set?.name || it.title || "Ürün";
 
       const qty =
         Number(it.qty ?? it.quantity ?? it.count ?? it.amount ?? it.q ?? 1) ||
@@ -181,7 +200,7 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="min-w-0">
             <div className="text-sm font-semibold text-primary">
-              Order #{meta.number}
+              Sipariş #{meta.number}
             </div>
             <div className="mt-1 flex items-center gap-2 text-xs">
               <span
@@ -190,7 +209,8 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
                   badgeClass(meta.status)
                 )}
               >
-                {String(meta.status).toLowerCase()}
+                {STATUS_LABELS[String(meta.status).toLowerCase()] ||
+                  String(meta.status).toLowerCase()}
               </span>
               {meta.createdAt && (
                 <span className="text-secondary">
@@ -199,8 +219,13 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
               )}
               {meta.payment?.method && (
                 <span className="text-secondary">
-                  • Payment: {String(meta.payment.method).toUpperCase()}
-                  {meta.payment.status ? ` (${meta.payment.status})` : ""}
+                  • Ödeme: {String(meta.payment.method).toUpperCase()}
+                  {meta.payment.status
+                    ? ` (${
+                        PAYMENT_STATUS_LABELS[String(meta.payment.status).toLowerCase()] ||
+                        meta.payment.status
+                      })`
+                    : ""}
                 </span>
               )}
             </div>
@@ -209,7 +234,7 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
           <button
             onClick={onClose}
             className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-surface-hover"
-            aria-label="Close"
+            aria-label="Kapat"
           >
             <X className="h-5 w-5 text-secondary" />
           </button>
@@ -226,12 +251,12 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
             </div>
           ) : !order ? (
             <div className="text-center text-secondary py-10">
-              Order not found.
+              Sipariş bulunamadı.
             </div>
           ) : (
             <>
               {/* items */}
-              <h3 className="text-sm font-semibold text-primary">Items</h3>
+              <h3 className="text-sm font-semibold text-primary">Ürünler</h3>
               <ul className="mt-3 divide-y divide-border rounded-xl border border-border overflow-hidden">
                 {items.map((it) => (
                   <li
@@ -247,7 +272,7 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
                         />
                       ) : (
                         <div className="grid h-full w-full place-items-center text-[11px] text-secondary/70">
-                          No image
+                          Görsel yok
                         </div>
                       )}
                     </div>
@@ -266,9 +291,9 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
                         )}
                       </div>
                       <div className="mt-0.5 text-xs text-secondary">
-                        Qty: <span className="text-primary">{it.qty}</span>
+                        Adet: <span className="text-primary">{it.qty}</span>
                         {" • "}
-                        Unit:{" "}
+                        Birim:{" "}
                         <span className="text-primary">
                           {money(it.unitPrice)}
                         </span>
@@ -288,7 +313,7 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
                 {/* Address */}
                 <div className="rounded-xl border border-border bg-contact-bg p-4">
                   <div className="text-sm font-medium text-primary">
-                    Shipping Address
+                    Teslimat adresi
                   </div>
                   <div className="mt-2 text-sm text-secondary whitespace-pre-line">
                     {shippingAddress.fullName}
@@ -312,10 +337,10 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
 
                 {/* Totals */}
                 <div className="rounded-xl border border-border bg-contact-bg p-4">
-                  <div className="text-sm font-medium text-primary">Totals</div>
+                  <div className="text-sm font-medium text-primary">Toplamlar</div>
                   <div className="mt-2 space-y-1 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-secondary">Subtotal</span>
+                      <span className="text-secondary">Ara toplam</span>
                       <span className="text-primary">
                         {money(meta.totals.subtotal)}
                       </span>
@@ -323,15 +348,15 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
               <div className="flex justify-between">
                 <span className="text-secondary">
                   {order?.shippingName
-                    ? `Shipping (${order.shippingName})`
-                    : "Shipping"}
+                    ? `Kargo (${order.shippingName})`
+                    : "Kargo"}
                 </span>
                 <span className="text-primary">
                   {money(meta.totals.shipping)}
                 </span>
               </div>
                     <div className="flex justify-between font-semibold">
-                      <span className="text-primary">Total</span>
+                      <span className="text-primary">Toplam</span>
                       <span className="text-primary">
                         {money(meta.totals.grand)}
                       </span>
@@ -344,14 +369,14 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
               {(order?.payment?.txnId || order?.payment?.provider) && (
                 <div className="mt-5 rounded-xl border border-dashed border-border bg-white p-4 text-xs text-secondary">
                   <div className="font-medium text-primary text-sm">
-                    Payment
+                    Ödeme
                   </div>
                   <div className="mt-1">
                     {order.payment.provider && (
-                      <div>Provider: {String(order.payment.provider)}</div>
+                      <div>Sağlayıcı: {String(order.payment.provider)}</div>
                     )}
                     {order.payment.txnId && (
-                      <div>Txn ID: {order.payment.txnId}</div>
+                      <div>İşlem ID: {order.payment.txnId}</div>
                     )}
                   </div>
                 </div>

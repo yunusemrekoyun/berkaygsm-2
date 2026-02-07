@@ -94,7 +94,7 @@ function RightPanel({ items }) {
   if (!items?.length) {
     return (
       <div className="grid h-full place-items-center rounded-lg border border-dashed border-border/70 bg-surface-hover p-8 text-center text-secondary">
-        No subcategories
+        Alt kategori yok
       </div>
     );
   }

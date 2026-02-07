@@ -54,15 +54,15 @@ export default function ShopPageFilter({
   };
 
   const text = {
-    title: labels.title || "Filters",
-    reset: labels.reset || "Reset",
-    categories: labels.categories || "Categories",
-    allProducts: labels.allProducts || "All products",
-    size: labels.size || "Size",
-    color: labels.color || "Color",
-    price: labels.price || "Price Range",
-    expand: labels.expand || "Expand",
-    collapse: labels.collapse || "Collapse",
+    title: labels.title || "Filtreler",
+    reset: labels.reset || "Sıfırla",
+    categories: labels.categories || "Kategoriler",
+    allProducts: labels.allProducts || "Tüm ürünler",
+    size: labels.size || "Model",
+    color: labels.color || "Renk",
+    price: labels.price || "Fiyat Aralığı",
+    expand: labels.expand || "Aç",
+    collapse: labels.collapse || "Kapat",
   };
 
   return (
@@ -231,8 +231,8 @@ function CategoryTreeItem({
   const hasChildren = node.children && node.children.length > 0;
   const isOpen = openNodes.has(node.id);
   const isActive = String(selectedId) === String(node.id);
-  const expandLabel = labels?.expand || "Expand";
-  const collapseLabel = labels?.collapse || "Collapse";
+  const expandLabel = labels?.expand || "Aç";
+  const collapseLabel = labels?.collapse || "Kapat";
 
   return (
     <li>

@@ -4,10 +4,7 @@ import AdminModal from "../common/AdminModal";
 import TagInput from "../common/TagInput";
 import ColorSelector from "./ColorSelector.jsx";
 import ColorBadge from "../common/ColorBadge.jsx";
-import {
-  dedupeColors,
-  normalizeColorValue,
-} from "../../../utils/colors.js";
+import { dedupeColors, normalizeColorValue } from "../../../utils/colors.js";
 
 const currencyFormatter = new Intl.NumberFormat("tr-TR", {
   style: "currency",
@@ -118,23 +115,19 @@ export default function ProductForm({
     const inv = initialProduct?.inventory || [];
     const invColors = dedupeColors(inv.map((i) => i.color).filter(Boolean));
     const invSizes = Array.from(
-      new Set(inv.map((i) => i.size).filter(Boolean))
+      new Set(inv.map((i) => i.size).filter(Boolean)),
     );
     const invAttrs = Array.from(
-      new Set(inv.map((i) => i.attributeValue).filter(Boolean))
+      new Set(inv.map((i) => i.attributeValue).filter(Boolean)),
     );
 
     const normalizedColors = normalizeOptionList(initialProduct?.colors);
     const normalizedSizes = normalizeOptionList(initialProduct?.sizes);
 
     setColors(
-      dedupeColors(
-        normalizedColors.length ? normalizedColors : invColors
-      )
+      dedupeColors(normalizedColors.length ? normalizedColors : invColors),
     );
-    setSizes(
-      normalizedSizes.length ? normalizedSizes : invSizes
-    );
+    setSizes(normalizedSizes.length ? normalizedSizes : invSizes);
     setShowColors(initialProduct?.showColors ?? true);
     setShowSizes(initialProduct?.showSizes ?? true);
 
@@ -142,7 +135,7 @@ export default function ProductForm({
     const normalizedAttrValues = normalizeOptionList(attr.values);
     setAttributeTitle(attr.title || "");
     setAttributeValues(
-      normalizedAttrValues.length ? normalizedAttrValues : invAttrs
+      normalizedAttrValues.length ? normalizedAttrValues : invAttrs,
     );
     setShowAttribute(attr.show ?? false);
 
@@ -153,7 +146,7 @@ export default function ProductForm({
         size: sanitizeOption(item.size),
         attributeValue: sanitizeOption(item.attributeValue),
         stock: Number(item.stock) || 0,
-      }))
+      })),
     );
     setInventoryOpen((initialProduct?.inventory || []).length > 1);
     setIsActive(initialProduct?.isActive ?? true);
@@ -183,37 +176,37 @@ export default function ProductForm({
     const inv = initialProduct?.inventory || [];
 
     const invColors = Array.from(
-      new Set(inv.map((i) => i?.color).filter(Boolean))
+      new Set(inv.map((i) => i?.color).filter(Boolean)),
     );
     const invSizes = Array.from(
-      new Set(inv.map((i) => i?.size).filter(Boolean))
+      new Set(inv.map((i) => i?.size).filter(Boolean)),
     );
     const invAttrs = Array.from(
-      new Set(inv.map((i) => i?.attributeValue).filter(Boolean))
+      new Set(inv.map((i) => i?.attributeValue).filter(Boolean)),
     );
 
     const colorList = showColors
       ? colors.length
         ? colors
         : isEditing && invColors.length
-        ? invColors
-        : [null]
+          ? invColors
+          : [null]
       : [null];
 
     const sizeList = showSizes
       ? sizes.length
         ? sizes
         : isEditing && invSizes.length
-        ? invSizes
-        : [null]
+          ? invSizes
+          : [null]
       : [null];
 
     const attributeList = attributeActive
       ? attributeValues.length
         ? attributeValues
         : isEditing && invAttrs.length
-        ? invAttrs
-        : [null]
+          ? invAttrs
+          : [null]
       : [null];
 
     const nextCombos = [];
@@ -264,7 +257,7 @@ export default function ProductForm({
 
   const totalImages = useMemo(
     () => existingImages.length + newImages.length,
-    [existingImages.length, newImages.length]
+    [existingImages.length, newImages.length],
   );
 
   const handleImageSelection = (event) => {
@@ -273,7 +266,7 @@ export default function ProductForm({
 
     const remainingSlots = Math.max(
       0,
-      8 - (existingImages.length + newImages.length)
+      8 - (existingImages.length + newImages.length),
     );
     if (remainingSlots <= 0) {
       setError("En fazla 8 görsel eklenebilir");
@@ -292,7 +285,7 @@ export default function ProductForm({
 
   const removeExistingImage = (image) => {
     setExistingImages((prev) =>
-      prev.filter((item) => item.publicId !== image.publicId)
+      prev.filter((item) => item.publicId !== image.publicId),
     );
     setRemoveImageIds((prev) => [...prev, image.publicId]);
     setError("");
@@ -313,8 +306,8 @@ export default function ProductForm({
       prev.map((item) =>
         makeKey(item) === comboKey
           ? { ...item, stock: Number.isFinite(numeric) ? numeric : 0 }
-          : item
-      )
+          : item,
+      ),
     );
   };
 
@@ -334,7 +327,7 @@ export default function ProductForm({
     setError("");
 
     try {
-    const normalizedColors = dedupeColors(normalizeOptionList(colors));
+      const normalizedColors = dedupeColors(normalizeOptionList(colors));
 
       // ✅ ÜRÜN PAYLOAD (stok hariç!)
       const productPayload = {
@@ -443,8 +436,8 @@ export default function ProductForm({
             {submitting
               ? "Kaydediliyor..."
               : isEditing
-              ? "Ürünü Güncelle"
-              : "Ürün Oluştur"}
+                ? "Ürünü Güncelle"
+                : "Ürün Oluştur"}
           </button>
         </>
       }
@@ -455,344 +448,340 @@ export default function ProductForm({
           onSubmit={handleSubmit}
           className="space-y-6"
         >
-        {/* ... form alanları aynı (ad/fiyat/kategori/açıklama/detaylar) ... */}
+          {/* ... form alanları aynı (ad/fiyat/kategori/açıklama/detaylar) ... */}
 
-        <div className="rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)]/80 px-4 py-3 text-xs text-[var(--color-text-admin-muted)]">
-          Bu form ürünün Türkçe içeriğini günceller. Fiyat, stok ve görseller burada yönetilir.
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* sol taraf */}
-          <div className="space-y-4">
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
-                Ürün adı
-                <span className="text-[var(--color-accent)]">*</span>
-              </span>
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                maxLength={160}
-                className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2.5 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
-                placeholder="Lüks İpek Pijama Takımı"
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
-                Fiyat (TL)<span className="text-[var(--color-accent)]">*</span>
-              </span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={price}
-                onChange={(event) => setPrice(event.target.value)}
-                className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2.5 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
-                placeholder="129.90"
-              />
-              {price && !Number.isNaN(Number(price)) && (
-                <p className="mt-1 text-xs text-[var(--color-text-admin-muted)]">
-                  {currencyFormatter.format(Number(price))}
-                </p>
-              )}
-            </label>
-
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
-                Kategori
-              </span>
-              <select
-                value={categoryId || ""}
-                onChange={(event) => setCategoryId(event.target.value)}
-                className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2.5 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
-              >
-                <option value="">Kategori atanmadı</option>
-                {categories.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-[var(--color-text-admin)]">
-                Görünürlük
-              </span>
-              <label className="inline-flex cursor-pointer items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={isActive}
-                  onChange={(event) => setIsActive(event.target.checked)}
-                  className="h-4 w-4 rounded border-[var(--color-border-admin)] text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
-                />
-                <span className="text-sm text-[var(--color-text-admin)]">
-                  {isActive ? "Vitrinde görünür" : "Gizli"}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* sol taraf */}
+            <div className="space-y-4">
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
+                  Ürün adı
+                  <span className="text-[var(--color-accent)]">*</span>
                 </span>
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  maxLength={160}
+                  className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2.5 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
+                  placeholder="örn. Kablosuz Şarj Cihazı"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
+                  Fiyat (TL)
+                  <span className="text-[var(--color-accent)]">*</span>
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={price}
+                  onChange={(event) => setPrice(event.target.value)}
+                  className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2.5 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
+                  placeholder="129.90"
+                />
+                {price && !Number.isNaN(Number(price)) && (
+                  <p className="mt-1 text-xs text-[var(--color-text-admin-muted)]">
+                    {currencyFormatter.format(Number(price))}
+                  </p>
+                )}
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
+                  Kategori
+                </span>
+                <select
+                  value={categoryId || ""}
+                  onChange={(event) => setCategoryId(event.target.value)}
+                  className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2.5 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
+                >
+                  <option value="">Kategori atanmadı</option>
+                  {categories.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-[var(--color-text-admin)]">
+                  Görünürlük
+                </span>
+                <label className="inline-flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={isActive}
+                    onChange={(event) => setIsActive(event.target.checked)}
+                    className="h-4 w-4 rounded border-[var(--color-border-admin)] text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+                  />
+                  <span className="text-sm text-[var(--color-text-admin)]">
+                    {isActive ? "Vitrinde görünür" : "Gizli"}
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* sağ taraf */}
+            <div className="space-y-4">
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
+                  Açıklama
+                </span>
+                <textarea
+                  rows={4}
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2.5 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
+                  placeholder="Ürün sayfasında gösterilen kısa tanıtım yazısı."
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
+                  Bakım talimatları
+                </span>
+                <textarea
+                  rows={3}
+                  value={careInstructions}
+                  onChange={(event) => setCareInstructions(event.target.value)}
+                  className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2.5 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
+                  placeholder="Örn. Elde soğuk yıkayın, kurutma makinesi kullanmayın"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
+                  Madde madde detaylar
+                </span>
+                <textarea
+                  rows={4}
+                  value={detailsInput}
+                  onChange={(event) => setDetailsInput(event.target.value)}
+                  className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2.5 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
+                  placeholder="Her satıra bir detay"
+                />
+                <p className="mt-1 text-xs text-[var(--color-text-admin-muted)]">
+                  Bu maddeler “Detaylar” bölümünde liste halinde görünür.
+                </p>
               </label>
             </div>
           </div>
 
-          {/* sağ taraf */}
-          <div className="space-y-4">
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
-                Açıklama
-              </span>
-              <textarea
-                rows={4}
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2.5 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
-                placeholder="Ürün sayfasında gösterilen kısa tanıtım yazısı."
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
-                Bakım talimatları
-              </span>
-              <textarea
-                rows={3}
-                value={careInstructions}
-                onChange={(event) => setCareInstructions(event.target.value)}
-                className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2.5 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
-                placeholder="Örn. Elde soğuk yıkayın, kurutma makinesi kullanmayın"
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
-                Madde madde detaylar
-              </span>
-              <textarea
-                rows={4}
-                value={detailsInput}
-                onChange={(event) => setDetailsInput(event.target.value)}
-                className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2.5 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
-                placeholder="Her satıra bir detay"
-              />
-              <p className="mt-1 text-xs text-[var(--color-text-admin-muted)]">
-                Bu maddeler “Detaylar” bölümünde liste halinde görünür.
-              </p>
-            </label>
-          </div>
-        </div>
-
-        {/* Varyant eksenleri */}
-        <div className="grid gap-4 lg:grid-cols-3">
-          <SelectionCard
-            title="Renkler"
-            description="İsteğe bağlı renk örnekleri ekleyin."
-            checked={showColors}
-            onToggle={() => setShowColors((prev) => !prev)}
-          >
-            <ColorSelector
-              values={colors}
-              onChange={setColors}
-              disabled={!showColors}
-            />
-            <p className="text-[11px] text-[var(--color-text-admin-muted)]">
-              Bu ürün için seçili örneklerden yararlanın veya özel HEX renkleri
-              ekleyin.
-            </p>
-          </SelectionCard>
-
-          <SelectionCard
-            title="Modeller"
-            description="Uyumlu telefon modellerini yönetin."
-            checked={showSizes}
-            onToggle={() => setShowSizes((prev) => !prev)}
-          >
-            <TagInput
-              label="Model seçenekleri"
-              values={sizes}
-              onChange={setSizes}
-              placeholder="Model ekleyip Enter’a basın"
-              helper="Örnek: iPhone 15, Galaxy S24, Pixel 8"
-              disabled={!showSizes}
-            />
-          </SelectionCard>
-
-          <SelectionCard
-            title="Ürün özelliği"
-            description="Uzunluk veya materyal gibi özel bir seçenek ekleyin."
-            checked={showAttribute}
-            onToggle={() => setShowAttribute((prev) => !prev)}
-          >
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
-                Özellik başlığı
-              </span>
-              <input
-                value={attributeTitle}
-                onChange={(event) => setAttributeTitle(event.target.value)}
-                disabled={!showAttribute}
-                className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)] disabled:opacity-60"
-                placeholder="Örn. Kablo uzunluğu"
-              />
-            </label>
-            <TagInput
-              label="Özellik seçenekleri"
-              values={attributeValues}
-              onChange={setAttributeValues}
-              placeholder="Seçenek ekleyip Enter’a basın"
-              helper="Özellik başlığının altında gösterilir."
-              disabled={!showAttribute || !attributeTitle.trim()}
-            />
-          </SelectionCard>
-        </div>
-
-        {/* Stok yönetimi: sadece UI, kaydetme ayrı çağrı ile yapılır */}
-        <div className="rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] p-4 shadow-sm">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h4 className="text-sm font-semibold text-[var(--color-text-admin)]">
-                Stok yönetimi
-              </h4>
-              <p className="text-xs text-[var(--color-text-admin-muted)]">
-                Her varyant için stok girin. Boş bırakılanlar sıfır kabul
-                edilir.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setInventoryOpen((prev) => !prev)}
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
+          {/* Varyant eksenleri */}
+          <div className="grid gap-4 lg:grid-cols-3">
+            <SelectionCard
+              title="Renkler"
+              description="İsteğe bağlı renk örnekleri ekleyin."
+              checked={showColors}
+              onToggle={() => setShowColors((prev) => !prev)}
             >
-              {inventoryOpen ? "Stoku gizle" : "Stoku yönet"}
-            </button>
-          </div>
-          {inventoryOpen && (
-            <div className="admin-table-container mt-4 overflow-x-auto">
-              <table className="admin-table min-w-full divide-y divide-[var(--color-border-admin)]/70 text-sm">
-                <thead className="bg-[var(--color-bg-hover)]/60 text-[var(--color-text-admin-muted)]">
-                  <tr>
-                    {variantColumns.map((column) => (
-                      <th
-                        key={column.key}
-                        className="px-3 py-2 text-left font-medium"
-                      >
-                        {column.label}
-                      </th>
-                    ))}
-                    <th className="px-3 py-2 text-left font-medium">Stok</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--color-border-admin)]/60 text-[var(--color-text-admin)]">
-                  {inventory.map((combo) => {
-                    const comboKey = makeKey(combo);
-                    return (
-                      <tr key={comboKey}>
-                        {variantColumns.map((column) => (
-                          <td
-                            key={column.key}
-                            className="px-3 py-2"
-                            data-label={column.label}
-                          >
-                            {renderVariantValue(column.key, combo)}
-                          </td>
-                        ))}
-                        <td className="px-3 py-2" data-label="Stok">
-                          <input
-                            type="number"
-                            min="0"
-                            value={combo.stock}
-                            onChange={(event) =>
-                              handleStockChange(comboKey, event.target.value)
-                            }
-                            className="w-full rounded-lg border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-1.5 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)] md:w-32"
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* Medya */}
-        <div>
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-[var(--color-text-admin)]">
-              Medya galerisi
-            </h4>
-            <span className="text-xs text-[var(--color-text-admin-muted)]">
-              {totalImages} / 8 görsel
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-[var(--color-text-admin-muted)]">
-            Yüksek kaliteli kare görseller yükleyin. Kaydettikten sonra
-            sürükleyerek sıralayabilirsiniz.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-3">
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[var(--color-border-admin)] px-4 py-3 text-sm text-[var(--color-text-admin)] hover:border-[var(--color-text-admin)]">
-              <Upload className="h-4 w-4" />
-              Görsel ekle
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={handleImageSelection}
+              <ColorSelector
+                values={colors}
+                onChange={setColors}
+                disabled={!showColors}
               />
-            </label>
-            {existingImages.map((image) => (
-              <figure
-                key={image.publicId}
-                className="relative overflow-hidden rounded-xl border border-[var(--color-border-admin)]"
-              >
-                <img
-                  src={image.url}
-                  alt={image.publicId}
-                  className="h-24 w-24 object-cover"
+              <p className="text-[11px] text-[var(--color-text-admin-muted)]">
+                Bu ürün için seçili örneklerden yararlanın veya özel HEX
+                renkleri ekleyin.
+              </p>
+            </SelectionCard>
+
+            <SelectionCard
+              title="Modeller"
+              description="Uyumlu telefon modellerini yönetin."
+              checked={showSizes}
+              onToggle={() => setShowSizes((prev) => !prev)}
+            >
+              <TagInput
+                label="Model seçenekleri"
+                values={sizes}
+                onChange={setSizes}
+                placeholder="Model ekleyip Enter’a basın"
+                helper="Örnek: iPhone 15, Galaxy S24, Pixel 8"
+                disabled={!showSizes}
+              />
+            </SelectionCard>
+
+            <SelectionCard
+              title="Ürün özelliği"
+              description="Uzunluk veya materyal gibi özel bir seçenek ekleyin."
+              checked={showAttribute}
+              onToggle={() => setShowAttribute((prev) => !prev)}
+            >
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
+                  Özellik başlığı
+                </span>
+                <input
+                  value={attributeTitle}
+                  onChange={(event) => setAttributeTitle(event.target.value)}
+                  disabled={!showAttribute}
+                  className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)] disabled:opacity-60"
+                  placeholder="Örn. Kablo uzunluğu"
                 />
-                <button
-                  type="button"
-                  onClick={() => removeExistingImage(image)}
-                  className="absolute inset-x-0 bottom-0 bg-black/60 py-1 text-xs font-semibold text-white"
-                >
-                  Kaldır
-                </button>
-              </figure>
-            ))}
-            {newImages.map((image) => (
-              <figure
-                key={image.preview}
-                className="relative overflow-hidden rounded-xl border border-[var(--color-border-admin)]"
+              </label>
+              <TagInput
+                label="Özellik seçenekleri"
+                values={attributeValues}
+                onChange={setAttributeValues}
+                placeholder="Seçenek ekleyip Enter’a basın"
+                helper="Özellik başlığının altında gösterilir."
+                disabled={!showAttribute || !attributeTitle.trim()}
+              />
+            </SelectionCard>
+          </div>
+
+          {/* Stok yönetimi: sadece UI, kaydetme ayrı çağrı ile yapılır */}
+          <div className="rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] p-4 shadow-sm">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h4 className="text-sm font-semibold text-[var(--color-text-admin)]">
+                  Stok yönetimi
+                </h4>
+                <p className="text-xs text-[var(--color-text-admin-muted)]">
+                  Her varyant için stok girin. Boş bırakılanlar sıfır kabul
+                  edilir.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInventoryOpen((prev) => !prev)}
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
               >
-                <img
-                  src={image.preview}
-                  alt="Yeni yükleme"
-                  className="h-24 w-24 object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeNewImage(image)}
-                  className="absolute inset-x-0 bottom-0 bg-black/60 py-1 text-xs font-semibold text-white"
-                >
-                  Kaldır
-                </button>
-              </figure>
-            ))}
-            {!existingImages.length && !newImages.length && (
-              <div className="grid h-24 w-24 place-items-center rounded-xl border border-dashed border-[var(--color-border-admin)] text-[var(--color-text-admin-muted)]">
-                <ImagePlus className="h-6 w-6" />
+                {inventoryOpen ? "Stoku gizle" : "Stoku yönet"}
+              </button>
+            </div>
+            {inventoryOpen && (
+              <div className="admin-table-container mt-4 overflow-x-auto">
+                <table className="admin-table min-w-full divide-y divide-[var(--color-border-admin)]/70 text-sm">
+                  <thead className="bg-[var(--color-bg-hover)]/60 text-[var(--color-text-admin-muted)]">
+                    <tr>
+                      {variantColumns.map((column) => (
+                        <th
+                          key={column.key}
+                          className="px-3 py-2 text-left font-medium"
+                        >
+                          {column.label}
+                        </th>
+                      ))}
+                      <th className="px-3 py-2 text-left font-medium">Stok</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--color-border-admin)]/60 text-[var(--color-text-admin)]">
+                    {inventory.map((combo) => {
+                      const comboKey = makeKey(combo);
+                      return (
+                        <tr key={comboKey}>
+                          {variantColumns.map((column) => (
+                            <td
+                              key={column.key}
+                              className="px-3 py-2"
+                              data-label={column.label}
+                            >
+                              {renderVariantValue(column.key, combo)}
+                            </td>
+                          ))}
+                          <td className="px-3 py-2" data-label="Stok">
+                            <input
+                              type="number"
+                              min="0"
+                              value={combo.stock}
+                              onChange={(event) =>
+                                handleStockChange(comboKey, event.target.value)
+                              }
+                              className="w-full rounded-lg border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-1.5 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)] md:w-32"
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
-        </div>
 
-        {error && (
-          <div className="rounded-xl bg-[var(--color-bg-hover)] px-4 py-3 text-sm text-[var(--color-accent)]">
-            {error}
+          {/* Medya */}
+          <div>
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold text-[var(--color-text-admin)]">
+                Medya galerisi
+              </h4>
+              <span className="text-xs text-[var(--color-text-admin-muted)]">
+                {totalImages} / 8 görsel
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-[var(--color-text-admin-muted)]">
+              Yüksek kaliteli kare görseller yükleyin. Kaydettikten sonra
+              sürükleyerek sıralayabilirsiniz.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[var(--color-border-admin)] px-4 py-3 text-sm text-[var(--color-text-admin)] hover:border-[var(--color-text-admin)]">
+                <Upload className="h-4 w-4" />
+                Görsel ekle
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleImageSelection}
+                />
+              </label>
+              {existingImages.map((image) => (
+                <figure
+                  key={image.publicId}
+                  className="relative overflow-hidden rounded-xl border border-[var(--color-border-admin)]"
+                >
+                  <img
+                    src={image.url}
+                    alt={image.publicId}
+                    className="h-24 w-24 object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeExistingImage(image)}
+                    className="absolute inset-x-0 bottom-0 bg-black/60 py-1 text-xs font-semibold text-white"
+                  >
+                    Kaldır
+                  </button>
+                </figure>
+              ))}
+              {newImages.map((image) => (
+                <figure
+                  key={image.preview}
+                  className="relative overflow-hidden rounded-xl border border-[var(--color-border-admin)]"
+                >
+                  <img
+                    src={image.preview}
+                    alt="Yeni yükleme"
+                    className="h-24 w-24 object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeNewImage(image)}
+                    className="absolute inset-x-0 bottom-0 bg-black/60 py-1 text-xs font-semibold text-white"
+                  >
+                    Kaldır
+                  </button>
+                </figure>
+              ))}
+              {!existingImages.length && !newImages.length && (
+                <div className="grid h-24 w-24 place-items-center rounded-xl border border-dashed border-[var(--color-border-admin)] text-[var(--color-text-admin-muted)]">
+                  <ImagePlus className="h-6 w-6" />
+                </div>
+              )}
+            </div>
           </div>
-        )}
-        </form>
 
+          {error && (
+            <div className="rounded-xl bg-[var(--color-bg-hover)] px-4 py-3 text-sm text-[var(--color-accent)]">
+              {error}
+            </div>
+          )}
+        </form>
       </div>
     </AdminModal>
   );
@@ -842,8 +831,8 @@ function ProductTranslationEditors({
           Çeviri varyantları
         </h4>
         <p className="text-sm text-[var(--color-text-admin-muted)]">
-          Buradaki metinler seçilen dil için kaydedilir. Boş bıraktığınız alanlar
-          otomatik olarak Türkçe içeriği gösterir.
+          Buradaki metinler seçilen dil için kaydedilir. Boş bıraktığınız
+          alanlar otomatik olarak Türkçe içeriği gösterir.
         </p>
       </header>
 
@@ -932,7 +921,7 @@ function ProductTranslationEditors({
                         onFieldChange(value, "name", event.target.value)
                       }
                       className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
-                      placeholder="Lüks İpek Pijama"
+                      placeholder="örn. Kablosuz Şarj Cihazı"
                     />
                   </label>
 
@@ -962,7 +951,7 @@ function ProductTranslationEditors({
                         onFieldChange(
                           value,
                           "careInstructions",
-                          event.target.value
+                          event.target.value,
                         )
                       }
                       className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
@@ -996,7 +985,7 @@ function ProductTranslationEditors({
                           onFieldChange(
                             value,
                             "customAttributeTitle",
-                            event.target.value
+                            event.target.value,
                           )
                         }
                         className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)] disabled:opacity-60"
@@ -1015,7 +1004,7 @@ function ProductTranslationEditors({
                           onFieldChange(
                             value,
                             "customAttributeValues",
-                            event.target.value
+                            event.target.value,
                           )
                         }
                         className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)] disabled:opacity-60"
@@ -1026,7 +1015,8 @@ function ProductTranslationEditors({
                   </div>
                   {!hasCustomAttribute && (
                     <p className="text-xs text-[var(--color-text-admin-muted)]">
-                      Bu üründe özel özellik seçeneği kullanılmıyor; başlık ve değerler boş bırakılabilir.
+                      Bu üründe özel özellik seçeneği kullanılmıyor; başlık ve
+                      değerler boş bırakılabilir.
                     </p>
                   )}
 

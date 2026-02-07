@@ -208,12 +208,12 @@ export async function createHero(req, res) {
     if (!title || !subtitle) {
       return res
         .status(400)
-        .json({ message: "title and subtitle are required" });
+        .json({ message: "Başlık ve alt başlık gerekli" });
     }
 
     const payload = { type: String(targetType).toUpperCase() };
     if (!["SHOP", "CATEGORIES"].includes(payload.type)) {
-      return res.status(400).json({ message: "Invalid target type" });
+      return res.status(400).json({ message: "Geçersiz hedef türü" });
     }
 
     if (payload.type === "CATEGORIES") {
@@ -232,7 +232,7 @@ export async function createHero(req, res) {
       payload.categories = await ensureCategoriesExist(arr);
       if (!payload.categories.length) {
         return res.status(400).json({
-          message: "CATEGORIES target requires at least one id",
+          message: "CATEGORIES hedefi en az bir id gerektirir",
         });
       }
     } else {
@@ -242,7 +242,7 @@ export async function createHero(req, res) {
     const directMedia = normalizeDirectMedia(req.body.media);
     if (!req.file && !directMedia.image && !directMedia.video) {
       return res.status(400).json({
-        message: "Media file is required (image or video)",
+        message: "Medya dosyası gerekli (resim veya video)",
       });
     }
     const { image, video } = req.file ? await uploadMedia(req.file) : directMedia;
@@ -313,7 +313,7 @@ export async function getHero(req, res) {
     const lang = normalizeLang(req.query.lang || DEFAULT_LANG);
     const { id } = req.params;
     const hero = await Hero.findById(id);
-    if (!hero) return res.status(404).json({ message: "Hero not found" });
+    if (!hero) return res.status(404).json({ message: "Hero bulunamadı" });
     const localized = resolveTranslation(hero, lang);
     const translations = composeResponseTranslations(
       hero,
@@ -336,7 +336,7 @@ export async function updateHero(req, res) {
     const lang = normalizeLang(req.query.lang || DEFAULT_LANG);
     const { id } = req.params;
     const hero = await Hero.findById(id);
-    if (!hero) return res.status(404).json({ message: "Hero not found" });
+    if (!hero) return res.status(404).json({ message: "Hero bulunamadı" });
 
     const { title, subtitle, buttonText, targetType } = req.body;
 
@@ -377,7 +377,7 @@ export async function updateHero(req, res) {
     if (targetType !== undefined) {
       const t = String(targetType).toUpperCase();
       if (!["SHOP", "CATEGORIES"].includes(t)) {
-        return res.status(400).json({ message: "Invalid target type" });
+        return res.status(400).json({ message: "Geçersiz hedef türü" });
       }
       hero.target.type = t;
       if (t === "SHOP") hero.target.categories = [];
@@ -400,7 +400,7 @@ export async function updateHero(req, res) {
       hero.target.categories = valid;
       if (hero.target.type === "CATEGORIES" && !valid.length) {
         return res.status(400).json({
-          message: "CATEGORIES target requires at least one id",
+          message: "CATEGORIES hedefi en az bir id gerektirir",
         });
       }
     }
@@ -478,7 +478,7 @@ export async function deleteHero(req, res) {
   try {
     const { id } = req.params;
     const hero = await Hero.findById(id);
-    if (!hero) return res.status(404).json({ message: "Hero not found" });
+    if (!hero) return res.status(404).json({ message: "Hero bulunamadı" });
 
     if (hero.image?.publicId) {
       await deleteFromCloudinary(hero.image.publicId, "image").catch(() => {});

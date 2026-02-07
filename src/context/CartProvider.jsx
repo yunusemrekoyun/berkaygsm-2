@@ -83,7 +83,7 @@ export default function CartProvider({ children }) {
     }
   });
   const [shippingConfig, setShippingConfig] = useState({
-    name: "Standard Shipping",
+    name: "Standart Kargo",
     fee: 0,
     freeThreshold: 0,
   });
@@ -105,7 +105,7 @@ export default function CartProvider({ children }) {
       } catch {
         if (mounted) {
           setShippingConfig({
-            name: "Standard Shipping",
+            name: "Standart Kargo",
             fee: 0,
             freeThreshold: 0,
           });
@@ -231,7 +231,7 @@ export default function CartProvider({ children }) {
       const minRequired = Number(coupon.minSubtotal || 0);
       if (subTotal < minRequired) {
         setCouponMessage(
-          `Minimum subtotal for ${coupon.code} is €${minRequired.toFixed(2)}`
+          `Minimum subtotal for ${coupon.code} is ₺${minRequired.toFixed(2)}`
         );
       } else {
         setCouponMessage(null);
@@ -254,8 +254,8 @@ export default function CartProvider({ children }) {
     const normalized = String(code || "").trim();
     if (!normalized) {
       setCoupon(null);
-      setCouponMessage("Coupon code is required");
-      throw new Error("Coupon code is required");
+      setCouponMessage("Kupon kodu gerekli");
+      throw new Error("Kupon kodu gerekli");
     }
     setCouponMessage(null);
     try {
@@ -266,7 +266,7 @@ export default function CartProvider({ children }) {
       setCoupon(applied);
       return applied;
     } catch (error) {
-      let message = error?.message || "Unable to apply coupon";
+      let message = error?.message || "Kupon uygulanamadı";
       try {
         const parsed = JSON.parse(error.message);
         message = parsed?.message || message;
@@ -302,7 +302,7 @@ export default function CartProvider({ children }) {
         applyCoupon,
         clearCoupon,
         shipping: {
-          name: shippingConfig?.name || "Standard Shipping",
+          name: shippingConfig?.name || "Standart Kargo",
           fee: shippingFee,
           baseFee: baseShippingFee,
           freeThreshold,

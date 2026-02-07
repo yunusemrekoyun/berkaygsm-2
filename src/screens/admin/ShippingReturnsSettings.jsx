@@ -685,27 +685,27 @@ function SEOEditor({ seo, onChange }) {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
         <div className="md:col-span-6">
-          <Label>Meta title</Label>
+          <Label>Meta başlık</Label>
           <Input
             value={model.title || ""}
             onChange={(e) => onChange({ ...model, title: e.target.value })}
-            placeholder="Shipping & Returns — Berkay GSM"
+            placeholder="Kargo & İade — Berkay GSM"
           />
         </div>
         <div className="md:col-span-6">
-          <Label>Meta description</Label>
+          <Label>Meta açıklama</Label>
           <Input
             value={model.description || ""}
             onChange={(e) =>
               onChange({ ...model, description: e.target.value })
             }
-            placeholder="Transparent delivery times, EU-compliant returns…"
+            placeholder="Şeffaf teslimat süreleri, kolay iade ve değişim…"
           />
         </div>
       </div>
 
       <div className="mt-4">
-        <Label>Keywords</Label>
+        <Label>Anahtar kelimeler</Label>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {(model.keywords || []).map((k) => (
             <span

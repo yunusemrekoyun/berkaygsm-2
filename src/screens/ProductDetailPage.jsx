@@ -90,7 +90,7 @@ export default function ProductDetailPage() {
       <section className="bg-surface-light/60">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-16">
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-6 py-8 text-center text-rose-700">
-            {error || productPageCopy.notFound || "Product not found"}
+            {error || productPageCopy.notFound || "Ürün bulunamadı"}
           </div>
         </div>
       </section>
@@ -98,7 +98,7 @@ export default function ProductDetailPage() {
   }
 
   const breadcrumbItems = [
-    { label: breadcrumbCopy.home || "Home", to: "/" },
+    { label: breadcrumbCopy.home || "Ana Sayfa", to: "/" },
     product.category?.name
       ? {
           label: product.category.name,
@@ -110,7 +110,7 @@ export default function ProductDetailPage() {
         product.name ||
         product.title ||
         productCopy.fallbackName ||
-        "Product",
+        "Ürün",
     },
   ].filter(Boolean);
 

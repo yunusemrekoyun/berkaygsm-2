@@ -9,7 +9,7 @@ export default function SetGallery({ images = [], title = "" }) {
   const activeSrc = images[active]?.url || "/set-placeholder.jpg";
   const t = useStaticTranslation();
   const sliderCopy = (t("setDetail") || {}).slider || {};
-  const goToLabel = sliderCopy.goTo || "Go to image {index}";
+  const goToLabel = sliderCopy.goTo || "{index}. görsele git";
 
   return (
     <div className="rounded-xl bg-white ring-1 ring-black/5 p-4">

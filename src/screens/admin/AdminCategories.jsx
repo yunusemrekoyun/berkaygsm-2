@@ -405,7 +405,7 @@ function TranslationEditors({ category, drafts, onChange, onSave, savingMap }) {
                       onChange={(event) => onChange(value, event.target.value)}
                       maxLength={120}
                       className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
-                      placeholder="örn. Lingerie"
+                      placeholder="örn. Kılıf"
                     />
                   </label>
 

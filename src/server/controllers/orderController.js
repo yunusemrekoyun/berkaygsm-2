@@ -35,7 +35,7 @@ async function createOrderNumber() {
     const exists = await Order.exists({ orderNumber: candidate });
     if (!exists) return candidate;
   }
-  throw new Error("Unable to generate unique order number");
+  throw new Error("Benzersiz sipariş numarası üretilemedi");
 }
 
 function toBoolean(value) {
@@ -100,7 +100,7 @@ function shapeOrder(doc) {
     address: doc.address,
     subtotal: doc.subtotal,
     shipping: doc.shipping,
-    shippingName: doc.shippingName || "Standard Shipping",
+    shippingName: doc.shippingName || "Standart Kargo",
     total: doc.total,
     coupon: doc.coupon?.code
       ? {
@@ -148,7 +148,7 @@ async function resolveAddressSnapshot({
       addressLine: fallbackSnapshot.addressLine || "",
     };
   }
-  fail(404, "Address not found");
+  fail(404, "Adres bulunamadı");
 }
 
 function sanitizeCheckoutItemsInput(rawItems = []) {
@@ -267,15 +267,15 @@ async function buildOrderPreparation({
   couponCode = null,
 }) {
   if (!Array.isArray(items) || items.length === 0) {
-    fail(400, "Cart is empty");
+    fail(400, "Sepet boş");
   }
   if (!addressSnapshot && !mongoose.Types.ObjectId.isValid(addressId)) {
-    fail(400, "Invalid address id");
+    fail(400, "Geçersiz adres id");
   }
 
   const normalizedItems = sanitizeCheckoutItemsInput(items);
   if (!normalizedItems.length) {
-    fail(400, "Cart is empty");
+    fail(400, "Sepet boş");
   }
 
   const addressSnap = await resolveAddressSnapshot({
@@ -300,11 +300,11 @@ async function buildOrderPreparation({
   for (const item of normalizedItems) {
     if (item.kind !== "set") continue;
     if (!Array.isArray(item.selections) || item.selections.length === 0) {
-      fail(400, "Set selections are required");
+      fail(400, "Set seçimleri zorunlu");
     }
     for (const sel of item.selections) {
       if (!mongoose.Types.ObjectId.isValid(sel.productId)) {
-        fail(400, "Invalid selection productId");
+        fail(400, "Geçersiz seçim productId");
       }
       selectionProductIds.push(sel.productId);
     }
@@ -350,7 +350,7 @@ async function buildOrderPreparation({
     if (raw.kind === "product") {
       const p = await ensureProductLoaded(pMap, raw.id);
       if (!p)
-        fail(404, "Product not found: " + raw.id, { productId: raw.id });
+        fail(404, "Ürün bulunamadı: " + raw.id, { productId: raw.id });
 
       const discount = productDiscountMap.get(String(p._id)) || null;
       const { finalPrice } = applyDiscount(Number(p.price || 0), discount);
@@ -358,12 +358,12 @@ async function buildOrderPreparation({
 
       const variantInfo = resolveCatalogVariant(p, raw);
       if (variantInfo.status === "missing") {
-        fail(400, "Variant selection required for product", {
+        fail(400, "Ürün için varyant seçimi gerekli", {
           productId: String(p._id),
         });
       }
       if (variantInfo.status === "invalid") {
-        fail(400, "Variant not available for product", {
+        fail(400, "Ürün için bu varyant mevcut değil", {
           productId: String(p._id),
           variant: variantInfo.variant,
         });
@@ -398,13 +398,13 @@ async function buildOrderPreparation({
       });
     } else if (raw.kind === "set") {
       const s = sMap.get(String(raw.id));
-      if (!s) fail(404, "Set not found: " + raw.id, { setId: raw.id });
+      if (!s) fail(404, "Set bulunamadı: " + raw.id, { setId: raw.id });
 
       const rawSelections = Array.isArray(raw.selections)
         ? raw.selections
         : [];
       if (rawSelections.length === 0) {
-        fail(400, "Set selections are required");
+        fail(400, "Set seçimleri zorunlu");
       }
 
       const discount = setDiscountMap.get(String(s._id)) || null;
@@ -438,14 +438,14 @@ async function buildOrderPreparation({
         selections: normalizedSelections,
       });
     } else {
-      fail(400, "Invalid item kind");
+      fail(400, "Geçersiz ürün tipi");
     }
   }
 
   for (const [pid, variants] of setNeedMap.entries()) {
     const prod = await ensureProductLoaded(pMap, pid);
     if (!prod) {
-      fail(400, "Selection product missing: " + pid, { productId: pid });
+      fail(400, "Seçim ürünü eksik: " + pid, { productId: pid });
     }
     const inv = Array.isArray(prod.inventory) ? prod.inventory : [];
     for (const [vkey, needed] of variants.entries()) {
@@ -453,7 +453,7 @@ async function buildOrderPreparation({
       const row = idx >= 0 ? inv[idx] : null;
       const available = getInventoryStock(row, "set");
       if (available < needed) {
-        fail(400, "Insufficient stock for selection", {
+        fail(400, "Seçim için yetersiz stok", {
           productId: pid,
           variant: decodeVariantKey(vkey),
           needed,
@@ -466,7 +466,7 @@ async function buildOrderPreparation({
   for (const [pid, variants] of catalogNeedMap.entries()) {
     const prod = await ensureProductLoaded(pMap, pid);
     if (!prod) {
-      fail(400, "Product missing for catalog stock: " + pid, {
+      fail(400, "Katalog stoku için ürün bulunamadı: " + pid, {
         productId: pid,
       });
     }
@@ -477,14 +477,14 @@ async function buildOrderPreparation({
         inv[entry.index] ||
         inv.find((candidate) => variantKeyOf(candidate) === vkey);
       if (!row) {
-        fail(400, "Variant not found for product", {
+        fail(400, "Ürün için varyant bulunamadı", {
           productId: pid,
           variant: decodeVariantKey(vkey),
         });
       }
       const available = getInventoryStock(row, "catalog");
       if (available < entry.qty) {
-        fail(400, "Insufficient stock for product", {
+        fail(400, "Ürün için yeterli stok yok", {
           productId: pid,
           variant: decodeVariantKey(vkey),
           needed: entry.qty,
@@ -502,7 +502,7 @@ async function buildOrderPreparation({
   const threshold = Number(shippingConfig?.freeThreshold || 0);
   const feeRaw = Number(shippingConfig?.fee || 0);
   const shipping = subtotal >= threshold ? 0 : Math.max(0, feeRaw);
-  const shippingName = shippingConfig?.name || "Standard Shipping";
+  const shippingName = shippingConfig?.name || "Standart Kargo";
 
   let couponSummary = null;
   let couponDiscountAmount = 0;
@@ -519,11 +519,11 @@ async function buildOrderPreparation({
     }).lean();
 
     if (!coupon) {
-      fail(400, "Coupon not found or inactive", { code: normalizedCoupon });
+      fail(400, "Kupon bulunamadı veya pasif", { code: normalizedCoupon });
     }
 
     if (subtotal < (coupon.minSubtotal || 0)) {
-      fail(400, "Coupon requires minimum subtotal of " + coupon.minSubtotal, {
+      fail(400, "Kupon için minimum ara toplam " + coupon.minSubtotal, {
         reason: "minSubtotal",
         minSubtotal: coupon.minSubtotal,
       });
@@ -591,7 +591,7 @@ async function finalizeOrder(prepared, options = {}) {
   } = prepared;
 
   if (!orderItems || orderItems.length === 0) {
-    fail(400, "Cart is empty");
+    fail(400, "Sepet boş");
   }
 
   const orderNumber = options.orderNumber || (await createOrderNumber());
@@ -605,18 +605,18 @@ async function finalizeOrder(prepared, options = {}) {
     const key = String(variantKey || "");
     const stockBucket = productStockMap?.get(pid);
     if (!stockBucket) {
-      fail(400, "Stock not found for product", { productId: pid });
+      fail(400, "Ürün için stok bulunamadı", { productId: pid });
     }
     const stockDoc = stockBucket.itemMap.get(key);
     if (!stockDoc) {
-      fail(400, "Variant not found for product", {
+      fail(400, "Ürün için varyant bulunamadı", {
         productId: pid,
         variant: decodeVariantKey(key),
       });
     }
     const stockId = stockDoc._id?.toString?.();
     if (!stockId) {
-      fail(500, "Stock item is missing identifier", { productId: pid });
+      fail(500, "Stok kalemi kimliği eksik", { productId: pid });
     }
     const current = stockUsage.get(stockId) || {
       id: stockId,
@@ -657,7 +657,7 @@ async function finalizeOrder(prepared, options = {}) {
     ).lean();
 
     if (!result) {
-      fail(409, "Insufficient stock", {
+      fail(409, "Yetersiz stok", {
         productId: usage.productId,
         variant: decodeVariantKey(usage.variantKey),
         requested: usage.qty,
@@ -772,11 +772,11 @@ export async function createOrder(req, res) {
     res.status(201).json({ order: shapeOrder(order) });
   } catch (err) {
     if (err.status) {
-      const payload = { message: err.message || "Request failed" };
+      const payload = { message: err.message || "İstek başarısız" };
       if (err.extra) payload.details = err.extra;
       return res.status(err.status).json(payload);
     }
-    res.status(500).json({ message: err.message || "Unable to create order" });
+    res.status(500).json({ message: err.message || "Sipariş oluşturulamadı" });
   }
 }
 
@@ -992,7 +992,7 @@ export async function myOrders(req, res) {
     const list = await Order.find({ user: req.userId }).sort({ createdAt: -1 });
     res.json({ orders: list.map(shapeOrder) });
   } catch (err) {
-    res.status(500).json({ message: err.message || "Unable to fetch orders" });
+    res.status(500).json({ message: err.message || "Siparişler alınamadı" });
   }
 }
 
@@ -1000,10 +1000,10 @@ export async function myOrders(req, res) {
 export async function getOrder(req, res) {
   try {
     const o = await Order.findOne({ _id: req.params.id, user: req.userId });
-    if (!o) return res.status(404).json({ message: "Order not found" });
+    if (!o) return res.status(404).json({ message: "Sipariş bulunamadı" });
     res.json({ order: shapeOrder(o) });
   } catch (err) {
-    res.status(500).json({ message: err.message || "Unable to fetch orders" });
+    res.status(500).json({ message: err.message || "Siparişler alınamadı" });
   }
 }
 
@@ -1052,7 +1052,7 @@ export async function listOrders(req, res) {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message || "Unable to list orders" });
+    res.status(500).json({ message: error.message || "Siparişler listelenemedi" });
   }
 }
 
@@ -1083,10 +1083,10 @@ export async function adminGetOrder(req, res) {
         orderNumber: req.params.id,
       }).populate("user", "firstName lastName email phone");
     }
-    if (!order) return res.status(404).json({ message: "Order not found" });
+    if (!order) return res.status(404).json({ message: "Sipariş bulunamadı" });
     res.json({ order: shapeOrder(order) });
   } catch (error) {
-    res.status(500).json({ message: error.message || "Unable to fetch order" });
+    res.status(500).json({ message: error.message || "Sipariş alınamadı" });
   }
 }
 
@@ -1094,7 +1094,7 @@ export async function adminGetOrder(req, res) {
 export async function updateOrderStatus(req, res) {
   try {
     const order = await findOrderByIdOrNumber(req.params.id);
-    if (!order) return res.status(404).json({ message: "Order not found" });
+    if (!order) return res.status(404).json({ message: "Sipariş bulunamadı" });
 
     const { status, paymentMethod, paymentTxnId, markPaid } = req.body || {};
 
@@ -1102,7 +1102,7 @@ export async function updateOrderStatus(req, res) {
       const allowed = ["pending", "paid", "shipped", "completed", "cancelled"];
       const nextStatus = String(status).toLowerCase();
       if (!allowed.includes(nextStatus)) {
-        return res.status(400).json({ message: "Invalid status" });
+        return res.status(400).json({ message: "Geçersiz durum" });
       }
       order.status = nextStatus;
     }
@@ -1131,6 +1131,6 @@ export async function updateOrderStatus(req, res) {
   } catch (error) {
     res
       .status(500)
-      .json({ message: error.message || "Unable to update order" });
+      .json({ message: error.message || "Sipariş güncellenemedi" });
   }
 }

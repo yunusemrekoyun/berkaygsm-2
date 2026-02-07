@@ -67,13 +67,13 @@ export default function ReviewSectionCard({
   const totalReviews = stats.count || 0;
   const fallbackDisplayName =
     (targetType === "set"
-      ? displayCopy.set || "this set"
+      ? displayCopy.set || "bu set"
       : targetType === "product"
-      ? displayCopy.product || "this product"
-      : displayCopy.item || "this item") || "this item";
+      ? displayCopy.product || "bu ürün"
+      : displayCopy.item || "bu öğe") || "bu öğe";
   const targetLabel = targetName || fallbackDisplayName;
-  const titleLabel = formCopy.titleLabel || "Title";
-  const titleOptional = formCopy.titleOptional || "(optional)";
+  const titleLabel = formCopy.titleLabel || "Başlık";
+  const titleOptional = formCopy.titleOptional || "(opsiyonel)";
   const formatDate = useCallback(
     (value) => {
       if (!value) return "—";
@@ -90,7 +90,7 @@ export default function ReviewSectionCard({
     let mounted = true;
     async function load() {
       if (!identifier) {
-        setError(reviewsCopy.loadError || "Unable to load reviews for this item.");
+        setError(reviewsCopy.loadError || "Bu içerik için yorumlar yüklenemedi.");
         setLoading(false);
         return;
       }
@@ -130,19 +130,23 @@ export default function ReviewSectionCard({
     setFeedback(null);
 
     if (!isAuthenticated) {
-      setFormError(errorCopy.notAuthenticated || "Please sign in to submit a review.");
+      setFormError(
+        errorCopy.notAuthenticated || "Yorum göndermek için giriş yapın."
+      );
       return;
     }
 
     const trimmedBody = form.body.trim();
     if (trimmedBody.length < 10) {
-      setFormError(errorCopy.shortBody || "Please share at least 10 characters in your review.");
+      setFormError(
+        errorCopy.shortBody || "Yorumunuz en az 10 karakter olmalı."
+      );
       return;
     }
 
     const ratingValue = Number(form.rating);
     if (!Number.isFinite(ratingValue) || ratingValue < 1 || ratingValue > 5) {
-      setFormError(errorCopy.invalidRating || "Rating must be between 1 and 5.");
+      setFormError(errorCopy.invalidRating || "Puan 1 ile 5 arasında olmalı.");
       return;
     }
 
@@ -163,7 +167,9 @@ export default function ReviewSectionCard({
     setSubmitting(true);
     try {
       await reviewApi.create(payload);
-      setFeedback(formCopy.success || "Thank you! Your review has been sent for approval.");
+      setFeedback(
+        formCopy.success || "Teşekkürler! Yorumunuz onay için gönderildi."
+      );
       setHasSubmitted(true);
       setForm({ rating: ratingValue, title: "", body: "" });
     } catch (err) {
@@ -205,10 +211,10 @@ export default function ReviewSectionCard({
           </span>
           <div>
             <h2 className="text-lg font-semibold text-primary">
-              {reviewsCopy.heading || "Customer reviews"}
+              {reviewsCopy.heading || "Müşteri yorumları"}
             </h2>
             <p className="text-sm text-secondary">
-              {formatStaticText(reviewsCopy.subheading || "Share your experience with {target}.", {
+              {formatStaticText(reviewsCopy.subheading || "Deneyimlerinizi {target} ile paylaşın.", {
                 target: targetLabel,
               })}
             </p>
@@ -241,7 +247,7 @@ export default function ReviewSectionCard({
         ) : reviews.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border/60 bg-surface-light p-6 text-center text-sm text-secondary">
             {reviewsCopy.emptyPrompt ||
-              "There are no reviews yet. Be the first to share your thoughts!"}
+              "Henüz yorum yok. Görüşünüzü ilk paylaşan siz olun!"}
           </div>
         ) : (
           <div className="space-y-4">
@@ -254,7 +260,7 @@ export default function ReviewSectionCard({
                   <div>
                     <div className="flex items-center gap-2 text-sm font-semibold text-primary">
                       <UserRound className="h-4 w-4 text-secondary/70" />
-                      {review.user?.name || listCopy.anonymous || "Customer"}
+                      {review.user?.name || listCopy.anonymous || "Müşteri"}
                     </div>
                     <div className="text-xs text-secondary">
                       {formatDate(review.createdAt)}
@@ -287,7 +293,7 @@ export default function ReviewSectionCard({
                 {loadingMore ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : null}
-                {reviewsCopy.loadMore || "Load more reviews"}
+                {reviewsCopy.loadMore || "Daha fazla yorum göster"}
               </button>
             ) : null}
           </div>
@@ -298,7 +304,7 @@ export default function ReviewSectionCard({
       <div className="mt-8">
         <div className="rounded-xl border border-border/60 bg-surface-light p-4">
           <h3 className="text-sm font-semibold text-primary">
-            {formCopy.title || "Write a review"}
+            {formCopy.title || "Yorum yaz"}
           </h3>
 
           {!isAuthenticated ? (
@@ -306,12 +312,13 @@ export default function ReviewSectionCard({
               <div className="flex items-start gap-2">
                 <AlertCircle className="mt-0.5 h-4 w-4 text-accent" />
                 <p>
-                  {formCopy.loginPrompt || "Please sign in to leave a review."} {" "}
+                  {formCopy.loginPrompt ||
+                    "Yorum bırakmak için lütfen giriş yapın."}{" "}
                   <Link
                     to="/account?view=login"
                     className="font-semibold text-accent hover:underline"
                   >
-                    {formCopy.loginCta || "Sign in"}
+                    {formCopy.loginCta || "Giriş yap"}
                   </Link>
                 </p>
               </div>
@@ -320,7 +327,7 @@ export default function ReviewSectionCard({
             <form onSubmit={handleSubmit} className="mt-4 space-y-4">
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wide text-secondary">
-                  {formCopy.ratingLabel || "Rating"}
+                  {formCopy.ratingLabel || "Puan"}
                 </label>
                 <InteractiveRating
                   value={form.rating}
@@ -342,13 +349,13 @@ export default function ReviewSectionCard({
                   onChange={(e) => handleChange("title", e.target.value)}
                   disabled={submitting || hasSubmitted}
                   className="mt-1 w-full rounded-lg border border-border/70 bg-white px-3 py-2 text-sm text-primary outline-none transition focus:border-accent"
-                  placeholder={formCopy.titlePlaceholder || "Summarise your experience"}
+                  placeholder={formCopy.titlePlaceholder || "Deneyiminizi özetleyin"}
                 />
               </div>
 
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wide text-secondary">
-                  {formCopy.reviewLabel || "Review"}
+                  {formCopy.reviewLabel || "Yorum"}
                 </label>
                 <textarea
                   value={form.body}
@@ -356,7 +363,7 @@ export default function ReviewSectionCard({
                   disabled={submitting || hasSubmitted}
                   className="mt-1 min-h-[120px] w-full resize-y rounded-lg border border-border/70 bg-white px-3 py-2 text-sm text-primary outline-none transition focus:border-accent"
                   placeholder={formatStaticText(
-                    formCopy.reviewPlaceholder || "Tell us what you liked about {target}...",
+                    formCopy.reviewPlaceholder || "{target} hakkında beğendiğiniz noktaları anlatın...",
                     { target: targetLabel }
                   )}
                 />
@@ -388,8 +395,8 @@ export default function ReviewSectionCard({
                   <Send className="h-4 w-4" />
                 )}
                 {hasSubmitted
-                  ? formCopy.submitted || "Review submitted"
-                  : formCopy.submit || "Submit review"}
+                  ? formCopy.submitted || "Yorum gönderildi"
+                  : formCopy.submit || "Yorumu gönder"}
               </button>
             </form>
           )}
@@ -409,7 +416,7 @@ function RatingPreview({ value, count, copy = {} }) {
         {value.toFixed(1)} / 5
       </span>
       <span className="text-xs text-secondary">
-        {formatStaticText(copy.countLabel || "({count} reviews)", { count })}
+        {formatStaticText(copy.countLabel || "({count} yorum)", { count })}
       </span>
     </div>
   );
@@ -486,7 +493,7 @@ async function fetchList(targetType, identifier, params) {
 }
 
 function extractMessage(error) {
-  if (!error) return "Unexpected error";
+  if (!error) return "Beklenmeyen bir hata oluştu";
   if (error instanceof Error) {
     if (error.message) {
       try {

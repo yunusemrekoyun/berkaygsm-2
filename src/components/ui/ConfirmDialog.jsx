@@ -12,11 +12,11 @@ export function ConfirmProvider({ children }) {
     return new Promise((resolve) => {
       setState({
         open: true,
-        title: options?.title || "Are you sure?",
+        title: options?.title || "Emin misin?",
         description:
-          options?.description || "Please confirm this action to continue.",
-        confirmText: options?.confirmText || "Confirm",
-        cancelText: options?.cancelText || "Cancel",
+          options?.description || "Devam etmek için lütfen onaylayın.",
+        confirmText: options?.confirmText || "Onayla",
+        cancelText: options?.cancelText || "Vazgeç",
         tone: options?.tone || "danger",
         resolve,
       });

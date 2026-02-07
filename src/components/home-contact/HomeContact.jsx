@@ -7,7 +7,7 @@ export default function HomeContact({
   storeName,
   address,
   hours,
-  mapSrc = "https://www.google.com/maps?q=Kurfürstendamm%20123%2C%20Berlin&output=embed",
+  mapSrc = "https://www.google.com/maps?q=Ba%C4%9Fdat%20Caddesi%20123%2C%20%C4%B0stanbul&output=embed",
 }) {
   const t = useStaticTranslation();
   const copy = t("homeContact") || {};
@@ -16,7 +16,7 @@ export default function HomeContact({
   const resolvedStore = storeName ?? copy.storeName;
   const resolvedAddress = address ?? copy.address;
   const resolvedHours = Array.isArray(hours) && hours.length ? hours : copy.hours || [];
-  const hoursLabel = copy.hoursLabel || "Opening Hours:";
+  const hoursLabel = copy.hoursLabel || "Çalışma Saatleri:";
 
   return (
     <section className="app-section">

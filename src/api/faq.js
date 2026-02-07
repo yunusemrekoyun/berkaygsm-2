@@ -52,7 +52,7 @@ export const faqApi = {
     return (
       data?.faq || {
         isActive: false,
-        heroTitle: "Frequently Asked Questions",
+        heroTitle: "Sıkça Sorulan Sorular",
         heroIntro: "",
         sections: [],
       }

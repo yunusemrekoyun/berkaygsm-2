@@ -141,7 +141,7 @@ export default function Avatar({
         .filter(Boolean)
         .join(" ")}
       style={combinedStyle}
-      aria-label={alt || name || "Avatar"}
+      aria-label={alt || name || "Profil"}
     >
       {showFallback ? (
         <span
@@ -154,7 +154,7 @@ export default function Avatar({
       ) : (
         <img
           src={resolvedSrc}
-          alt={alt || name || "Avatar"}
+          alt={alt || name || "Profil"}
           className="h-full w-full object-cover"
           draggable="false"
           onError={() => setErrored(true)}

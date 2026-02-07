@@ -175,7 +175,7 @@ export default function ProductTranslationModal({
                 handleFieldChange(value, "name", event.target.value)
               }
               className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
-              placeholder="Lüks İpek Pijama"
+              placeholder="örn. Kablosuz Şarj Cihazı"
             />
           </label>
 

@@ -11,8 +11,8 @@ export default function CartPage() {
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6">
         <BreadCrumb
           items={[
-            { label: breadcrumbs.home || "Home", to: "/" },
-            { label: breadcrumbs.cart || "Cart" },
+            { label: breadcrumbs.home || "Ana Sayfa", to: "/" },
+            { label: breadcrumbs.cart || "Sepet" },
           ]}
         />
       </div>

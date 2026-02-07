@@ -13,7 +13,7 @@ export default function HomeCampaignItem({
   className = "",
 }) {
   const t = useStaticTranslation();
-  const resolvedCta = ctaText || t("homeCampaigns.cta") || "Shop Now";
+  const resolvedCta = ctaText || t("homeCampaigns.cta") || "Alışverişe Başla";
   const span =
     variant === "big"
       ? "md:col-span-2 md:row-span-2"

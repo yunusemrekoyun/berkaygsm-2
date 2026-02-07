@@ -18,7 +18,7 @@ export default function HomeSets({
   loading = false, // <<< NEW
 }) {
   const t = useStaticTranslation();
-  const defaultAll = t("homeSets.tabsAll") || "All";
+  const defaultAll = t("homeSets.tabsAll") || "Tümü";
   const displayTabs = useMemo(
     () => (tabs.length ? tabs : [defaultAll]),
     [tabs, defaultAll]

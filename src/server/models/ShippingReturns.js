@@ -96,7 +96,7 @@ const ShippingReturnsSchema = new mongoose.Schema(
     },
 
     // hero
-    heroTitle: { type: String, default: "Shipping & Returns" },
+    heroTitle: { type: String, default: "Kargo & İade" },
     heroIntro: { type: String, default: "" },
 
     // gövde

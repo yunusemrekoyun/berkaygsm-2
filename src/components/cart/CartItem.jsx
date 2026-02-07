@@ -8,14 +8,14 @@ export default function CartItem({ item, onQty, onRemove }) {
   const { lang } = useStorefrontLang();
   const cartCopy = t("cart") || {};
   const optionCopy = cartCopy.options || {};
-  const colorLabel = optionCopy.color || "Color";
-  const sizeLabel = optionCopy.size || "Size";
-  const attributeLabel = optionCopy.option || "Option";
-  const selectionsLabel = cartCopy.selectionsLabel || "Selections";
-  const removeLabel = cartCopy.remove || "Remove";
-  const unitLabel = cartCopy.unitLabel || "Unit";
-  const totalLabel = cartCopy.totalLabel || "Total";
-  const itemFallback = cartCopy.itemFallback || "Item";
+  const colorLabel = optionCopy.color || "Renk";
+  const sizeLabel = optionCopy.size || "Model";
+  const attributeLabel = optionCopy.option || "Seçenek";
+  const selectionsLabel = cartCopy.selectionsLabel || "Seçimler";
+  const removeLabel = cartCopy.remove || "Kaldır";
+  const unitLabel = cartCopy.unitLabel || "Birim";
+  const totalLabel = cartCopy.totalLabel || "Toplam";
+  const itemFallback = cartCopy.itemFallback || "Ürün";
   const productColorInfo = useMemo(() => {
     if (!item.color) return null;
     return getColorInfo(item.color, lang);
@@ -158,22 +158,22 @@ export default function CartItem({ item, onQty, onRemove }) {
         <p className="text-sm text-secondary">{unitLabel}</p>
         <div className="flex items-baseline gap-2 sm:justify-end">
           <span className="font-semibold text-primary">
-            €{unitFinal.toFixed(2)}
+            ₺{unitFinal.toFixed(2)}
           </span>
           {showStrike && (
             <span className="text-xs text-secondary/60 line-through">
-              €{unitOriginal.toFixed(2)}
+              ₺{unitOriginal.toFixed(2)}
             </span>
           )}
         </div>
         <p className="mt-2 text-sm text-secondary">{totalLabel}</p>
         <div className="flex items-baseline gap-2 sm:justify-end">
           <span className="font-semibold text-primary">
-            €{lineTotal.toFixed(2)}
+            ₺{lineTotal.toFixed(2)}
           </span>
           {showStrike && (
             <span className="text-xs text-secondary/60 line-through">
-              €{originalTotal.toFixed(2)}
+              ₺{originalTotal.toFixed(2)}
             </span>
           )}
         </div>

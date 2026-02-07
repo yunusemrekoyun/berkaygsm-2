@@ -58,7 +58,7 @@ const SummarySchema = new mongoose.Schema(
     subtotal: { type: Number, default: 0 },
     shipping: { type: Number, default: 0 },
     discountAmount: { type: Number, default: 0 },
-    shippingName: { type: String, default: "Standard Shipping" },
+    shippingName: { type: String, default: "Standart Kargo" },
     total: { type: Number, default: 0 },
     currency: { type: String, default: "TRY" },
   },

@@ -32,7 +32,7 @@ export default function FAQPage() {
     };
   }, [lang]);
 
-  const title = data?.heroTitle?.trim() || "Frequently Asked Questions";
+  const title = data?.heroTitle?.trim() || "Sıkça Sorulan Sorular";
   const intro = data?.heroIntro?.trim() || "";
   const sections = Array.isArray(data?.sections) ? data.sections : [];
   const isActive = data?.isActive !== false; // undefined ise aktif say
@@ -40,7 +40,7 @@ export default function FAQPage() {
   return (
     <main className="bg-surface-light/60">
       <section className="mx-auto max-w-[1400px] px-4 pt-6 sm:px-6">
-        <BreadCrumb items={[{ label: "Home", to: "/" }, { label: "FAQ" }]} />
+        <BreadCrumb items={[{ label: "Ana Sayfa", to: "/" }, { label: "SSS" }]} />
       </section>
 
       <section className="mx-auto max-w-[1400px] px-4 pb-14 sm:px-6">
@@ -70,12 +70,13 @@ export default function FAQPage() {
                   <p className="mt-3 max-w-3xl text-secondary">{intro}</p>
                 ) : (
                   <p className="mt-3 max-w-3xl text-secondary">
-                    Find quick answers about orders, shipping, returns and
-                    product care. Need more help?{" "}
+                    Sipariş, kargo, iade ve ürün kullanımıyla ilgili sık
+                    sorulan soruların yanıtlarını burada bulabilirsiniz. Daha
+                    fazla yardım için{" "}
                     <a href="/contact" className="text-accent underline">
-                      our contact page
+                      iletişim sayfamıza
                     </a>
-                    .
+                    göz atın.
                   </p>
                 )}
               </>
@@ -101,11 +102,11 @@ export default function FAQPage() {
               ))
             ) : !isActive ? (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-700">
-                FAQ page is currently not active.
+                SSS sayfası şu anda aktif değil.
               </div>
             ) : sections.length === 0 ? (
               <div className="rounded-xl border border-border bg-surface p-6 text-center text-secondary">
-                No FAQ content yet.
+                Henüz SSS içeriği yok.
               </div>
             ) : (
               sections.map((section) => (
@@ -127,7 +128,7 @@ function FAQSection({ section }) {
   return (
     <section>
       <h2 className="font-serif text-2xl font-semibold text-primary">
-        {section.title || "Untitled Section"}
+        {section.title || "Başlıksız bölüm"}
       </h2>
 
       {/* sabit border ve divide -> tıklamada kayma yok */}
@@ -138,7 +139,7 @@ function FAQSection({ section }) {
           ))
         ) : (
           <div className="px-4 py-4 text-sm text-secondary">
-            No questions in this section.
+            Bu bölümde soru yok.
           </div>
         )}
       </div>
@@ -148,7 +149,7 @@ function FAQSection({ section }) {
 
 function FAQItem({ item }) {
   const [open, setOpen] = useState(false);
-  const q = item?.question || "Untitled question";
+  const q = item?.question || "Başlıksız soru";
   const a = item?.answer || "";
 
   const contentId = `faq-${hashKey(q)}`;
@@ -184,7 +185,7 @@ function FAQItem({ item }) {
           }`}
         >
           <div className="pb-1 text-sm text-secondary">
-            {a || <em className="text-secondary/70">No answer yet.</em>}
+            {a || <em className="text-secondary/70">Henüz cevap yok.</em>}
           </div>
         </div>
       </div>
@@ -200,7 +201,7 @@ function hashKey(s = "") {
 }
 
 function extractMessage(err) {
-  if (!err) return "Unexpected error";
+  if (!err) return "Beklenmeyen hata";
   try {
     const parsed = JSON.parse(String(err.message || err));
     if (parsed?.message) return parsed.message;

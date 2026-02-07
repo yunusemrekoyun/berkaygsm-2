@@ -54,7 +54,7 @@ export async function getShippingConfig(req, res) {
   } catch (error) {
     res
       .status(500)
-      .json({ message: error.message || "Unable to load shipping config" });
+      .json({ message: error.message || "Kargo ayarları yüklenemedi" });
   }
 }
 
@@ -68,7 +68,7 @@ export async function updateShippingConfig(req, res) {
     if (fee !== undefined) {
       const value = Number(fee);
       if (!Number.isFinite(value) || value < 0)
-        return res.status(400).json({ message: "Shipping fee must be >= 0" });
+        return res.status(400).json({ message: "Kargo ücreti 0 veya daha büyük olmalı" });
       config.fee = value;
     }
 
@@ -77,7 +77,7 @@ export async function updateShippingConfig(req, res) {
       if (!Number.isFinite(value) || value < 0)
         return res
           .status(400)
-          .json({ message: "Free shipping threshold must be >= 0" });
+          .json({ message: "Ücretsiz kargo limiti 0 veya daha büyük olmalı" });
       config.freeThreshold = value;
     }
 
@@ -91,7 +91,7 @@ export async function updateShippingConfig(req, res) {
     };
 
     if (name !== undefined) {
-      const normalizedName = String(name).trim() || "Standard Shipping";
+      const normalizedName = String(name).trim() || "Standart Kargo";
       if (isDefaultLang) {
         config.name = normalizedName;
       } else {
@@ -119,6 +119,6 @@ export async function updateShippingConfig(req, res) {
   } catch (error) {
     res
       .status(500)
-      .json({ message: error.message || "Unable to update shipping config" });
+      .json({ message: error.message || "Kargo ayarları güncellenemedi" });
   }
 }
