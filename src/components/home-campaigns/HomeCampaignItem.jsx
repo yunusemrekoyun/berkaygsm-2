@@ -24,13 +24,13 @@ export default function HomeCampaignItem({
   return (
     <Link
       to={to}
-      className={`group relative min-h-[220px] overflow-hidden rounded-2xl ring-1 ring-black/5 shadow-sm ${span} ${className}`}
+      className={`group relative h-full min-h-[260px] overflow-hidden rounded-2xl ring-1 ring-black/5 shadow-sm ${span} ${className}`}
     >
       {/* BG image */}
       <img
         src={image}
         alt={title}
-        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+        className="absolute inset-0 h-full w-full object-cover"
         draggable="false"
       />
 
