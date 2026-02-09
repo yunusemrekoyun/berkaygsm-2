@@ -11,7 +11,7 @@ export default function HomeProductCommentItem({
   // const avatarSrc = avatar ? extractAvatarUrl(avatar) : null;
 
   return (
-    <article className="flex h-full flex-col rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-black/5">
+    <article className="glass-surface flex h-full flex-col rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-black/5">
       {/* Avatar */}
       {/* <Avatar
         src={avatarSrc}

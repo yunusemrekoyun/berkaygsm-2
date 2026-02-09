@@ -20,13 +20,13 @@ export default function ShopPageProductItem({ product }) {
   return (
     <Link
       to={slug ? `/product/${slug}` : "#"}
-      className="block overflow-hidden rounded-2xl bg-white ring-1 ring-border shadow-sm transition hover:shadow-md"
+      className="glass-surface block overflow-hidden rounded-2xl bg-white ring-1 ring-border shadow-sm transition hover:shadow-md"
     >
-      <div className="relative">
+      <div className="relative aspect-[4/5] w-full overflow-hidden bg-surface-light/60">
         <img
           src={imageSrc}
           alt={title}
-          className="h-72 w-full object-cover sm:h-80"
+          className="h-full w-full object-contain p-2 sm:p-3"
           draggable="false"
         />
         {showStrike && (

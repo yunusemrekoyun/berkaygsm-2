@@ -30,6 +30,22 @@
   --page-inline-padding: clamp(1rem, 3vw, 2.25rem);
   --page-vertical-padding: clamp(1.5rem, 4vw, 3rem);
   --header-height: 5rem;
+  --glass-blur: 15px;
+  --glass-blur-soft: 11px;
+  --glass-border: color-mix(in srgb, var(--color-border) 62%, #ffffff 38%);
+  --glass-border-strong: color-mix(
+    in srgb,
+    var(--color-border) 72%,
+    #ffffff 28%
+  );
+  --glass-bg: color-mix(in srgb, var(--color-surface-light) 48%, #ffffff 52%);
+  --glass-bg-soft: color-mix(
+    in srgb,
+    var(--color-surface-hover) 30%,
+    #ffffff 70%
+  );
+  --glass-shadow: 0 22px 52px rgba(12, 74, 110, 0.14);
+  --glass-shadow-soft: 0 12px 30px rgba(12, 74, 110, 0.1);
 }
 
 @layer base {
@@ -73,9 +89,31 @@
 
 @layer utilities {
   .app-shell {
+    position: relative;
+    isolation: isolate;
     background: #ffffff;
     width: 100%;
     min-height: 100vh;
+  }
+
+  .store-glass::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        circle at 9% 5%,
+        color-mix(in srgb, var(--color-accent) 22%, transparent) 0%,
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at 88% 2%,
+        color-mix(in srgb, var(--color-secondary) 14%, transparent) 0%,
+        transparent 38%
+      );
+    opacity: 0.22;
+    z-index: -1;
   }
 
   .app-card {
@@ -83,9 +121,94 @@
     max-width: none;
     margin-inline: 0;
     border-radius: 0;
-    background: #fff;
-    box-shadow: 0 10px 45px rgba(92, 42, 53, 0.08);
+    border: 1px solid var(--glass-border);
+    background: linear-gradient(
+      138deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      color-mix(in srgb, var(--glass-bg) 74%, #ffffff 26%) 62%,
+      rgba(255, 255, 255, 0.96) 100%
+    );
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: blur(var(--glass-blur)) saturate(145%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(145%);
     overflow: hidden;
+  }
+
+  .glass-surface {
+    position: relative;
+    border: 1px solid var(--glass-border);
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.82) 0%,
+      color-mix(in srgb, var(--glass-bg) 64%, #ffffff 36%) 58%,
+      rgba(255, 255, 255, 0.72) 100%
+    );
+    box-shadow: var(--glass-shadow-soft);
+    backdrop-filter: blur(var(--glass-blur)) saturate(142%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(142%);
+  }
+
+  .glass-surface::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(
+      140deg,
+      rgba(255, 255, 255, 0.42) 0%,
+      rgba(255, 255, 255, 0.12) 36%,
+      transparent 64%
+    );
+  }
+
+  .glass-surface-soft {
+    border-color: color-mix(in srgb, var(--glass-border) 78%, #ffffff 22%);
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.74) 0%,
+      color-mix(in srgb, var(--glass-bg-soft) 64%, #ffffff 36%) 100%
+    );
+    box-shadow: 0 9px 24px rgba(12, 74, 110, 0.08);
+    backdrop-filter: blur(var(--glass-blur-soft)) saturate(136%);
+    -webkit-backdrop-filter: blur(var(--glass-blur-soft)) saturate(136%);
+  }
+
+  .glass-surface-strong {
+    border-color: var(--glass-border-strong);
+    box-shadow: 0 22px 56px rgba(12, 74, 110, 0.16);
+  }
+
+  .glass-chip {
+    border: 1px solid color-mix(in srgb, var(--glass-border) 82%, #ffffff 18%);
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.82) 0%,
+      rgba(255, 255, 255, 0.62) 100%
+    );
+    box-shadow: 0 8px 16px rgba(12, 74, 110, 0.09);
+    backdrop-filter: blur(var(--glass-blur-soft)) saturate(136%);
+    -webkit-backdrop-filter: blur(var(--glass-blur-soft)) saturate(136%);
+  }
+
+  .glass-input {
+    border: 1px solid color-mix(in srgb, var(--glass-border) 82%, #ffffff 18%);
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.78) 0%,
+      rgba(255, 255, 255, 0.68) 100%
+    );
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.52);
+    backdrop-filter: blur(var(--glass-blur-soft)) saturate(135%);
+    -webkit-backdrop-filter: blur(var(--glass-blur-soft)) saturate(135%);
+  }
+
+  .store-page {
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-surface-light) 44%, #ffffff 56%) 0%,
+      #ffffff 36%
+    );
   }
 
   .app-section {
@@ -119,6 +242,20 @@
   .admin-table {
     width: 100%;
     border-collapse: collapse;
+  }
+
+  @media (max-width: 768px) {
+    .glass-surface {
+      backdrop-filter: blur(10px) saturate(130%);
+      -webkit-backdrop-filter: blur(10px) saturate(130%);
+    }
+
+    .glass-surface-soft,
+    .glass-chip,
+    .glass-input {
+      backdrop-filter: blur(8px) saturate(125%);
+      -webkit-backdrop-filter: blur(8px) saturate(125%);
+    }
   }
 
   @media (max-width: 768px) {

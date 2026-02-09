@@ -14,7 +14,7 @@ export default function SimilarSets({ items = [] }) {
   if (!items.length) return null;
 
   return (
-    <div className="rounded-xl bg-white ring-1 ring-black/5 p-5">
+    <div className="glass-surface rounded-xl bg-white ring-1 ring-black/5 p-5">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-primary">
           {copy.heading || "Bunları da sevebilirsiniz"}
@@ -29,7 +29,7 @@ export default function SimilarSets({ items = [] }) {
         {items.map((it) => (
           <article
             key={it.id || it.slug}
-            className="overflow-hidden rounded-xl ring-1 ring-black/5 bg-white hover:shadow-sm transition"
+            className="glass-surface overflow-hidden rounded-xl ring-1 ring-black/5 bg-white hover:shadow-sm transition"
           >
             <Link to={`/set/${it.slug || it.id}`}>
               <div className="relative">

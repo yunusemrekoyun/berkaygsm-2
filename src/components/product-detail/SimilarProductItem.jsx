@@ -22,13 +22,13 @@ export default function SimilarProductItem({
   return (
     <Link
       to={slug ? `/product/${slug}` : "#"}
-      className="block overflow-hidden rounded-xl bg-white ring-1 ring-border transition hover:shadow-sm"
+      className="glass-surface block overflow-hidden rounded-xl bg-white ring-1 ring-border transition hover:shadow-sm"
     >
-      <div className="relative">
+      <div className="relative aspect-[4/5] w-full overflow-hidden bg-surface-light/60">
         <img
           src={image || "/shop-1.jpg"}
           alt={title}
-          className="h-48 w-full object-cover"
+          className="h-full w-full object-contain p-2"
           draggable="false"
         />
         {showStrike && (

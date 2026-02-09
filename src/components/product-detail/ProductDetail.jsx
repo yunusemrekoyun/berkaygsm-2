@@ -266,7 +266,7 @@ export default function ProductDetail({ product = {} }) {
     <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
       {/* Left: Gallery */}
       <div className="md:col-span-5" data-animate="fade-right">
-        <div className="relative overflow-hidden rounded-xl border border-border bg-white">
+        <div className="glass-surface relative overflow-hidden rounded-xl border border-border bg-white">
           <img
             src={gallery[activeImg]}
             alt={product.name || product.title || fallbackName}
@@ -311,7 +311,7 @@ export default function ProductDetail({ product = {} }) {
 
       {/* Right: Info */}
       <div className="md:col-span-7 space-y-6" data-animate="fade-left">
-        <div className="rounded-xl border border-border bg-contact-bg p-6">
+        <div className="glass-surface rounded-xl border border-border bg-contact-bg p-6">
           {/* Başlık + Kalp */}
           <div className="flex items-start justify-between gap-3">
             <h1 className="font-serif text-3xl font-extrabold text-primary">
@@ -448,7 +448,7 @@ export default function ProductDetail({ product = {} }) {
           )}
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-3 py-1.5">
+            <div className="glass-chip inline-flex items-center gap-2 rounded-full border border-border bg-white px-3 py-1.5">
               <button
                 onClick={dec}
                 className="px-1 text-primary disabled:opacity-50"

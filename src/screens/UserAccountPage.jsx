@@ -104,12 +104,12 @@ export default function UserAccountPage({ onLogout }) {
 
   if (loading) {
     return (
-      <section className="bg-surface-light/60">
+      <section className="store-page bg-surface-light/60">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-10">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
             <aside className="md:col-span-3">
-              <div className="rounded-2xl border border-border bg-white p-4 space-y-4">
-                <div className="rounded-xl border border-border bg-contact-bg p-4">
+              <div className="glass-surface rounded-2xl border border-border bg-white p-4 space-y-4">
+                <div className="glass-surface-soft rounded-xl border border-border bg-contact-bg p-4">
                   <div className="mx-auto mb-2 h-16 w-16 rounded-full bg-surface animate-pulse" />
                   <div className="h-4 w-2/3 bg-surface rounded mx-auto animate-pulse" />
                   <div className="mt-2 h-3 w-1/2 bg-surface rounded mx-auto animate-pulse" />
@@ -121,7 +121,7 @@ export default function UserAccountPage({ onLogout }) {
               </div>
             </aside>
             <div className="md:col-span-9">
-              <div className="rounded-2xl border border-border bg-white p-6 h-[520px] animate-pulse" />
+              <div className="glass-surface rounded-2xl border border-border bg-white p-6 h-[520px] animate-pulse" />
             </div>
           </div>
         </div>
@@ -139,12 +139,12 @@ export default function UserAccountPage({ onLogout }) {
   const sidebarEmail = profile?.email || user?.email || "—";
 
   return (
-    <section className="bg-surface-light/60">
+    <section className="store-page bg-surface-light/60">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-10">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
           <aside className="md:col-span-3">
-            <div className="rounded-2xl border border-border bg-white p-4">
-              <div className="rounded-xl border border-border bg-contact-bg p-4 text-center">
+            <div className="glass-surface rounded-2xl border border-border bg-white p-4">
+              <div className="glass-surface-soft rounded-xl border border-border bg-contact-bg p-4 text-center">
                 <Avatar
                   src={avatarSrc}
                   name={sidebarUserName}
@@ -186,7 +186,7 @@ export default function UserAccountPage({ onLogout }) {
           </aside>
 
           <div className="md:col-span-9">
-            <div className="relative rounded-2xl border border-border bg-white p-6">
+            <div className="glass-surface relative rounded-2xl border border-border bg-white p-6">
               <BusyBar show={busy} />
               <div className={busy ? "pointer-events-none opacity-60" : ""}>
                 {active === "Overview" && (

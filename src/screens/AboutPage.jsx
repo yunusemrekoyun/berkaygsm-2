@@ -59,7 +59,7 @@ export default function AboutPage() {
   } = about;
 
   return (
-    <main className="bg-surface-light/60">
+    <main className="store-page bg-surface-light/60">
       {/* Breadcrumb */}
       <section className="mx-auto max-w-[1400px] px-4 sm:px-6 pt-6">
         <BreadCrumb
@@ -69,7 +69,7 @@ export default function AboutPage() {
 
       {/* Hero */}
       <section className="mx-auto max-w-[1400px] px-4 sm:px-6 pb-10">
-        <div className="rounded-2xl border border-border bg-white/80 p-8 sm:p-12 text-center">
+        <div className="glass-surface rounded-2xl border border-border bg-white/80 p-8 sm:p-12 text-center">
           <h1 className="font-serif text-4xl sm:text-5xl font-extrabold tracking-tight text-primary">
             {heroTitle}
           </h1>
@@ -95,7 +95,7 @@ export default function AboutPage() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
           {leftImage?.url && (
             <div className="md:col-span-5">
-              <div className="overflow-hidden rounded-2xl border border-border bg-white">
+              <div className="glass-surface overflow-hidden rounded-2xl border border-border bg-white">
                 <img
                   src={leftImage.url}
                   alt="Mağaza"
@@ -107,7 +107,7 @@ export default function AboutPage() {
           )}
 
           <div className="md:col-span-7">
-            <div className="rounded-2xl border border-border bg-contact-bg p-6 sm:p-8">
+            <div className="glass-surface rounded-2xl border border-border bg-contact-bg p-6 sm:p-8">
               {dotBlocks.map((block, i) => (
                 <div key={i}>
                   <DotBlock title={block.title} text={block.text} />
@@ -134,7 +134,7 @@ export default function AboutPage() {
       <section className="mx-auto max-w-[1400px] px-4 sm:px-6 pb-14">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
           <div className="md:col-span-7">
-            <div className="rounded-2xl border border-border bg-white p-6 sm:p-8">
+            <div className="glass-surface rounded-2xl border border-border bg-white p-6 sm:p-8">
               <h2 className="font-serif text-2xl font-extrabold text-primary">
                 {materialsTitle}
               </h2>
@@ -145,7 +145,7 @@ export default function AboutPage() {
                   {materialsBullets.map((b, i) => (
                     <li
                       key={i}
-                      className="rounded-lg border border-border bg-contact-bg p-3"
+                      className="glass-surface-soft rounded-lg border border-border bg-contact-bg p-3"
                     >
                       {b}
                     </li>
@@ -173,7 +173,7 @@ export default function AboutPage() {
       {/* CTA */}
       {(ctaTitle || ctaSubtitle) && (
         <section className="mx-auto max-w-[1400px] px-4 sm:px-6 pb-16">
-          <div className="rounded-2xl border border-border bg-surface-light p-6 sm:p-8 text-center">
+          <div className="glass-surface rounded-2xl border border-border bg-surface-light p-6 sm:p-8 text-center">
             <h3 className="font-serif text-2xl font-extrabold text-primary">
               {ctaTitle}
             </h3>
@@ -227,7 +227,7 @@ function Separator() {
 
 function Stat({ value, label }) {
   return (
-    <div className="rounded-2xl border border-border bg-white p-5 text-center">
+    <div className="glass-surface rounded-2xl border border-border bg-white p-5 text-center">
       <div className="font-serif text-3xl font-extrabold text-primary">
         {value}
       </div>

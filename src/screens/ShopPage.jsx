@@ -594,12 +594,12 @@ export default function ShopPage() {
         </div>
       )}
 
-      <div className="mt-6 space-y-3 rounded-2xl border border-border/70 bg-white/95 p-4 shadow-sm md:hidden">
+      <div className="glass-surface mt-6 space-y-3 rounded-2xl border border-border/70 bg-white/95 p-4 shadow-sm md:hidden">
         <form
           onSubmit={handleSearchSubmit}
           className="flex flex-col gap-3 sm:flex-row sm:items-center"
         >
-          <div className="flex flex-1 items-center gap-2 rounded-full border border-border bg-white px-3 py-2 shadow-sm focus-within:border-accent">
+          <div className="glass-input flex flex-1 items-center gap-2 rounded-full border border-border bg-white px-3 py-2 shadow-sm focus-within:border-accent">
             <Search className="h-4 w-4 text-secondary" />
             <input
               type="search"
@@ -695,7 +695,7 @@ export default function ShopPage() {
               key={chip.key}
               type="button"
               onClick={chip.onClear}
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-3 py-1 shadow-sm hover:border-accent hover:text-accent"
+              className="glass-chip inline-flex items-center gap-2 rounded-full border border-border bg-white px-3 py-1 shadow-sm hover:border-accent hover:text-accent"
             >
               <span>{chip.label}</span>
               <span aria-hidden="true">×</span>
@@ -812,7 +812,7 @@ export default function ShopPage() {
                   {Array.from({ length: 4 }).map((_, idx) => (
                     <div
                       key={idx}
-                      className="h-64 rounded-xl bg-white/70 ring-1 ring-black/5 animate-pulse"
+                      className="glass-surface h-64 rounded-xl bg-white/70 ring-1 ring-black/5 animate-pulse"
                     />
                   ))}
                 </div>
@@ -839,7 +839,7 @@ export default function ShopPage() {
       {filtersOpen && (
         <div className="fixed inset-0 z-[90] bg-black/60 md:hidden">
           <div className="absolute inset-0" onClick={handleCloseFilters} />
-          <div className="absolute inset-y-0 right-0 flex h-full w-full max-w-md flex-col bg-white shadow-2xl">
+          <div className="glass-surface absolute inset-y-0 right-0 flex h-full w-full max-w-md flex-col shadow-2xl">
             <div className="flex items-center justify-between border-b px-4 py-3">
               <h2 className="text-base font-semibold text-primary">
                 {filtersCopy.title || "Filtreler"}

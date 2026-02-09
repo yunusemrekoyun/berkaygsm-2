@@ -54,9 +54,9 @@ export default function MegaMenu({ label, data = [], onRootClick }) {
           "
           role="menu"
         >
-          <div className="flex overflow-hidden rounded-xl border border-border bg-white shadow-2xl">
+          <div className="glass-surface glass-surface-strong flex overflow-hidden rounded-xl border border-border shadow-2xl">
             {/* Sol kolon */}
-            <ul className="w-64 max-h-[420px] overflow-auto border-r border-border/60 bg-surface-light/50 p-2">
+            <ul className="glass-surface-soft w-64 max-h-[420px] overflow-auto border-r border-border/60 bg-surface-light/50 p-2">
               {data.map((item, i) => {
                 const isActive = i === active;
                 return (
@@ -93,7 +93,7 @@ export default function MegaMenu({ label, data = [], onRootClick }) {
 function RightPanel({ items }) {
   if (!items?.length) {
     return (
-      <div className="grid h-full place-items-center rounded-lg border border-dashed border-border/70 bg-surface-hover p-8 text-center text-secondary">
+      <div className="glass-surface-soft grid h-full place-items-center rounded-lg border border-dashed border-border/70 bg-surface-hover p-8 text-center text-secondary">
         Alt kategori yok
       </div>
     );
@@ -105,7 +105,7 @@ function RightPanel({ items }) {
         <Link
           key={c.key || c.title}
           to={c.to ?? "#"}
-          className="group flex gap-3 overflow-hidden rounded-lg border border-border/60 bg-white p-3 hover:shadow-sm"
+          className="glass-surface-soft group flex gap-3 overflow-hidden rounded-lg border border-border/60 bg-white p-3 hover:shadow-sm"
         >
           {c.image && (
             <img

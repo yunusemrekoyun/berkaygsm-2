@@ -18,14 +18,14 @@ export default function HomeProductItem({
   return (
     <Link
       to={to}
-      className="group block overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5 transition hover:shadow-md"
+      className="glass-surface group block overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5 transition hover:shadow-md"
     >
       {/* Görsel */}
-      <div className="relative">
+      <div className="relative aspect-[4/5] w-full overflow-hidden bg-surface-light/60">
         <img
           src={image}
           alt={title}
-          className="h-48 w-full object-cover md:h-56"
+          className="h-full w-full object-contain p-2 sm:p-3"
           draggable="false"
         />
         {showStrike && (

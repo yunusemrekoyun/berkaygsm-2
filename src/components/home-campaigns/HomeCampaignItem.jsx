@@ -24,7 +24,7 @@ export default function HomeCampaignItem({
   return (
     <Link
       to={to}
-      className={`group relative h-full min-h-[260px] overflow-hidden rounded-2xl ring-1 ring-black/5 shadow-sm ${span} ${className}`}
+      className={`glass-surface group relative h-full min-h-[260px] overflow-hidden rounded-2xl ring-1 ring-black/5 shadow-sm ${span} ${className}`}
     >
       {/* BG image */}
       <img
@@ -40,7 +40,7 @@ export default function HomeCampaignItem({
 
       {/* Badge */}
       {badge && (
-        <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-primary shadow">
+        <span className="glass-chip absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-primary shadow">
           {badge}
         </span>
       )}

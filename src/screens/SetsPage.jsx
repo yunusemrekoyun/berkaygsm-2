@@ -130,7 +130,7 @@ export default function SetsPage() {
 
   return (
     <>
-      <section className="border-b border-border bg-surface-light/60">
+      <section className="store-page border-b border-border bg-surface-light/60">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-8">
           <BreadCrumb
             items={[
@@ -152,7 +152,7 @@ export default function SetsPage() {
 
       {campaignError && (
         <div className="mx-auto mt-6 max-w-[1400px] px-4 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="glass-surface-soft flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             <span>{campaignError}</span>
             <button
               type="button"
@@ -167,7 +167,7 @@ export default function SetsPage() {
 
       {activeCampaign && !campaignError && (
         <div className="mx-auto mt-6 max-w-[1400px] px-4 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+          <div className="glass-surface-soft flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
             <div>
               {bannerCopy.prefix || "Gösterilen kampanya"}{" "}
               <span className="font-semibold">“{activeCampaign.name}”</span>
@@ -198,7 +198,7 @@ export default function SetsPage() {
       />
 
       <section className="mx-auto mb-12 max-w-[1400px] px-4 sm:px-6">
-        <div className="rounded-xl border border-border bg-contact-bg p-6 text-center">
+        <div className="glass-surface rounded-xl border border-border bg-contact-bg p-6 text-center">
           <h3 className="text-xl font-semibold text-primary">
             {ctaCopy.heading || "Set seçerken yardıma mı ihtiyacınız var?"}
           </h3>

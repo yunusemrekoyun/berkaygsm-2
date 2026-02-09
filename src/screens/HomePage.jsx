@@ -218,7 +218,7 @@ export default function HomePage() {
       <Hero slides={heroSlides} imageAutoMs={6000} loading={loadingHeroes} />
       <Categories />
       <section className="app-section app-section--tight">
-        <div className="rounded-xl bg-surface shadow-sm">
+        <div className="glass-surface rounded-xl bg-surface shadow-sm">
           <HomeProducts
             variant="merge-top"
             title={sectionCopy.newArrivalsTitle || "Yeni Gelenler"}

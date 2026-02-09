@@ -12,15 +12,15 @@ export default function Footer() {
     `© ${year} Berkay GSM.`;
 
   return (
-    <footer className="border-t border-border bg-white">
+    <footer className="glass-surface glass-surface-soft border-t border-border">
       <div className="app-section app-section--tight">
         {/* Üst mini ikonlar */}
         <div className="flex flex-wrap items-center justify-center gap-4 pb-6 text-sm text-secondary">
-          <span className="flex min-w-[140px] items-center justify-center gap-2 rounded-full bg-surface-light px-4 py-2 text-accent">
+          <span className="glass-chip flex min-w-[140px] items-center justify-center gap-2 rounded-full bg-surface-light px-4 py-2 text-accent">
             <Mail className="h-4 w-4" />
             <span className="font-medium">{links.email || "hello@berkaygsm.com"}</span>
           </span>
-          <span className="flex min-w-[140px] items-center justify-center gap-2 rounded-full bg-surface-light px-4 py-2 text-accent">
+          <span className="glass-chip flex min-w-[140px] items-center justify-center gap-2 rounded-full bg-surface-light px-4 py-2 text-accent">
             <Phone className="h-4 w-4" />
             <span className="font-medium">{links.phone || "+90 212 000 00 00"}</span>
           </span>

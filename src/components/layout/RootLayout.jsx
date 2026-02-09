@@ -8,7 +8,7 @@ import GlobalLoadingOverlay from "../ui/GlobalLoadingOverlay.jsx";
 
 export default function RootLayout({ children }) {
   return (
-    <div className="app-shell">
+    <div className="app-shell store-glass">
       <div className="app-card">
         <Suspense fallback={null}>
           <GsapScrollProvider />

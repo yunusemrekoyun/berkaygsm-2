@@ -48,7 +48,7 @@ export default function TermsPage() {
   const isActive = data?.isActive !== false; // kayıt yoksa aktif varsay
 
   return (
-    <main className="bg-surface-light/60">
+    <main className="store-page bg-surface-light/60">
       <section className="mx-auto max-w-[1400px] px-4 sm:px-6 pt-6">
         <BreadCrumb
           items={[{ label: "Ana Sayfa", to: "/" }, { label: "Kullanım Koşulları" }]}
@@ -56,7 +56,7 @@ export default function TermsPage() {
       </section>
 
       <section className="mx-auto max-w-[1400px] px-4 sm:px-6 pb-14">
-        <div className="rounded-2xl border border-border bg-white/90 p-8 sm:p-12 shadow-sm">
+        <div className="glass-surface rounded-2xl border border-border bg-white/90 p-8 sm:p-12 shadow-sm">
           {/* Header */}
           <header className="text-center">
             {loading ? (
@@ -94,7 +94,7 @@ export default function TermsPage() {
                 Kullanım Koşulları sayfası şu anda aktif değil.
               </div>
             ) : sections.length === 0 ? (
-              <div className="rounded-xl border border-border bg-surface p-6 text-center text-secondary">
+              <div className="glass-surface-soft rounded-xl border border-border bg-surface p-6 text-center text-secondary">
                 Henüz Kullanım Koşulları içeriği yok.
               </div>
             ) : (
@@ -108,7 +108,7 @@ export default function TermsPage() {
           </div>
 
           {/* Footer Note */}
-          <footer className="mt-10 rounded-2xl border border-border bg-contact-bg/70 p-6 text-sm text-secondary">
+          <footer className="glass-surface-soft mt-10 rounded-2xl border border-border bg-contact-bg/70 p-6 text-sm text-secondary">
             {loading ? (
               <div className="h-4 w-72 animate-pulse rounded bg-surface" />
             ) : (

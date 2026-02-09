@@ -40,7 +40,7 @@ export default function CartItem({ item, onQty, onRemove }) {
     <li className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-12">
       {/* Görsel */}
       <div className="sm:col-span-2">
-        <div className="overflow-hidden rounded-xl border border-border bg-white">
+        <div className="glass-surface-soft overflow-hidden rounded-xl border border-border bg-white">
           <img
             src={item.image}
             alt={item.title}
@@ -101,7 +101,7 @@ export default function CartItem({ item, onQty, onRemove }) {
                   className="text-sm text-secondary"
                 >
                   <span className="inline-flex items-center gap-2">
-                    <span className="rounded-full bg-contact-bg px-2 py-0.5 text-xs">
+                    <span className="glass-chip rounded-full bg-contact-bg px-2 py-0.5 text-xs">
                       ×{s.qtyInSet || 1}
                     </span>
                     {s.color && (
@@ -134,7 +134,7 @@ export default function CartItem({ item, onQty, onRemove }) {
 
         {/* Miktar + Kaldır */}
         <div className="mt-3 flex items-center gap-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-contact-bg px-3 py-1.5">
+          <div className="glass-chip inline-flex items-center gap-2 rounded-full border border-border bg-contact-bg px-3 py-1.5">
             <button onClick={dec} className="px-1 text-primary">
               –
             </button>

@@ -5,12 +5,12 @@ function WishlistCard({ title, price, image, href, onRemove, copy = {} }) {
   return (
     <div className="group overflow-hidden rounded-xl border border-border bg-white">
       <Link to={href} className="block">
-        <div className="aspect-square w-full overflow-hidden bg-surface">
+        <div className="aspect-[4/5] w-full overflow-hidden bg-surface">
           {image ? (
             <img
               src={image}
               alt={title}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              className="h-full w-full object-contain p-2 transition-transform duration-300 group-hover:scale-[1.03]"
             />
           ) : (
             <div className="grid h-full place-items-center text-secondary/70">

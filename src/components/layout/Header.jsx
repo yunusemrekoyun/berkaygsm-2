@@ -21,6 +21,7 @@ import { useStaticTranslation } from "../../i18n/staticContent.js";
 export default function Header() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const [hydrated, setHydrated] = useState(false);
   const [categoryTree, setCategoryTree] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [navError, setNavError] = useState(null);
@@ -30,6 +31,10 @@ export default function Header() {
 
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState(new Set());
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -161,14 +166,14 @@ export default function Header() {
   return (
     <>
       <header className="sticky top-0 z-[70]">
-        <div className="rounded-t-2xl border-b border-border bg-white/95 backdrop-blur">
+        <div className="rounded-t-2xl border-b border-border glass-surface glass-surface-strong">
           {/* Mobile top */}
           <div className="md:hidden border-b border-border/70 px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={() => setMobileCategoryOpen(true)}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border text-primary shadow-sm"
+                className="glass-chip inline-flex h-11 w-11 items-center justify-center rounded-full border border-border text-primary shadow-sm"
                 aria-label={t("header.categories") || "Kategoriler"}
               >
                 <Menu className="h-5 w-5" />
@@ -191,10 +196,10 @@ export default function Header() {
               <div className="flex items-center gap-2">
                 <Link
                   to="/cart"
-                  className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-secondary hover:text-primary"
+                  className="glass-chip relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-secondary hover:text-primary"
                 >
                   <ShoppingBag className="h-5 w-5" />
-                  {totalItems > 0 && (
+                  {hydrated && totalItems > 0 && (
                     <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-accent text-[10px] text-white">
                       {totalItems}
                     </span>
@@ -202,7 +207,7 @@ export default function Header() {
                 </Link>
                 <Link
                   to="/account"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-secondary hover:text-primary"
+                  className="glass-chip inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-secondary hover:text-primary"
                 >
                   <User className="h-5 w-5" />
                 </Link>
@@ -212,7 +217,7 @@ export default function Header() {
               onSubmit={onSearchSubmit}
               className="mt-3 flex items-center gap-3"
             >
-              <div className="flex flex-1 items-center rounded-full border border-border bg-white px-3 py-2 shadow-sm">
+              <div className="glass-input flex flex-1 items-center rounded-full border border-border px-3 py-2 shadow-sm">
                 <Search className="h-4 w-4 text-secondary" />
                 <input
                   type="text"
@@ -245,7 +250,7 @@ export default function Header() {
                 <div className="flex justify-center">
                   <form
                     onSubmit={onSearchSubmit}
-                    className="flex w-full max-w-lg items-center rounded-full border border-border bg-white pl-3 pr-2 py-2 shadow-sm"
+                    className="glass-input flex w-full max-w-lg items-center rounded-full border border-border pl-3 pr-2 py-2 shadow-sm"
                   >
                     <Search className="h-4 w-4 text-secondary" />
                     <input
@@ -260,10 +265,10 @@ export default function Header() {
                 <div className="flex items-center justify-end gap-3">
                   <Link
                     to="/cart"
-                    className="relative inline-flex rounded-full p-2 hover:bg-surface-hover"
+                    className="glass-chip relative inline-flex rounded-full p-2 hover:bg-surface-hover"
                   >
                     <ShoppingBag className="h-6 w-6 text-secondary" />
-                    {totalItems > 0 && (
+                    {hydrated && totalItems > 0 && (
                       <span className="absolute -right-0.5 -top-0.5 grid h-5 w-5 place-items-center rounded-full bg-accent text-[10px] text-white">
                         {totalItems}
                       </span>
@@ -271,20 +276,20 @@ export default function Header() {
                   </Link>
                   <Link
                     to="/account?tab=Wishlist"
-                    className="inline-flex rounded-full p-2 hover:bg-surface-hover"
+                    className="glass-chip inline-flex rounded-full p-2 hover:bg-surface-hover"
                   >
                     <Heart className="h-6 w-6 text-secondary" />
                   </Link>
                   <Link
                     to="/account"
-                    className="inline-flex rounded-full p-2 hover:bg-surface-hover"
+                    className="glass-chip inline-flex rounded-full p-2 hover:bg-surface-hover"
                   >
                     <User className="h-6 w-6 text-secondary" />
                   </Link>
                 </div>
               </div>
             </div>
-            <div className="border-t border-border/70 bg-white">
+            <div className="glass-surface glass-surface-soft border-t border-border/70">
               <div className="mx-auto max-w-7xl px-4 sm:px-6">
                 <nav
                   className="
@@ -344,7 +349,7 @@ export default function Header() {
             className="absolute inset-0"
             onClick={() => setMobileCategoryOpen(false)}
           />
-          <div className="absolute inset-y-0 left-0 flex h-full w-full max-w-xs flex-col bg-white shadow-2xl">
+          <div className="glass-surface absolute inset-y-0 left-0 flex h-full w-full max-w-xs flex-col shadow-2xl">
             <div className="flex items-center justify-between border-b px-4 py-4">
               <div>
                 <p className="text-base font-semibold text-primary">
@@ -358,14 +363,14 @@ export default function Header() {
               <button
                 type="button"
                 onClick={() => setMobileCategoryOpen(false)}
-                className="rounded-full p-2 text-secondary hover:bg-surface-hover"
+                className="glass-chip rounded-full p-2 text-secondary hover:bg-surface-hover"
                 aria-label={t("header.closeMenu") || "Kapat"}
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto px-4 pb-6 pt-4">
-              <div className="sticky top-0 z-10 mb-4 rounded-2xl border border-accent/30 bg-white/95 px-4 py-3 shadow-sm backdrop-blur">
+              <div className="glass-surface glass-surface-soft sticky top-0 z-10 mb-4 rounded-2xl border border-accent/30 px-4 py-3 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-accent">
                   {t("header.sale")}
                 </p>

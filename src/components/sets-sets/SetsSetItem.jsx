@@ -38,7 +38,7 @@ export default function SetsSetItem({
     );
 
   return (
-    <article className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/5 shadow-sm transition">
+    <article className="glass-surface overflow-hidden rounded-2xl bg-white ring-1 ring-black/5 shadow-sm transition">
       <Wrapper>
         <div className="relative overflow-hidden">
           <img
