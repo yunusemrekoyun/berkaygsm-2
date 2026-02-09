@@ -25,7 +25,9 @@ export default function RootLayout({ children }) {
         ) : null}
         <GlobalLoadingOverlay />
         <Header />
-        <main className="pb-20 md:pb-0">{children}</main>
+        <main className="pb-20 pt-[112px] md:pb-0 md:pt-[136px]">
+          {children}
+        </main>
         <Footer />
       </div>
     </div>
