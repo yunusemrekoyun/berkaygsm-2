@@ -158,6 +158,11 @@ import {
   createUploadSignature,
   uploadMediaAsset,
 } from "./controllers/mediaController.js";
+import {
+  getAdminAnalyticsOverview,
+  getAdminVisitAnalyticsOverview,
+  trackVisit,
+} from "./controllers/analyticsController.js";
 
 import { requireAuth } from "./middleware/auth.js";
 import { requireRole } from "./middleware/roles.js";
@@ -312,6 +317,21 @@ export const routes = [
   route("PATCH", ["users", ":idOrKey"], [requireAuth, requireRole("admin"), updateUser]),
   route("POST", ["users", ":idOrKey", "soft-delete"], [requireAuth, requireRole("admin"), softDeleteUser]),
   route("POST", ["users", ":idOrKey", "restore"], [requireAuth, requireRole("admin"), restoreUser]),
+
+  // analytics tracking (public)
+  route("POST", ["analytics", "track-visit"], [trackVisit]),
+
+  // analytics (admin)
+  route(
+    "GET",
+    ["analytics", "overview"],
+    [requireAuth, requireRole("admin"), getAdminAnalyticsOverview]
+  ),
+  route(
+    "GET",
+    ["analytics", "visits-overview"],
+    [requireAuth, requireRole("admin"), getAdminVisitAnalyticsOverview]
+  ),
 
   // user details (auth)
   route("GET", ["user-details"], [requireAuth, getMyDetails]),
