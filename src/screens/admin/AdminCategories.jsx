@@ -316,7 +316,6 @@ export default function AdminCategories() {
 }
 
 function TranslationEditors({ category, drafts, onChange, onSave, savingMap }) {
-  if (!HAS_TRANSLATIONS) return null;
   const fallbackName = category?.name ?? "";
   const translations = category?.translations ?? {};
   const [openStates, setOpenStates] = useState(() => {
@@ -334,6 +333,8 @@ function TranslationEditors({ category, drafts, onChange, onSave, savingMap }) {
     });
     setOpenStates(reset);
   }, [category?.id]);
+
+  if (!HAS_TRANSLATIONS) return null;
 
   const toggle = (lang) => {
     setOpenStates((prev) => ({ ...prev, [lang]: !prev[lang] }));
@@ -389,7 +390,7 @@ function TranslationEditors({ category, drafts, onChange, onSave, savingMap }) {
                       setOpenStates((prev) => ({ ...prev, [value]: true }));
                     }}
                   >
-                    TR'den kopyala
+                    TR’den kopyala
                   </button>
                 </div>
               </div>

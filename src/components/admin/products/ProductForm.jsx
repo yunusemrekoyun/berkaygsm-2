@@ -896,7 +896,7 @@ function ProductTranslationEditors({
                     className="rounded-full border border-[var(--color-border-admin)] px-3 py-1 text-xs font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] disabled:opacity-50"
                     disabled={!baseDraft}
                   >
-                    TR'den kopyala
+                    TR’den kopyala
                   </button>
                   <button
                     type="button"

@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 // src/pages/HomePage.jsx
 import { useEffect, useMemo, useState } from "react";
 import Hero from "../components/Hero";
@@ -42,12 +41,20 @@ export default function HomePage() {
   const [error, setError] = useState(null);
   const { lang } = useStorefrontLang();
   const t = useStaticTranslation();
-  const fallbackCampaigns = t("homePage.fallbackCampaigns") || [];
-  const fallbackComments = t("homePage.fallbackComments") || [];
-  const heroFallback = t("homePage.heroFallback") || [];
-  const sectionCopy = t("homePage.sections") || {};
-  const allTabLabel = t("homeSets.tabsAll") || "Tümü";
-  const campaignCopy = t("homeCampaigns") || {};
+  const fallbackCampaigns = useMemo(
+    () => t("homePage.fallbackCampaigns") || [],
+    [t]
+  );
+  const fallbackComments = useMemo(
+    () => t("homePage.fallbackComments") || [],
+    [t]
+  );
+  const heroFallback = useMemo(() => t("homePage.heroFallback") || [], [t]);
+  const sectionCopy = useMemo(() => t("homePage.sections") || {}, [t]);
+  const allTabLabel = useMemo(() => t("homeSets.tabsAll") || "Tümü", [t]);
+  const campaignCopy = useMemo(() => t("homeCampaigns") || {}, [t]);
+  const sectionUntitledSet = sectionCopy.untitledSet;
+  const sectionIncludesMore = sectionCopy.includesMore;
 
   // HERO fetch
   useEffect(() => {
@@ -100,8 +107,8 @@ export default function HomePage() {
         if (!mounted) return;
         setSets(
           mapSetsToCards(rawSets, {
-            untitledSet: sectionCopy.untitledSet,
-            includesMoreLabel: sectionCopy.includesMore,
+            untitledSet: sectionUntitledSet,
+            includesMoreLabel: sectionIncludesMore,
           })
         );
       } catch (e) {
@@ -113,7 +120,7 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, [lang]);
+  }, [lang, sectionIncludesMore, sectionUntitledSet]);
 
   // Campaign fetch
   useEffect(() => {

@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
@@ -42,23 +41,23 @@ export default function ShopPage() {
   const [error, setError] = useState(null);
   const { lang } = useStorefrontLang();
   const t = useStaticTranslation();
-  const shopCopy = useMemo(() => t("shopPage") || {}, [t, lang]);
+  const shopCopy = useMemo(() => t("shopPage") || {}, [t]);
   const matchingCopy = shopCopy.matchingSets || {};
   const bannerCopy = shopCopy.campaignBanner || {};
-  const filtersCopy = useMemo(() => t("shopFilters") || {}, [t, lang]);
+  const filtersCopy = useMemo(() => t("shopFilters") || {}, [t]);
   const searchPlaceholder = filtersCopy.searchPlaceholder || "Ürün ara";
   const searchButtonLabel = filtersCopy.searchButton || "Ara";
   const clearSearchLabel = filtersCopy.clearSearch || "Temizle";
   const quickCategoriesLabel =
     filtersCopy.quickCategories || filtersCopy.categories || "Kategoriler";
-  const breadcrumbs = useMemo(() => t("breadcrumbs") || {}, [t, lang]);
+  const breadcrumbs = useMemo(() => t("breadcrumbs") || {}, [t]);
   const shopProductsEmpty =
     shopCopy.noProducts || "Seçili filtrelere uygun ürün bulunamadı.";
   const matchingEmpty = matchingCopy.empty || "Bu aramaya uygun set yok.";
   const setsCardCopy = useMemo(() => {
     const setsPage = t("setsPage") || {};
     return setsPage.cards || {};
-  }, [t, lang]);
+  }, [t]);
 
   const campaignId = searchParams.get("campaign");
   const searchQuery = (searchParams.get("q") || "").trim();

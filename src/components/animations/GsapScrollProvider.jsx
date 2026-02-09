@@ -21,15 +21,44 @@ const prefersReducedMotion = () => {
 
 const collectTargets = () => {
   const elements = new Set();
+  document.querySelectorAll("[data-animate]").forEach((el) => {
+    if (el.dataset.animate === "none") return;
+    elements.add(el);
+  });
   document.querySelectorAll(".app-section").forEach((el) => {
     if (el.dataset.animate === "none") return;
     elements.add(el);
   });
-  document.querySelectorAll('[data-animate="section"]').forEach((el) => {
-    if (el.dataset.animate === "none") return;
-    elements.add(el);
-  });
   return Array.from(elements);
+};
+
+const readNumber = (el, keys, fallback) => {
+  for (const key of keys) {
+    const raw = el.dataset?.[key];
+    if (raw === undefined || raw === null || raw === "") continue;
+    const value = Number(raw);
+    if (Number.isFinite(value)) return value;
+  }
+  return fallback;
+};
+
+const readString = (el, keys, fallback) => {
+  for (const key of keys) {
+    const raw = el.dataset?.[key];
+    if (typeof raw === "string" && raw.trim()) return raw.trim();
+  }
+  return fallback;
+};
+
+const readBoolean = (el, keys, fallback = false) => {
+  for (const key of keys) {
+    const raw = el.dataset?.[key];
+    if (raw === undefined || raw === null || raw === "") continue;
+    const normalized = String(raw).trim().toLowerCase();
+    if (["1", "true", "yes", "on"].includes(normalized)) return true;
+    if (["0", "false", "no", "off"].includes(normalized)) return false;
+  }
+  return fallback;
 };
 
 const resolveStaggerTargets = (el, selector) => {
@@ -55,138 +84,157 @@ export default function GsapScrollProvider() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (prefersReducedMotion()) return;
-
-    const schedule = (fn) => {
-      if ("requestIdleCallback" in window) {
-        const id = window.requestIdleCallback(fn, { timeout: 1200 });
-        return () => window.cancelIdleCallback(id);
-      }
-      const id = window.setTimeout(fn, 120);
-      return () => window.clearTimeout(id);
-    };
-
-    const waitForLoad = (fn) => {
-      if (document.readyState === "complete") {
-        fn();
-        return () => {};
-      }
-      const handler = () => fn();
-      window.addEventListener("load", handler, { once: true });
-      return () => window.removeEventListener("load", handler);
-    };
-
-    let cleanupIdle = () => {};
-    let cleanupLoad = () => {};
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+    let rafA = null;
+    let rafB = null;
     let ctx = null;
-    cleanupLoad = waitForLoad(() => {
-      cleanupIdle = schedule(() => {
-        ensureRegistered();
+    const run = () => {
+      ensureRegistered();
 
-        ctx = gsap.context(() => {
-          const elements = collectTargets();
+      ctx = gsap.context(() => {
+        const elements = collectTargets();
 
-          elements.forEach((el) => {
-            if (!el || el.dataset.animate === "none") return;
+        elements.forEach((el) => {
+          if (!el || el.dataset.animate === "none") return;
+          if (!el.getBoundingClientRect) return;
 
-            const isSection = el.classList.contains("app-section") || el.dataset.animate === "section";
-            const type = isSection ? "section" : el.dataset.animate || "fade-up";
-            const distance = Number(el.dataset.distance || (type === "section" ? 18 : 18));
-            const duration = Number(el.dataset.duration || (type === "section" ? 0.8 : 0.8));
-            const delay = Number(el.dataset.delay || 0);
-            const ease = el.dataset.ease || (type === "section" ? "power2.out" : "power2.out");
-            const stagger = Number(el.dataset.stagger || 0.12);
-            const start = el.dataset.animateStart || (type === "section" ? "top 82%" : "top 85%");
-            const end = el.dataset.animateEnd || "bottom 15%";
-            const childrenSelector =
-              el.dataset.animateChildren || "[data-animate-child]";
-            const blur = Number(el.dataset.blur || 0);
-            const scrubRaw = el.dataset.scrub;
-            const scrubValue =
-              scrubRaw !== undefined
-                ? scrubRaw === "true"
-                  ? 0.2
-                  : Number(scrubRaw || 0.2)
-                : false;
+          const isAutoSection = el.classList.contains("app-section") && !el.dataset.animate;
+          if (isAutoSection && el.querySelector("[data-animate]")) {
+            // Avoid double motion: let nested explicit animations drive this block.
+            return;
+          }
 
-            const isStagger = type === "stagger";
-            let targets = el;
-            if (isStagger) {
-              targets = resolveStaggerTargets(el, childrenSelector);
-              if (!targets || targets.length === 0) return;
-            }
+          const isSection =
+            el.classList.contains("app-section") || el.dataset.animate === "section";
+          const type = isSection ? "section" : el.dataset.animate || "fade-up";
 
-            const fromVars = {
-              autoAlpha: 0,
-            };
+          const distance = readNumber(
+            el,
+            ["animateDistance", "distance"],
+            type === "section" ? (isMobile ? 20 : 30) : isMobile ? 18 : 26
+          );
+          const duration = readNumber(
+            el,
+            ["animateDuration", "duration"],
+            type === "section" ? (isMobile ? 0.62 : 0.8) : isMobile ? 0.56 : 0.72
+          );
+          const delay = readNumber(el, ["animateDelay", "delay"], 0);
+          const ease = readString(
+            el,
+            ["animateEase", "ease"],
+            type === "section" ? "power3.out" : "power2.out"
+          );
+          const stagger = readNumber(el, ["animateStagger", "stagger"], 0.08);
+          const start = readString(
+            el,
+            ["animateStart"],
+            type === "section" ? "top 90%" : "top 88%"
+          );
+          const end = readString(el, ["animateEnd"], "bottom 18%");
+          const childrenSelector = readString(
+            el,
+            ["animateChildren"],
+            "[data-animate-child]"
+          );
+          const blur = readNumber(
+            el,
+            ["animateBlur", "blur"],
+            type === "section" ? (isMobile ? 0 : 6) : isMobile ? 0 : 4
+          );
+          const scrubRaw = readString(el, ["animateScrub", "scrub"], "");
+          const scrubValue =
+            scrubRaw === ""
+              ? false
+              : scrubRaw === "true"
+              ? 0.18
+              : Number.isFinite(Number(scrubRaw))
+              ? Number(scrubRaw)
+              : false;
+          const repeat = readBoolean(el, ["animateRepeat", "repeat"], false);
 
-            if (type === "fade-up" || type === "section" || type === "stagger") {
-              fromVars.y = distance;
-            } else if (type === "fade-left") {
-              fromVars.x = -distance;
-            } else if (type === "fade-right") {
-              fromVars.x = distance;
-            } else if (type === "zoom") {
-              fromVars.scale = 0.96;
-            } else if (type === "clip") {
-              fromVars.clipPath = "inset(0 0 100% 0)";
-              fromVars.autoAlpha = 1;
-            }
+          const isStagger = type === "stagger";
+          let targets = el;
+          if (isStagger) {
+            targets = resolveStaggerTargets(el, childrenSelector);
+            if (!targets || targets.length === 0) return;
+          }
 
-            if (blur > 0) {
-              fromVars.filter = `blur(${blur}px)`;
-            }
+          const fromVars = {
+            autoAlpha: 0,
+            force3D: true,
+          };
 
-            const toVars = {
-              autoAlpha: 1,
-              x: 0,
-              y: 0,
-              scale: 1,
-              duration,
-              delay,
-              ease,
-              stagger: isStagger ? stagger : 0,
-              immediateRender: false,
-              scrollTrigger: {
-                trigger: el,
-                start,
-                end,
-                toggleActions: "play none none none",
-                once: true,
-                scrub: scrubValue,
-                invalidateOnRefresh: true,
-                fastScrollEnd: true,
-              },
-              onStart: () => {
-                gsap.set(targets, { willChange: "transform, opacity" });
-              },
-              onComplete: () => {
-                gsap.set(targets, { clearProps: "willChange" });
-              },
-            };
+          if (type === "fade-up" || type === "section" || type === "stagger") {
+            fromVars.y = distance;
+            fromVars.scale = type === "section" ? 0.988 : 0.992;
+          } else if (type === "fade-left") {
+            fromVars.x = -distance;
+          } else if (type === "fade-right") {
+            fromVars.x = distance;
+          } else if (type === "zoom") {
+            fromVars.scale = 0.95;
+          } else if (type === "clip") {
+            fromVars.clipPath = "inset(0 0 100% 0)";
+            fromVars.autoAlpha = 1;
+          }
 
-            if (blur > 0) {
-              toVars.filter = "blur(0px)";
-            }
+          if (blur > 0) {
+            fromVars.filter = `blur(${blur}px)`;
+          }
 
-            if (type === "clip") {
-              toVars.clipPath = "inset(0 0 0% 0)";
-            }
+          const toVars = {
+            autoAlpha: 1,
+            x: 0,
+            y: 0,
+            scale: 1,
+            duration,
+            delay,
+            ease,
+            stagger: isStagger ? stagger : 0,
+            immediateRender: false,
+            overwrite: "auto",
+            scrollTrigger: {
+              trigger: el,
+              start,
+              end,
+              toggleActions: repeat
+                ? "play none none reverse"
+                : "play none none none",
+              once: !repeat,
+              scrub: scrubValue,
+              invalidateOnRefresh: true,
+              fastScrollEnd: true,
+            },
+            onStart: () => {
+              gsap.set(targets, { willChange: "transform, opacity, filter" });
+            },
+            onComplete: () => {
+              gsap.set(targets, { clearProps: "willChange" });
+            },
+          };
 
-            gsap.fromTo(
-              targets,
-              fromVars,
-              toVars
-            );
-          });
+          if (blur > 0) {
+            toVars.filter = "blur(0px)";
+          }
+
+          if (type === "clip") {
+            toVars.clipPath = "inset(0 0 0% 0)";
+          }
+
+          gsap.fromTo(targets, fromVars, toVars);
         });
-
-        ScrollTrigger.refresh(true);
       });
+
+      ScrollTrigger.refresh(true);
+    };
+
+    rafA = window.requestAnimationFrame(() => {
+      rafB = window.requestAnimationFrame(run);
     });
 
     return () => {
-      cleanupLoad();
-      cleanupIdle();
+      if (rafA) window.cancelAnimationFrame(rafA);
+      if (rafB) window.cancelAnimationFrame(rafB);
       if (ctx) ctx.revert();
     };
   }, [pathname, searchKey]);

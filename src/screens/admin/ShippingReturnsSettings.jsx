@@ -410,7 +410,7 @@ export default function ShippingReturnsSettings() {
             <h3 className="text-lg font-semibold">İpuçları</h3>
             <ul className="mt-4 space-y-3 text-sm text-[var(--color-text-admin-muted)]">
               <li>Hero alanını kısa ve anlaşılır tutun.</li>
-              <li>Kenar çubuğu için 4-6 "Hızlı bilgi" kullanın.</li>
+              <li>Kenar çubuğu için 4-6 hızlı bilgi kullanın.</li>
               <li>Bölümleri kargo, ücretler, iadeler ve geri ödemeler şeklinde yapılandırın.</li>
               <li>SEO için benzersiz başlık ve açıklama ekleyin.</li>
             </ul>
