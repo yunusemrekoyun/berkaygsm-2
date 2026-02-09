@@ -1,61 +1,124 @@
-/* eslint-disable no-unused-vars */
-import { Fragment, useEffect, useRef, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
   CartesianGrid,
   Legend,
-  Area,
-  AreaChart,
   PieChart,
   Pie,
   Cell,
   BarChart,
   Bar,
 } from "recharts";
-import { Users, MousePointer2, Clock3, TrendingUp } from "lucide-react";
+import { Users, Eye, Activity, Gauge, AlertCircle } from "lucide-react";
+import { analyticsApi } from "../../api/analytics.js";
 
-/* ---------------- helpers ---------------- */
+const EMPTY_ANALYTICS = {
+  periodDays: 30,
+  summary: {
+    totalVisits: 0,
+    uniqueVisitors: 0,
+    avgVisitsPerVisitor: 0,
+    avgDailyVisits: 0,
+    deltas: {
+      visits: "0%",
+      uniqueVisitors: "0%",
+      avgDailyVisits: "0%",
+      avgVisitsPerVisitor: "0%",
+    },
+  },
+  trend: [],
+  trafficSources: [],
+  devices: [],
+  heatmap: Array.from({ length: 7 }).map(() => Array(24).fill(0)),
+  countries: [],
+  topPages: [],
+};
+
+function mergeAnalyticsPayload(payload) {
+  return {
+    ...EMPTY_ANALYTICS,
+    ...payload,
+    summary: {
+      ...EMPTY_ANALYTICS.summary,
+      ...(payload?.summary || {}),
+      deltas: {
+        ...EMPTY_ANALYTICS.summary.deltas,
+        ...(payload?.summary?.deltas || {}),
+      },
+    },
+    trend: Array.isArray(payload?.trend) ? payload.trend : EMPTY_ANALYTICS.trend,
+    trafficSources: Array.isArray(payload?.trafficSources)
+      ? payload.trafficSources
+      : EMPTY_ANALYTICS.trafficSources,
+    devices: Array.isArray(payload?.devices) ? payload.devices : EMPTY_ANALYTICS.devices,
+    heatmap: Array.isArray(payload?.heatmap) ? payload.heatmap : EMPTY_ANALYTICS.heatmap,
+    countries: Array.isArray(payload?.countries) ? payload.countries : EMPTY_ANALYTICS.countries,
+    topPages: Array.isArray(payload?.topPages) ? payload.topPages : EMPTY_ANALYTICS.topPages,
+  };
+}
+
+function extractMessage(error) {
+  if (!error) return "Analitik verisi alınamadı.";
+  if (error instanceof Error) {
+    if (!error.message) return "Analitik verisi alınamadı.";
+    try {
+      const parsed = JSON.parse(error.message);
+      if (parsed?.message) return parsed.message;
+    } catch {
+      // ignore parse errors
+    }
+    return error.message;
+  }
+  return "Analitik verisi alınamadı.";
+}
+
+function formatDecimal(value, digits = 1) {
+  return Number(value || 0).toLocaleString("tr-TR", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
 function useCountUp(
   target = 0,
   ms = 900,
-  formatter = (n) => n.toLocaleString()
+  formatter = (n) => n.toLocaleString("tr-TR")
 ) {
-  const [val, setVal] = useState(0);
+  const [val, setVal] = useState(formatter(0));
   const fmtRef = useRef(formatter);
   const durRef = useRef(ms);
 
-  // formatter veya ms prop’u değişirse güncelle (animasyonu tetiklemeden)
   useEffect(() => {
     fmtRef.current = formatter;
   }, [formatter]);
+
   useEffect(() => {
     durRef.current = ms;
   }, [ms]);
 
   useEffect(() => {
-    let raf, start;
-    const step = (t) => {
-      if (!start) start = t;
-      const p = Math.min(1, (t - start) / durRef.current);
-      setVal(fmtRef.current(Math.round(p * target)));
-      if (p < 1) raf = requestAnimationFrame(step);
+    let raf;
+    let start;
+    const finalTarget = Math.max(0, Number(target || 0));
+    const step = (time) => {
+      if (!start) start = time;
+      const progress = Math.min(1, (time - start) / durRef.current);
+      const current = Math.round(progress * finalTarget);
+      setVal(fmtRef.current(current));
+      if (progress < 1) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, [target]);
 
   return val;
-}
-
-function msToMin(ms) {
-  const m = Math.floor(ms / 60000);
-  const s = Math.round((ms % 60000) / 1000);
-  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 function Card({ children, className = "" }) {
@@ -73,116 +136,82 @@ function CardHeader({ title, subtitle, right }) {
     <div className="mb-4 flex items-start justify-between gap-3">
       <div>
         <div className="text-lg font-semibold text-primary">{title}</div>
-        {subtitle && (
+        {subtitle ? (
           <div className="text-sm text-text-admin-muted">{subtitle}</div>
-        )}
+        ) : null}
       </div>
       {right}
     </div>
   );
 }
 
-/* ---------------- dummy data factories ---------------- */
-function makeTrend(days = 30) {
-  const baseV = 1500,
-    baseS = 1000;
-  return Array.from({ length: days }).map((_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (days - 1 - i));
-    const bump = Math.sin(i / 3) * 180 + (Math.random() * 160 - 80);
-    const visitors = Math.max(400, Math.round(baseV + bump));
-    const sessions = Math.max(260, Math.round(baseS + bump * 0.8));
-    return {
-      day: `${date.getDate()}/${date.getMonth() + 1}`,
-      visitors,
-      sessions,
-    };
-  });
-}
-
-function makeTraffic() {
-  // toplam %100
-  const raw = [
-    { key: "Organik", color: "var(--color-primary)" },
-    { key: "Ücretli", color: "var(--color-accent)" },
-    { key: "Sosyal", color: "var(--color-secondary)" },
-    { key: "Yönlendirme", color: "var(--color-surface)" },
-    { key: "Doğrudan", color: "var(--color-contact-bg)" },
-  ].map((x) => ({ ...x, v: Math.random() * 30 + 10 }));
-  const sum = raw.reduce((a, b) => a + b.v, 0);
-  return raw.map((x) => ({ ...x, value: Math.round((x.v / sum) * 100) }));
-}
-
-function makeDevices() {
-  const d = [
-    { key: "Mobil", color: "var(--color-accent)" },
-    { key: "Masaüstü", color: "var(--color-primary)" },
-    { key: "Tablet", color: "var(--color-secondary)" },
-  ].map((x) => ({ ...x, v: Math.random() * 50 + 15 }));
-  const sum = d.reduce((a, b) => a + b.v, 0);
-  return d.map((x) => ({ ...x, value: Math.round((x.v / sum) * 100) }));
-}
-
-function makeHeatmap() {
-  // 7 gün x 24 saat
-  return Array.from({ length: 7 }).map((_, d) =>
-    Array.from({ length: 24 }).map((_, h) => {
-      const k =
-        (Math.sin(h / 3) + Math.random() * 0.7) *
-        (d === 5 || d === 6 ? 1.2 : 1);
-      return Math.max(0, Math.round(k * 100));
-    })
-  );
-}
-
-function makeCountries() {
-  const list = ["TR", "DE", "NL", "FR", "GB", "US", "SA", "AE", "AZ", "RU"];
-  return list.map((c, i) => ({
-    country: c,
-    visitors: Math.round(300 + Math.random() * (1200 - i * 60)),
-  }));
-}
-
-function makeFunnel() {
-  const visits = 12000 + Math.round(Math.random() * 1000);
-  const view = Math.round(visits * 0.62);
-  const add = Math.round(visits * 0.18);
-  const checkout = Math.round(visits * 0.1);
-  const purchase = Math.round(visits * 0.07);
-  return [
-    { name: "Ziyaretler", value: visits },
-    { name: "Ürün Görüntülemeleri", value: view },
-    { name: "Sepete Eklemeler", value: add },
-    { name: "Ödeme", value: checkout },
-    { name: "Satın Almalar", value: purchase },
-  ];
-}
-
-/* ---------------- page ---------------- */
 export default function AdminAnalytics() {
-  const trend = useMemo(() => makeTrend(30), []);
-  const traffic = useMemo(() => makeTraffic(), []);
-  const devices = useMemo(() => makeDevices(), []);
-  const heat = useMemo(() => makeHeatmap(), []);
-  const countries = useMemo(() => makeCountries(), []);
-  const funnel = useMemo(() => makeFunnel(), []);
-
-  const totalVisitors = trend.reduce((a, b) => a + b.visitors, 0);
-  const totalSessions = trend.reduce((a, b) => a + b.sessions, 0);
-  const bounceRate =
-    100 - Math.round((totalSessions / (totalVisitors || 1)) * 80); // dummy
-  const avgMs = 1000 * (60 + Math.round(Math.random() * 120)); // 1–3 dk
-
-  const visitorsCount = useCountUp(totalVisitors, 1100);
-  const sessionsCount = useCountUp(totalSessions, 1100);
-  const bounceCount = useCountUp(bounceRate, 900, (n) => `${n}%`);
-  const avgDur = useCountUp(1, 900, () => msToMin(avgMs));
-
   const [entered, setEntered] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [analytics, setAnalytics] = useState(EMPTY_ANALYTICS);
+
   useEffect(() => {
-    const t = setTimeout(() => setEntered(true), 20);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setEntered(true), 20);
+    return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const data = await analyticsApi.visitsOverview({ days: 30 });
+        if (cancelled) return;
+        setAnalytics(mergeAnalyticsPayload(data));
+      } catch (err) {
+        if (cancelled) return;
+        setError(extractMessage(err));
+        setAnalytics(EMPTY_ANALYTICS);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const summary = analytics.summary || EMPTY_ANALYTICS.summary;
+  const trend = analytics.trend || EMPTY_ANALYTICS.trend;
+  const trafficSources =
+    analytics.trafficSources || EMPTY_ANALYTICS.trafficSources;
+  const devices = analytics.devices || EMPTY_ANALYTICS.devices;
+  const heatmap = analytics.heatmap || EMPTY_ANALYTICS.heatmap;
+  const countries =
+    analytics.countries && analytics.countries.length
+      ? analytics.countries
+      : [{ country: "—", visitors: 0 }];
+  const topPages = analytics.topPages || EMPTY_ANALYTICS.topPages;
+
+  const totalVisits = useCountUp(summary.totalVisits, 1100);
+  const uniqueVisitors = useCountUp(summary.uniqueVisitors, 1100);
+  const avgDailyVisits = useCountUp(
+    summary.avgDailyVisits * 10,
+    900,
+    (n) => formatDecimal(n / 10, 1)
+  );
+  const avgDepth = useCountUp(
+    summary.avgVisitsPerVisitor * 100,
+    900,
+    (n) => formatDecimal(n / 100, 2)
+  );
+
+  const trendData = useMemo(() => {
+    if (Array.isArray(trend) && trend.length > 0) return trend;
+    return Array.from({ length: analytics.periodDays || 30 }).map((_, index) => ({
+      day: `${index + 1}`,
+      visits: 0,
+      uniqueVisitors: 0,
+    }));
+  }, [analytics.periodDays, trend]);
 
   return (
     <section
@@ -190,50 +219,65 @@ export default function AdminAnalytics() {
         entered ? "opacity-100" : "opacity-0"
       }`}
     >
-      {/* KPIs */}
+      {error ? (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          <AlertCircle className="h-4 w-4" />
+          <span>{error}</span>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Kpi
+          icon={<Eye className="h-5 w-5" />}
+          title={`Toplam Ziyaret (${analytics.periodDays} gün)`}
+          value={totalVisits}
+          trend={summary.deltas.visits}
+          trendPositive={String(summary.deltas.visits || "").startsWith("+")}
+        />
+        <Kpi
           icon={<Users className="h-5 w-5" />}
-          title="Ziyaretçiler"
-          value={visitorsCount}
-          trend="+8%"
+          title="Tekil Ziyaretçi"
+          value={uniqueVisitors}
+          trend={summary.deltas.uniqueVisitors}
+          trendPositive={String(summary.deltas.uniqueVisitors || "").startsWith("+")}
         />
         <Kpi
-          icon={<MousePointer2 className="h-5 w-5" />}
-          title="Oturumlar"
-          value={sessionsCount}
-          trend="+5%"
+          icon={<Activity className="h-5 w-5" />}
+          title="Ort. Günlük Ziyaret"
+          value={avgDailyVisits}
+          trend={summary.deltas.avgDailyVisits}
+          trendPositive={String(summary.deltas.avgDailyVisits || "").startsWith("+")}
         />
         <Kpi
-          icon={<TrendingUp className="h-5 w-5" />}
-          title="Hemen Çıkma Oranı"
-          value={bounceCount}
-          trend="-2%"
-          negative
-        />
-        <Kpi
-          icon={<Clock3 className="h-5 w-5" />}
-          title="Ort. Oturum Süresi"
-          value={avgDur}
-          trend="+6%"
+          icon={<Gauge className="h-5 w-5" />}
+          title="Ziyaret / Ziyaretçi"
+          value={avgDepth}
+          trend={summary.deltas.avgVisitsPerVisitor}
+          trendPositive={String(summary.deltas.avgVisitsPerVisitor || "").startsWith("+")}
         />
       </div>
 
-      {/* Trend + Sources */}
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader
-            title="Ziyaretçi ve Oturumlar (30 gün)"
-            subtitle="düzgünleştirilmiş, bot filtrelemesi içerir"
+            title={`Ziyaret Trendi (${analytics.periodDays} gün)`}
+            subtitle="toplam ve tekil ziyaretçi"
+            right={
+              loading ? (
+                <span className="rounded-full bg-surface-light px-3 py-1 text-xs text-text-admin-muted">
+                  Güncelleniyor...
+                </span>
+              ) : null
+            }
           />
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={trend}
+                data={trendData}
                 margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
               >
                 <defs>
-                  <linearGradient id="visGrad" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="visitsGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop
                       offset="5%"
                       stopColor="var(--color-primary)"
@@ -245,7 +289,7 @@ export default function AdminAnalytics() {
                       stopOpacity={0}
                     />
                   </linearGradient>
-                  <linearGradient id="sesGrad" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="uniqueGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop
                       offset="5%"
                       stopColor="var(--color-accent)"
@@ -272,24 +316,24 @@ export default function AdminAnalytics() {
                 <Tooltip
                   contentStyle={{
                     background: "var(--color-bg-card)",
-                    border: `1px solid var(--color-border-admin)`,
+                    border: "1px solid var(--color-border-admin)",
                   }}
                 />
                 <Legend wrapperStyle={{ color: "var(--color-secondary)" }} />
                 <Area
                   type="monotone"
-                  dataKey="visitors"
-                  name="Ziyaretçiler"
+                  dataKey="visits"
+                  name="Ziyaret"
                   stroke="var(--color-primary)"
-                  fill="url(#visGrad)"
+                  fill="url(#visitsGrad)"
                   strokeWidth={2}
                 />
                 <Area
                   type="monotone"
-                  dataKey="sessions"
-                  name="Oturumlar"
+                  dataKey="uniqueVisitors"
+                  name="Tekil Ziyaretçi"
                   stroke="var(--color-accent)"
-                  fill="url(#sesGrad)"
+                  fill="url(#uniqueGrad)"
                   strokeWidth={2}
                 />
               </AreaChart>
@@ -298,39 +342,36 @@ export default function AdminAnalytics() {
         </Card>
 
         <Card>
-          <CardHeader
-            title="Trafik Kaynakları"
-            subtitle="toplam oturum payı"
-          />
+          <CardHeader title="Trafik Kaynakları" subtitle="ziyaret payı" />
           <div className="flex items-center gap-6">
             <div className="h-56 w-56">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={traffic}
+                    data={trafficSources}
                     dataKey="value"
                     innerRadius={58}
                     outerRadius={80}
                     paddingAngle={2}
                   >
-                    {traffic.map((t, i) => (
-                      <Cell key={i} fill={t.color} />
+                    {trafficSources.map((item, index) => (
+                      <Cell key={`${item.key}-${index}`} fill={item.color} />
                     ))}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
             </div>
             <ul className="grow space-y-2 text-sm">
-              {traffic.map((t) => (
-                <li key={t.key} className="flex items-center justify-between">
+              {trafficSources.map((item) => (
+                <li key={item.key} className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <span
                       className="inline-block h-2.5 w-2.5 rounded-full"
-                      style={{ background: t.color }}
+                      style={{ background: item.color }}
                     />
-                    <span className="text-primary">{t.key}</span>
+                    <span className="text-primary">{item.key}</span>
                   </span>
-                  <span className="text-text-admin-muted">{t.value}%</span>
+                  <span className="text-text-admin-muted">{item.value}%</span>
                 </li>
               ))}
             </ul>
@@ -338,18 +379,14 @@ export default function AdminAnalytics() {
         </Card>
       </div>
 
-      {/* Heatmap + Devices */}
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
-          <CardHeader
-            title="Saatlik Aktivite Isı Haritası"
-            subtitle="son 7 gün"
-          />
-          <Heatmap data={heat} />
+          <CardHeader title="Saatlik Aktivite Isı Haritası" subtitle="son 7 gün" />
+          <Heatmap data={heatmap} />
         </Card>
 
         <Card>
-          <CardHeader title="Cihazlar" subtitle="oturum payı" />
+          <CardHeader title="Cihaz Dağılımı" subtitle="ziyaret payı" />
           <div className="flex items-center gap-6">
             <div className="h-56 w-56">
               <ResponsiveContainer width="100%" height="100%">
@@ -361,24 +398,24 @@ export default function AdminAnalytics() {
                     outerRadius={80}
                     paddingAngle={2}
                   >
-                    {devices.map((t, i) => (
-                      <Cell key={i} fill={t.color} />
+                    {devices.map((item, index) => (
+                      <Cell key={`${item.key}-${index}`} fill={item.color} />
                     ))}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
             </div>
             <ul className="grow space-y-2 text-sm">
-              {devices.map((t) => (
-                <li key={t.key} className="flex items-center justify-between">
+              {devices.map((item) => (
+                <li key={item.key} className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <span
                       className="inline-block h-2.5 w-2.5 rounded-full"
-                      style={{ background: t.color }}
+                      style={{ background: item.color }}
                     />
-                    <span className="text-primary">{t.key}</span>
+                    <span className="text-primary">{item.key}</span>
                   </span>
-                  <span className="text-text-admin-muted">{t.value}%</span>
+                  <span className="text-text-admin-muted">{item.value}%</span>
                 </li>
               ))}
             </ul>
@@ -386,13 +423,9 @@ export default function AdminAnalytics() {
         </Card>
       </div>
 
-      {/* Countries + Funnel */}
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
-          <CardHeader
-            title="En Çok Ziyaretçi Gelen Ülkeler"
-            subtitle="ziyaretçi sayısına göre"
-          />
+          <CardHeader title="Ülke Bazlı Ziyaretler" subtitle="adet bazında" />
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -416,7 +449,7 @@ export default function AdminAnalytics() {
                 <Tooltip
                   contentStyle={{
                     background: "var(--color-bg-card)",
-                    border: `1px solid var(--color-border-admin)`,
+                    border: "1px solid var(--color-border-admin)",
                   }}
                 />
                 <Bar
@@ -430,19 +463,15 @@ export default function AdminAnalytics() {
         </Card>
 
         <Card>
-          <CardHeader
-            title="Dönüşüm Hunisi"
-            subtitle="oturum → satın alma"
-          />
-          <Funnel data={funnel} />
+          <CardHeader title="En Çok Ziyaret Edilen Sayfalar" subtitle="son 30 gün" />
+          <TopPagesList pages={topPages} />
         </Card>
       </div>
     </section>
   );
 }
 
-/* ---------------- sub components ---------------- */
-function Kpi({ icon, title, value, trend, negative = false }) {
+function Kpi({ icon, title, value, trend, trendPositive = true }) {
   return (
     <Card>
       <div className="flex items-start justify-between">
@@ -451,12 +480,12 @@ function Kpi({ icon, title, value, trend, negative = false }) {
         </div>
         <span
           className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${
-            negative
-              ? "bg-rose-50 text-rose-700"
-              : "bg-emerald-50 text-emerald-700"
+            trendPositive
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-rose-50 text-rose-700"
           }`}
         >
-          {trend}
+          {trend || "0%"}
         </span>
       </div>
       <div className="mt-4 text-3xl font-extrabold text-primary">{value}</div>
@@ -472,21 +501,21 @@ function Heatmap({ data }) {
       <div className="min-w-full md:min-w-[720px]">
         <div className="grid grid-cols-[64px_repeat(24,minmax(0,1fr))] gap-1">
           <div />
-          {Array.from({ length: 24 }).map((_, h) => (
+          {Array.from({ length: 24 }).map((_, hour) => (
             <div
-              key={h}
+              key={`h-${hour}`}
               className="text-center text-[11px] text-text-admin-muted"
             >
-              {h}
+              {hour}
             </div>
           ))}
-          {data.map((row, r) => (
-            <Fragment key={`row-${r}`}>
+          {data.map((row, rowIndex) => (
+            <Fragment key={`row-${rowIndex}`}>
               <div className="flex items-center pr-2 text-right text-xs text-text-admin-muted">
-                {days[r]}
+                {days[rowIndex]}
               </div>
-              {row.map((v, c) => (
-                <HeatCell key={`c-${r}-${c}`} value={v} />
+              {row.map((value, colIndex) => (
+                <HeatCell key={`c-${rowIndex}-${colIndex}`} value={value} />
               ))}
             </Fragment>
           ))}
@@ -495,46 +524,57 @@ function Heatmap({ data }) {
     </div>
   );
 }
+
 function HeatCell({ value }) {
-  // 0..100 -> opacity & tint
-  const op = Math.min(1, value / 100);
+  const opacity = Math.min(1, Number(value || 0) / 100);
   return (
     <div
       className="h-6 rounded-[6px] transition-all duration-700"
       style={{
-        background: `rgba(216,124,130,${0.18 + op * 0.55})`, // accent tonu
+        background: `rgba(216,124,130,${0.18 + opacity * 0.55})`,
         boxShadow:
-          op > 0.7 ? "inset 0 0 0 1px var(--color-border-admin)" : "none",
+          opacity > 0.7 ? "inset 0 0 0 1px var(--color-border-admin)" : "none",
       }}
       title={`${value}`}
     />
   );
 }
 
-function Funnel({ data }) {
-  const max = Math.max(...data.map((d) => d.value));
+function TopPagesList({ pages = [] }) {
+  const safePages = Array.isArray(pages) ? pages : [];
+  const maxVisits = Math.max(
+    1,
+    ...safePages.map((page) => Math.max(0, Number(page.visits || 0)))
+  );
+
   return (
     <div className="space-y-3">
-
-      {data.map((s, i) => {
-        const w = Math.round((s.value / max) * 100);
-        return (
-          <div key={s.name} className="space-y-1">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-primary">{s.name}</span>
-              <span className="text-text-admin-muted">
-                {s.value.toLocaleString()}
-              </span>
+      {safePages.length ? (
+        safePages.map((page) => {
+          const visits = Math.max(0, Number(page.visits || 0));
+          const width = Math.round((visits / maxVisits) * 100);
+          return (
+            <div key={page.path} className="space-y-1">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="line-clamp-1 text-primary">{page.path}</span>
+                <span className="text-text-admin-muted">
+                  {visits.toLocaleString("tr-TR")}
+                </span>
+              </div>
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-[var(--color-border-admin)]/70">
+                <div
+                  className="h-full rounded-full bg-[var(--color-primary)] transition-all duration-700"
+                  style={{ width: `${width}%` }}
+                />
+              </div>
             </div>
-            <div className="h-3 w-full overflow-hidden rounded-full bg-[var(--color-border-admin)]/70">
-              <div
-                className="h-full rounded-full bg-[var(--color-primary)] transition-all duration-700"
-                style={{ width: `${w}%` }}
-              />
-            </div>
-          </div>
-        );
-      })}
+          );
+        })
+      ) : (
+        <p className="text-sm text-text-admin-muted">
+          Henüz ziyaret verisi oluşmadı.
+        </p>
+      )}
     </div>
   );
 }
