@@ -131,7 +131,9 @@
     box-shadow: var(--glass-shadow);
     backdrop-filter: blur(var(--glass-blur)) saturate(145%);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(145%);
-    overflow: hidden;
+    /* Keep horizontal clipping while allowing sticky descendants on Y axis. */
+    overflow-x: clip;
+    overflow-y: visible;
   }
 
   .glass-surface {

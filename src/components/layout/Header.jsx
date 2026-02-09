@@ -166,7 +166,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-[70]">
+      <header className="fixed left-0 right-0 top-0 z-[120]">
         <div className="rounded-t-2xl border-b border-border glass-surface glass-surface-strong">
           {/* Mobile top */}
           <div className="md:hidden border-b border-border/70 px-4 py-3">
@@ -351,7 +351,7 @@ export default function Header() {
       </header>
 
       {mobileCategoryOpen && (
-        <div className="fixed inset-0 z-[80] bg-black/50 md:hidden">
+        <div className="fixed inset-0 z-[140] bg-black/50 md:hidden">
           <div
             className="absolute inset-0"
             onClick={() => setMobileCategoryOpen(false)}
