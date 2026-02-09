@@ -224,7 +224,7 @@ export default function ContactPage() {
   );
 
   return (
-    <main className="bg-surface-light/60">
+    <main className="store-page bg-surface-light/60">
       <section className="mx-auto max-w-[1400px] px-4 pt-6 sm:px-6">
         <BreadCrumb
           items={[
@@ -235,7 +235,7 @@ export default function ContactPage() {
       </section>
 
       <section className="mx-auto max-w-[1400px] px-4 pb-12 sm:px-6">
-        <div className="overflow-hidden rounded-2xl border border-border bg-white/90 shadow-sm">
+        <div className="glass-surface overflow-hidden rounded-2xl border border-border bg-white/90 shadow-sm">
           {config.heroImage?.url ? (
             <div className="relative h-60 w-full sm:h-72">
               <img
@@ -280,7 +280,7 @@ export default function ContactPage() {
               ) : null}
 
               {!config.formEnabled ? (
-                <div className="mb-6 rounded-xl border border-border bg-surface-light/70 p-5 text-sm text-secondary">
+                <div className="glass-surface-soft mb-6 rounded-xl border border-border bg-surface-light/70 p-5 text-sm text-secondary">
                   {formCopy.disabled ||
                     "İletişim formu geçici olarak kullanılamıyor. Bu sayfadaki e‑posta veya telefon üzerinden bize ulaşabilirsiniz."}
                 </div>
@@ -355,7 +355,7 @@ export default function ContactPage() {
                     value={formData.message}
                     onChange={handleChange}
                     disabled={!config.formEnabled || submitting || loading}
-                    className="mt-2 w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm text-primary outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 disabled:opacity-60"
+                    className="glass-input mt-2 w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm text-primary outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 disabled:opacity-60"
                   />
                 </div>
 
@@ -405,7 +405,7 @@ export default function ContactPage() {
               </p>
             </div>
 
-            <aside className="lg:col-span-5 border-t border-border/70 bg-contact-bg/70 p-6 sm:p-10 lg:border-l lg:border-t-0">
+            <aside className="glass-surface-soft lg:col-span-5 border-t border-border/70 bg-contact-bg/70 p-6 sm:p-10 lg:border-l lg:border-t-0">
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-1">
                 {blockItems.map((block, index) => (
                   <ContactBlock
@@ -453,7 +453,7 @@ function TextField({
         value={value}
         onChange={onChange}
         disabled={disabled}
-        className="mt-2 w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm text-primary outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 disabled:opacity-60"
+        className="glass-input mt-2 w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm text-primary outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 disabled:opacity-60"
       />
     </div>
   );
@@ -462,7 +462,7 @@ function TextField({
 function ContactBlock({ icon: IconComponent, title, items }) {
   const safeItems = Array.isArray(items) && items.length ? items : ["—"];
   return (
-    <div className="rounded-2xl border border-border/70 bg-white p-6 shadow-sm">
+    <div className="glass-surface rounded-2xl border border-border/70 bg-white p-6 shadow-sm">
       <div className="flex items-center gap-3 text-primary">
         <span className="grid h-11 w-11 place-items-center rounded-full bg-accent/10 text-accent">
           {IconComponent ? <IconComponent className="h-5 w-5" /> : null}

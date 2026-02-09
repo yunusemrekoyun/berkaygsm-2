@@ -101,16 +101,16 @@ export default function SetDetailsPage() {
 
   if (loading) {
     return (
-      <section className="bg-surface-light/60">
+      <section className="store-page bg-surface-light/60">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-16">
           <div className="grid gap-6 md:grid-cols-12">
             <div className="md:col-span-5 space-y-4">
-              <div className="h-[480px] animate-pulse rounded-xl bg-white/70" />
+              <div className="glass-surface h-[480px] animate-pulse rounded-xl bg-white/70" />
               <div className="grid grid-cols-3 gap-4">
                 {Array.from({ length: 3 }).map((_, index) => (
                   <div
                     key={index}
-                    className="aspect-[4/5] animate-pulse rounded-xl bg-white/60"
+                    className="glass-surface-soft aspect-[4/5] animate-pulse rounded-xl bg-white/60"
                   />
                 ))}
               </div>
@@ -128,9 +128,9 @@ export default function SetDetailsPage() {
 
   if (error || !setDoc) {
     return (
-      <section className="bg-surface-light/60">
+      <section className="store-page bg-surface-light/60">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-16">
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-6 py-8 text-center text-rose-700">
+          <div className="glass-surface-soft rounded-xl border border-rose-200 bg-rose-50 px-6 py-8 text-center text-rose-700">
             {error || setPageCopy.notFound || "Set bulunamadı"}
           </div>
         </div>
@@ -139,7 +139,7 @@ export default function SetDetailsPage() {
   }
 
   return (
-    <section className="bg-surface-light/60">
+    <section className="store-page bg-surface-light/60">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6">
         <BreadCrumb items={breadcrumbItems} />
       </div>

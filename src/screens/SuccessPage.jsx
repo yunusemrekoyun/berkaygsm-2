@@ -25,7 +25,7 @@ export default function SuccessPage() {
   }, [orderId]);
 
   return (
-    <section className="bg-surface-light/60">
+    <section className="store-page bg-surface-light/60">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6">
         <BreadCrumb
           items={[{ label: "Ana Sayfa", to: "/" }, { label: "Başarılı" }]}
@@ -33,7 +33,7 @@ export default function SuccessPage() {
       </div>
 
       <div className="mx-auto max-w-xl px-4 sm:px-6 pb-16">
-        <div className="rounded-2xl border border-border bg-white p-6 text-center">
+        <div className="glass-surface rounded-2xl border border-border bg-white p-6 text-center">
           <h1 className="text-2xl font-semibold text-primary">Teşekkürler!</h1>
           <p className="mt-2 text-secondary">
             Siparişiniz başarıyla oluşturuldu.
@@ -73,7 +73,7 @@ export default function SuccessPage() {
           <div className="mt-6 flex justify-center gap-3">
             <Link
               to="/"
-              className="rounded-full border border-border px-4 py-2 text-sm text-primary hover:bg-surface-hover"
+              className="glass-chip rounded-full border border-border px-4 py-2 text-sm text-primary hover:bg-surface-hover"
             >
               Alışverişe devam et
             </Link>

@@ -4,7 +4,7 @@ import SetsSetItem from "./SetsSetItem";
 const pillBase =
   "inline-flex items-center rounded-full border px-4 py-2 text-sm transition";
 const pillActive = "bg-accent border-accent text-white shadow";
-const pillIdle = "border-border text-primary hover:bg-surface-hover";
+const pillIdle = "glass-chip border-border text-primary hover:bg-surface-hover";
 
 export default function SetsSets({
   title = "Aksesuar Paketleri",
@@ -39,7 +39,7 @@ export default function SetsSets({
 
   return (
     <section className="mx-auto max-w-[1400px] px-4 sm:px-6 py-14">
-      <div className="rounded-2xl bg-surface-light p-6 sm:p-10 ring-1 ring-black/5">
+      <div className="glass-surface rounded-2xl bg-surface-light p-6 sm:p-10 ring-1 ring-black/5">
         <div className="text-center">
           <h2 className="text-4xl font-serif font-extrabold tracking-tight text-primary">
             {title}
@@ -70,7 +70,7 @@ export default function SetsSets({
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="h-64 rounded-xl bg-white/70 ring-1 ring-black/5 animate-pulse"
+                className="glass-surface h-64 rounded-xl bg-white/70 ring-1 ring-black/5 animate-pulse"
               />
             ))}
           </div>

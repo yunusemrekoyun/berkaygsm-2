@@ -5,7 +5,7 @@ export default function SimilarProducts({ items = [] }) {
   const t = useStaticTranslation();
   const copy = t("similarProducts") || {};
   return (
-    <section className="rounded-2xl border border-border bg-surface-light p-6">
+    <section className="glass-surface rounded-2xl border border-border bg-surface-light p-6">
       <h2 className="mb-4 text-center font-serif text-2xl font-extrabold text-primary">
         {copy.heading || "Benzer Ürünler"}
       </h2>

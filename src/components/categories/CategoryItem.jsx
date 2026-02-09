@@ -6,7 +6,7 @@ const placeholderImage = "/cat-1.jpg";
 export default function CategoryItem({ title, image, to = "#" }) {
   return (
     <Link to={to} className="group block">
-      <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+      <div className="glass-surface overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
         <img
           src={image || placeholderImage}
           alt={title}

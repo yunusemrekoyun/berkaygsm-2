@@ -19,7 +19,7 @@ export default function HomeSetItem({
   if (compact) {
     // Daha minimal kart
     return (
-      <article className="overflow-hidden rounded-xl bg-white ring-1 ring-border hover:shadow-sm transition">
+      <article className="glass-surface overflow-hidden rounded-xl bg-white ring-1 ring-border hover:shadow-sm transition">
         <Link to={to || "#"} className="block">
           <div className="relative">
             <img
@@ -69,7 +69,7 @@ export default function HomeSetItem({
 
   // Eski (standard) görünüm
   return (
-    <article className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+    <article className="glass-surface overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
       <Link to={to || "#"} className="block">
         <div className="relative">
           <img

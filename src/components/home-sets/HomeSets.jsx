@@ -6,7 +6,7 @@ import { useStaticTranslation } from "../../i18n/staticContent.js";
 const pillBase =
   "inline-flex items-center rounded-full border px-4 py-2 text-sm transition";
 const pillActive = "bg-accent border-accent text-white shadow";
-const pillIdle = "border-border text-primary hover:bg-surface-hover";
+const pillIdle = "glass-chip border-border text-primary hover:bg-surface-hover";
 
 export default function HomeSets({
   title,
@@ -47,7 +47,7 @@ export default function HomeSets({
     >
       <div
         className={[
-          "rounded-2xl ring-1 ring-black/5",
+          "glass-surface rounded-2xl ring-1 ring-black/5",
           isCompact ? "bg-white p-5" : "bg-surface-light p-6 sm:p-10",
         ].join(" ")}
       >
@@ -80,7 +80,7 @@ export default function HomeSets({
           {isCompact && !loading && (
             <a
               href={viewAllHref}
-              className="inline-flex items-center rounded-full border border-border px-3 py-1.5 text-sm text-primary hover:bg-surface-hover"
+              className="glass-chip inline-flex items-center rounded-full border border-border px-3 py-1.5 text-sm text-primary hover:bg-surface-hover"
             >
               {t("homeSets.viewAll")}
             </a>
@@ -135,8 +135,8 @@ export default function HomeSets({
                   key={i}
                   className={
                     isCompact
-                      ? "overflow-hidden rounded-xl bg-white ring-1 ring-border"
-                      : "overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5"
+                      ? "glass-surface overflow-hidden rounded-xl bg-white ring-1 ring-border"
+                      : "glass-surface overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5"
                   }
                 >
                   <div
@@ -169,7 +169,7 @@ export default function HomeSets({
           <div className="mt-8 text-center">
             <a
               href={viewAllHref}
-              className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm text-primary hover:bg-surface-hover"
+              className="glass-chip inline-flex items-center rounded-full border border-border px-4 py-2 text-sm text-primary hover:bg-surface-hover"
             >
               {t("homeSets.viewAllPackages")}
             </a>

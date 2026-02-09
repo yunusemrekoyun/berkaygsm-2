@@ -42,7 +42,7 @@ export default function PrivacyPolicyPage() {
   const isActive = data?.isActive !== false;
 
   return (
-    <main className="bg-surface-light/60">
+    <main className="store-page bg-surface-light/60">
       <section className="mx-auto max-w-[1400px] px-4 sm:px-6 pt-6">
         <BreadCrumb
           items={[{ label: "Ana Sayfa", to: "/" }, { label: "Gizlilik Politikası" }]}
@@ -50,7 +50,7 @@ export default function PrivacyPolicyPage() {
       </section>
 
       <section className="mx-auto max-w-[1400px] px-4 sm:px-6 pb-14">
-        <div className="rounded-2xl border border-border bg-white/90 p-8 sm:p-12 shadow-sm">
+        <div className="glass-surface rounded-2xl border border-border bg-white/90 p-8 sm:p-12 shadow-sm">
           {/* ----- Header ----- */}
           <header className="text-center">
             {loading ? (
@@ -85,7 +85,7 @@ export default function PrivacyPolicyPage() {
                   <a
                     key={section.id || section.title}
                     href={`#${slugify(section.id || section.title)}`}
-                    className="rounded-2xl border border-border bg-surface-light px-4 py-3 text-primary transition hover:border-accent hover:bg-white"
+                    className="glass-surface-soft rounded-2xl border border-border bg-surface-light px-4 py-3 text-primary transition hover:border-accent hover:bg-white"
                   >
                     {section.title}
                   </a>
@@ -108,7 +108,7 @@ export default function PrivacyPolicyPage() {
                 Gizlilik Politikası sayfası şu anda aktif değil.
               </div>
             ) : sections.length === 0 ? (
-              <div className="rounded-xl border border-border bg-surface p-6 text-center text-secondary">
+              <div className="glass-surface-soft rounded-xl border border-border bg-surface p-6 text-center text-secondary">
                 Henüz Gizlilik Politikası içeriği yok.
               </div>
             ) : (
@@ -134,13 +134,13 @@ export default function PrivacyPolicyPage() {
           {loading ? (
             <div className="mt-12 h-24 rounded-2xl border border-border bg-surface" />
           ) : data?.footerHtml ? (
-            <footer className="mt-12 rounded-2xl border border-border bg-contact-bg/70 p-6 text-sm text-secondary">
+            <footer className="glass-surface-soft mt-12 rounded-2xl border border-border bg-contact-bg/70 p-6 text-sm text-secondary">
               <div
                 dangerouslySetInnerHTML={{ __html: safeHtml(data.footerHtml) }}
               />
             </footer>
           ) : (
-            <footer className="mt-12 rounded-2xl border border-border bg-contact-bg/70 p-6 text-sm text-secondary">
+            <footer className="glass-surface-soft mt-12 rounded-2xl border border-border bg-contact-bg/70 p-6 text-sm text-secondary">
               Bu politika hakkında sorularınız varsa veya veri koruma
               haklarınızı kullanmak isterseniz{" "}
               <a

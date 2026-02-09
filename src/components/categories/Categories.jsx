@@ -87,7 +87,7 @@ export default function Categories({ title, items }) {
           <button
             type="button"
             onClick={() => scrollByCard(-1)}
-            className="absolute left-0 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-white/90 p-2 text-secondary shadow md:inline-flex hover:text-primary"
+            className="glass-chip absolute left-0 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-white/90 p-2 text-secondary shadow md:inline-flex hover:text-primary"
             aria-label={prevAria}
           >
             ‹
@@ -112,7 +112,7 @@ export default function Categories({ title, items }) {
           <button
             type="button"
             onClick={() => scrollByCard(1)}
-            className="absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-white/90 p-2 text-secondary shadow md:inline-flex hover:text-primary"
+            className="glass-chip absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-white/90 p-2 text-secondary shadow md:inline-flex hover:text-primary"
             aria-label={nextAria}
           >
             ›

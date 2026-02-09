@@ -76,7 +76,7 @@ export default function SetSummary({
 
   return (
     <>
-      <div className="rounded-xl bg-surface/60 p-3 sm:p-4">
+      <div className="glass-surface-soft rounded-xl bg-surface/60 p-3 sm:p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           {/* Qty */}
           <div className="flex items-center gap-3">

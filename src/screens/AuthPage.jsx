@@ -76,9 +76,9 @@ export default function AuthPage({ initialView = "register", onAuthSuccess }) {
   };
 
   return (
-    <section className="bg-surface-light/60">
+    <section className="store-page bg-surface-light/60">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-12">
-        <div className="mx-auto max-w-md rounded-2xl border border-border bg-white p-6 shadow-sm">
+        <div className="glass-surface mx-auto max-w-md rounded-2xl border border-border bg-white p-6 shadow-sm">
           <h1 className="text-center font-serif text-3xl font-extrabold text-primary">
             {view === "login" ? "Tekrar hoş geldin" : "Hesap oluştur"}
           </h1>
@@ -89,7 +89,7 @@ export default function AuthPage({ initialView = "register", onAuthSuccess }) {
           </p>
 
           {error && (
-            <div className="mt-4 rounded-lg bg-surface-light p-3 text-sm text-accent">
+            <div className="glass-surface-soft mt-4 rounded-lg bg-surface-light p-3 text-sm text-accent">
               {error}
             </div>
           )}

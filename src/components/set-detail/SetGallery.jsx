@@ -12,7 +12,7 @@ export default function SetGallery({ images = [], title = "" }) {
   const goToLabel = sliderCopy.goTo || "{index}. görsele git";
 
   return (
-    <div className="rounded-xl bg-white ring-1 ring-black/5 p-4">
+    <div className="glass-surface rounded-xl bg-white ring-1 ring-black/5 p-4">
       <div className="overflow-hidden rounded-xl">
         <img
           src={activeSrc}

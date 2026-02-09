@@ -7,7 +7,7 @@ export default function CartPage() {
   const breadcrumbs = t("breadcrumbs") || {};
 
   return (
-    <section className="bg-surface-light/60">
+    <section className="store-page bg-surface-light/60">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6">
         <BreadCrumb
           items={[

@@ -33,7 +33,7 @@ export default function HomeProducts({
         .filter(Boolean)
         .join(" ")}
     >
-      <div className={`rounded-xl bg-surface ${innerPad}`}>
+      <div className={`glass-surface rounded-xl bg-surface ${innerPad}`}>
         <h2 className="mb-8 text-center font-serif text-3xl font-bold tracking-tight text-primary">
           {title}
         </h2>

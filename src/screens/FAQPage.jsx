@@ -38,13 +38,13 @@ export default function FAQPage() {
   const isActive = data?.isActive !== false; // undefined ise aktif say
 
   return (
-    <main className="bg-surface-light/60">
+    <main className="store-page bg-surface-light/60">
       <section className="mx-auto max-w-[1400px] px-4 pt-6 sm:px-6">
         <BreadCrumb items={[{ label: "Ana Sayfa", to: "/" }, { label: "SSS" }]} />
       </section>
 
       <section className="mx-auto max-w-[1400px] px-4 pb-14 sm:px-6">
-        <div className="rounded-2xl border border-border bg-white/90 p-8 shadow-sm sm:p-12">
+        <div className="glass-surface rounded-2xl border border-border bg-white/90 p-8 shadow-sm sm:p-12">
           {/* Header */}
           <div className="flex flex-col items-center text-center">
             <span className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-accent/10 text-accent">
@@ -90,7 +90,7 @@ export default function FAQPage() {
               Array.from({ length: 3 }).map((_, si) => (
                 <div key={si}>
                   <div className="h-6 w-56 animate-pulse rounded bg-surface" />
-                  <div className="mt-4 rounded-2xl border border-border bg-surface-light p-4">
+                  <div className="glass-surface-soft mt-4 rounded-2xl border border-border bg-surface-light p-4">
                     {Array.from({ length: 2 }).map((_, qi) => (
                       <div key={qi} className="mb-4 last:mb-0">
                         <div className="h-5 w-full animate-pulse rounded bg-white" />
@@ -105,7 +105,7 @@ export default function FAQPage() {
                 SSS sayfası şu anda aktif değil.
               </div>
             ) : sections.length === 0 ? (
-              <div className="rounded-xl border border-border bg-surface p-6 text-center text-secondary">
+              <div className="glass-surface-soft rounded-xl border border-border bg-surface p-6 text-center text-secondary">
                 Henüz SSS içeriği yok.
               </div>
             ) : (
@@ -132,7 +132,7 @@ function FAQSection({ section }) {
       </h2>
 
       {/* sabit border ve divide -> tıklamada kayma yok */}
-      <div className="mt-4 divide-y divide-border/70 overflow-hidden rounded-2xl border border-border bg-surface-light">
+      <div className="glass-surface mt-4 divide-y divide-border/70 overflow-hidden rounded-2xl border border-border bg-surface-light">
         {items.length ? (
           items.map((item) => (
             <FAQItem key={item.id || item.question} item={item} />

@@ -469,9 +469,9 @@ export default function CheckoutPage() {
 
   if (loading) {
     return (
-      <section className="bg-surface-light/60">
+      <section className="store-page bg-surface-light/60">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-12">
-          <div className="h-40 rounded-2xl border border-border bg-white animate-pulse" />
+          <div className="glass-surface h-40 rounded-2xl border border-border bg-white animate-pulse" />
         </div>
       </section>
     );
@@ -527,7 +527,7 @@ export default function CheckoutPage() {
   };
 
   return (
-    <section className="bg-surface-light/60">
+    <section className="store-page bg-surface-light/60">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6">
         <BreadCrumb
           items={[{ label: "Ana Sayfa", to: "/" }, { label: "Ödeme" }]}
@@ -547,7 +547,7 @@ export default function CheckoutPage() {
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 pb-16 grid gap-6 md:grid-cols-12">
         {/* Address / Details */}
         <div className="md:col-span-7 lg:col-span-8">
-          <div className="rounded-2xl border border-border bg-white p-6">
+          <div className="glass-surface rounded-2xl border border-border bg-white p-6">
             <h2 className="text-xl font-semibold text-primary">
               Teslimat adresi
             </h2>
@@ -568,7 +568,7 @@ export default function CheckoutPage() {
                 {addresses.map((a) => (
                   <label
                     key={a.id}
-                    className="flex gap-3 rounded-xl border border-border bg-contact-bg p-3"
+                    className="glass-surface-soft flex gap-3 rounded-xl border border-border bg-contact-bg p-3"
                   >
                     <input
                       type="radio"
@@ -611,7 +611,7 @@ export default function CheckoutPage() {
 
         {/* Order Summary */}
         <div className="md:col-span-5 lg:col-span-4">
-          <div className="rounded-2xl border border-border bg-white p-6">
+          <div className="glass-surface rounded-2xl border border-border bg-white p-6">
             <h2 className="text-xl font-semibold text-primary">
               Sipariş özeti
             </h2>
@@ -692,7 +692,7 @@ export default function CheckoutPage() {
 
               {paymentMethod === "paypal" && (
                 <div className="mt-4">
-                  <div className="relative rounded-xl border border-border bg-surface p-4">
+                  <div className="glass-surface-soft relative rounded-xl border border-border bg-surface p-4">
                     <LoadingOverlay show={paypalLoading || placing} />
                     {paypalError && (
                       <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600">
@@ -753,7 +753,7 @@ export default function CheckoutPage() {
 
               {paymentMethod === "cod" && (
                 <>
-                  <div className="mt-6 rounded-xl border border-border bg-surface p-4 text-sm">
+                  <div className="glass-surface-soft mt-6 rounded-xl border border-border bg-surface p-4 text-sm">
                     <p className="font-semibold text-primary">
                       Ödeme simülasyonu
                     </p>

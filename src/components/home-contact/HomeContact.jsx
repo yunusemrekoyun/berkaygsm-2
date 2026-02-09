@@ -24,14 +24,14 @@ export default function HomeContact({
         {resolvedTitle}
       </h2>
 
-      <div className="rounded-xl bg-contact-bg p-6 shadow-sm ring-1 ring-black/5 md:p-8">
+      <div className="glass-surface rounded-xl bg-contact-bg p-6 shadow-sm ring-1 ring-black/5 md:p-8">
         <div
           className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2"
           data-animate="stagger"
           data-animate-children="> *"
         >
           {/* Map */}
-          <div className="rounded-xl bg-white p-1 shadow-md ring-1 ring-black/5">
+          <div className="glass-surface-soft rounded-xl bg-white p-1 shadow-md ring-1 ring-black/5">
             <iframe
               title="store-location"
               src={mapSrc}

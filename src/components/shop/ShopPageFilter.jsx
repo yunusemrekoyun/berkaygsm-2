@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 const pillBase =
   "inline-flex items-center rounded-full border px-3 py-1.5 text-sm transition";
 const pillActive = "bg-accent border-accent text-white shadow";
-const pillIdle = "border-border text-primary hover:bg-surface-hover";
+const pillIdle = "glass-chip border-border text-primary hover:bg-surface-hover";
 
 const isHexColor = (value) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value || "");
 
@@ -67,7 +67,7 @@ export default function ShopPageFilter({
 
   return (
     <aside
-      className="rounded-xl bg-contact-bg p-5 ring-1 ring-border"
+      className="glass-surface rounded-xl bg-contact-bg p-5 ring-1 ring-border"
       data-animate="fade-right"
     >
       <div className="flex items-center justify-between">

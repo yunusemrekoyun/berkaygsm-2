@@ -60,7 +60,7 @@ export default function Cart() {
   // Boş sepet
   if (items.length === 0) {
     return (
-      <div className="rounded-2xl border border-border bg-contact-bg p-10 text-center">
+      <div className="glass-surface rounded-2xl border border-border bg-contact-bg p-10 text-center">
         <h2 className="text-2xl font-serif font-extrabold text-primary">
           {copy.emptyTitle || "Sepetiniz boş"}
         </h2>
@@ -82,7 +82,7 @@ export default function Cart() {
     <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
       {/* Sol: Ürün listesi */}
       <div className="md:col-span-8">
-        <div className="rounded-2xl border border-border bg-white">
+        <div className="glass-surface rounded-2xl border border-border bg-white">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <h2 className="text-lg font-semibold text-primary">
               {copy.heading || "Sepetim"}
@@ -110,7 +110,7 @@ export default function Cart() {
                 value={couponInput}
                 onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                 placeholder={copy.couponPlaceholder || "Kupon kodu girin"}
-                className="flex-1 rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none placeholder:text-secondary/60"
+                className="glass-input flex-1 rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none placeholder:text-secondary/60"
               />
               <button
                 onClick={handleApplyCoupon}
@@ -147,14 +147,14 @@ export default function Cart() {
 
       {/* Sağ: Sipariş Özeti */}
       <aside className="md:col-span-4">
-        <div className="rounded-2xl border border-border bg-contact-bg p-5">
+        <div className="glass-surface rounded-2xl border border-border bg-contact-bg p-5">
           <h3 className="mb-4 text-lg font-semibold text-primary">
             {copy.orderSummary || "Sipariş özeti"}
           </h3>
 
           {/* Progress to free shipping */}
           {subTotal > 0 && freeThreshold > 0 && baseShippingFee > 0 && (
-            <div className="mb-4 rounded-xl border border-border bg-white p-3">
+            <div className="glass-surface-soft mb-4 rounded-xl border border-border bg-white p-3">
               <p className="text-sm text-secondary">
                 {subTotal >= freeThreshold
                   ? copy.freeShippingUnlocked ||

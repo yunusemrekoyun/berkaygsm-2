@@ -91,7 +91,7 @@ export default function SetDetail({ setDoc }) {
 
       {/* Right: Info */}
       <div className="md:col-span-7 space-y-5" data-animate="fade-left">
-        <div className="space-y-5 rounded-xl bg-white p-5 ring-1 ring-black/5 md:p-6">
+        <div className="glass-surface space-y-5 rounded-xl bg-white p-5 ring-1 ring-black/5 md:p-6">
           {/* Üst sağ: Favori kalbi */}
           <div className="flex items-start justify-between">
             <div />

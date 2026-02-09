@@ -43,7 +43,7 @@ export default function ShippingReturnsPage() {
   );
 
   return (
-    <main className="bg-surface-light/60">
+    <main className="store-page bg-surface-light/60">
       <section className="mx-auto max-w-[1400px] px-4 sm:px-6 pt-6">
         <BreadCrumb
           items={[{ label: "Ana Sayfa", to: "/" }, { label: "Kargo & İade" }]}
@@ -51,7 +51,7 @@ export default function ShippingReturnsPage() {
       </section>
 
       <section className="mx-auto max-w-[1400px] px-4 sm:px-6 pb-14">
-        <div className="rounded-2xl border border-border bg-white/90 p-8 sm:p-12 shadow-sm">
+        <div className="glass-surface rounded-2xl border border-border bg-white/90 p-8 sm:p-12 shadow-sm">
           {/* Error / inactive */}
           {err ? (
             <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-700 text-sm">
@@ -116,7 +116,7 @@ export default function ShippingReturnsPage() {
 
               {/* Sidebar */}
               <aside className="lg:col-span-5">
-                <div className="space-y-6 rounded-2xl border border-border bg-contact-bg/80 p-6 sm:p-8">
+                <div className="glass-surface-soft space-y-6 rounded-2xl border border-border bg-contact-bg/80 p-6 sm:p-8">
                   <h2 className="font-serif text-2xl font-semibold text-primary">
                     Hızlı bilgiler
                   </h2>
@@ -131,7 +131,7 @@ export default function ShippingReturnsPage() {
                   </ul>
 
                   <div
-                    className="rounded-2xl border border-border/70 bg-white p-5 text-sm text-secondary"
+                    className="glass-surface-soft rounded-2xl border border-border/70 bg-white p-5 text-sm text-secondary"
                     // Yardım kutusu HTML destekli geliyor (admin sayfasında yazılıyor)
                     dangerouslySetInnerHTML={{
                       __html:
@@ -163,7 +163,7 @@ function Section({ title, paragraphs = [], list }) {
         </p>
       ))}
       {list ? (
-        <div className="mt-4 rounded-2xl border border-border bg-surface-light p-4 text-sm text-secondary">
+        <div className="glass-surface-soft mt-4 rounded-2xl border border-border bg-surface-light p-4 text-sm text-secondary">
           {list.heading ? (
             <p className="font-medium text-primary">{list.heading}</p>
           ) : null}
