@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { useEffect, useRef, useMemo, useState } from "react";
+import { Fragment, useEffect, useRef, useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -481,17 +481,14 @@ function Heatmap({ data }) {
             </div>
           ))}
           {data.map((row, r) => (
-            <>
-              <div
-                key={`d-${r}`}
-                className="flex items-center pr-2 text-right text-xs text-text-admin-muted"
-              >
+            <Fragment key={`row-${r}`}>
+              <div className="flex items-center pr-2 text-right text-xs text-text-admin-muted">
                 {days[r]}
               </div>
               {row.map((v, c) => (
                 <HeatCell key={`c-${r}-${c}`} value={v} />
               ))}
-            </>
+            </Fragment>
           ))}
         </div>
       </div>

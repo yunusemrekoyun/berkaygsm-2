@@ -1,5 +1,6 @@
 import { Heart } from "lucide-react";
 import { Link } from "react-router-dom";
+import AppImage from "../../../components/ui/AppImage.jsx";
 
 function WishlistCard({ title, price, image, href, onRemove, copy = {} }) {
   return (
@@ -7,9 +8,12 @@ function WishlistCard({ title, price, image, href, onRemove, copy = {} }) {
       <Link to={href} className="block">
         <div className="aspect-[4/5] w-full overflow-hidden bg-surface">
           {image ? (
-            <img
+            <AppImage
               src={image}
               alt={title}
+              width={1200}
+              height={1500}
+              sizes="(max-width: 768px) 50vw, 25vw"
               className="h-full w-full object-contain p-2 transition-transform duration-300 group-hover:scale-[1.03]"
             />
           ) : (

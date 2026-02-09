@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import DiscountBadge from "../ui/DiscountBadge.jsx";
 import { useStaticTranslation } from "../../i18n/staticContent.js";
+import AppImage from "../ui/AppImage.jsx";
 
 const currency = new Intl.NumberFormat("tr-TR", {
   style: "currency",
@@ -33,9 +34,12 @@ export default function SimilarSets({ items = [] }) {
           >
             <Link to={`/set/${it.slug || it.id}`}>
               <div className="relative">
-                <img
+                <AppImage
                   src={it.image || "/set-placeholder.jpg"}
                   alt={it.title}
+                  width={900}
+                  height={600}
+                  sizes="(max-width: 768px) 50vw, 25vw"
                   className="h-40 w-full object-cover"
                   draggable="false"
                 />

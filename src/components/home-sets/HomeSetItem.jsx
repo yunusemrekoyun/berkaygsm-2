@@ -1,6 +1,7 @@
 // src/components/home-sets/HomeSetItem.jsx
 import { Link } from "react-router-dom";
 import DiscountBadge from "../ui/DiscountBadge.jsx";
+import AppImage from "../ui/AppImage.jsx";
 export default function HomeSetItem({
   image,
   title,
@@ -22,9 +23,12 @@ export default function HomeSetItem({
       <article className="glass-surface overflow-hidden rounded-xl bg-white ring-1 ring-border hover:shadow-sm transition">
         <Link to={to || "#"} className="block">
           <div className="relative">
-            <img
+            <AppImage
               src={image}
               alt={title}
+              width={1200}
+              height={800}
+              sizes="(max-width: 768px) 50vw, 25vw"
               className="h-36 w-full object-cover md:h-40"
               draggable="false"
             />
@@ -47,7 +51,7 @@ export default function HomeSetItem({
             )}
             {includes && (
               <p className="mt-2 line-clamp-1 text-[11px] text-secondary/90">
-                <span className="font-medium text-primary">Includes:</span>{" "}
+                <span className="font-medium text-primary">İçindekiler:</span>{" "}
                 {includes}
               </p>
             )}
@@ -72,9 +76,12 @@ export default function HomeSetItem({
     <article className="glass-surface overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
       <Link to={to || "#"} className="block">
         <div className="relative">
-          <img
+          <AppImage
             src={image}
             alt={title}
+            width={1600}
+            height={1000}
+            sizes="(max-width: 768px) 100vw, 50vw"
             className="h-56 w-full object-cover md:h-64"
             draggable="false"
           />
@@ -95,7 +102,7 @@ export default function HomeSetItem({
           </p>
           {includes && (
             <p className="mt-3 text-sm text-secondary">
-              <span className="font-medium text-primary">Includes:</span>{" "}
+              <span className="font-medium text-primary">İçindekiler:</span>{" "}
               {includes}
             </p>
           )}

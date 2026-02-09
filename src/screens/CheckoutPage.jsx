@@ -179,7 +179,7 @@ export default function CheckoutPage() {
           ) || 0;
 
         const name =
-          it.name ?? it.title ?? it.product?.name ?? it.set?.name ?? "Item";
+          it.name ?? it.title ?? it.product?.name ?? it.set?.name ?? "Ürün";
 
         return { name, qty, unitPrice };
       }),
@@ -307,7 +307,7 @@ export default function CheckoutPage() {
     }
 
     if (!paypalEnabled) {
-      setPayPalError("PayPal client ID is not configured on the frontend.");
+      setPayPalError("PayPal istemci kimliği (client ID) yapılandırılmamış.");
       return;
     }
 
@@ -362,7 +362,7 @@ export default function CheckoutPage() {
                 couponCode: coupon?.code || null,
               });
               if (!response?.paypalOrderId || !response?.draftId) {
-                throw new Error("Invalid PayPal order response");
+                throw new Error("PayPal sipariş yanıtı geçersiz.");
               }
               paypalDraftRef.current = { id: response.draftId };
               setPayPalSummary(response.summary || null);
@@ -370,7 +370,7 @@ export default function CheckoutPage() {
             } catch (error) {
               const message = getErrorMessage(
                 error,
-                "Unable to create PayPal order"
+                "PayPal siparişi oluşturulamadı."
               );
               setPayPalError(message);
               throw new Error(message);
@@ -383,7 +383,7 @@ export default function CheckoutPage() {
               setPlacing(true);
               const draftId = paypalDraftRef.current?.id;
               if (!draftId) {
-                throw new Error("PayPal checkout session could not be found");
+                throw new Error("PayPal ödeme oturumu bulunamadı.");
               }
               const result = await orderApi.capturePayPal({
                 paypalOrderId: data.orderID,
@@ -391,7 +391,7 @@ export default function CheckoutPage() {
               });
               const orderData = result?.order;
               if (!orderData?.id) {
-                throw new Error("Order confirmation was not returned");
+                throw new Error("Sipariş onayı alınamadı.");
               }
               orderPlacedRef.current = true;
               setPayPalError(null);
@@ -405,18 +405,18 @@ export default function CheckoutPage() {
             } catch (error) {
               const message = getErrorMessage(
                 error,
-                "PayPal payment could not be completed"
+                "PayPal ödemesi tamamlanamadı."
               );
               setBanner({
                 variant: "danger",
-                message: `PayPal payment failed: ${message}`,
+                message: `PayPal ödemesi başarısız: ${message}`,
               });
             } finally {
               setPlacing(false);
             }
           },
           onCancel: () => {
-            setPayPalError("PayPal payment was cancelled.");
+            setPayPalError("PayPal ödemesi iptal edildi.");
           },
           onError: (error) => {
             const message = getErrorMessage(

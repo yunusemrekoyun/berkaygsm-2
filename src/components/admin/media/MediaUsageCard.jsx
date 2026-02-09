@@ -22,15 +22,15 @@ export default function MediaUsageCard({ usage, refreshing }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-[var(--color-text-admin)]">
-            Cloudinary Usage
+            Cloudinary Kullanımı
           </h2>
           <p className="text-sm text-[var(--color-text-admin-muted)]">
-            Plan: {usage?.plan || "—"} • Updated {usage?.lastUpdated || "—"}
+            Paket: {usage?.plan || "—"} • Güncelleme: {usage?.lastUpdated || "—"}
           </p>
         </div>
         {refreshing && (
           <span className="text-xs text-[var(--color-text-admin-muted)]">
-            Refreshing…
+            Yenileniyor…
           </span>
         )}
       </div>
@@ -38,7 +38,7 @@ export default function MediaUsageCard({ usage, refreshing }) {
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <UsageMetric
           icon={HardDrive}
-          title="Storage"
+          title="Depolama"
           used={storage.usedBytes}
           limit={storage.limitBytes}
           percent={storage.usedPercent}
@@ -46,7 +46,7 @@ export default function MediaUsageCard({ usage, refreshing }) {
         />
         <UsageMetric
           icon={Wifi}
-          title="Bandwidth"
+          title="Bant genişliği"
           used={bandwidth.usedBytes}
           limit={bandwidth.limitBytes}
           percent={bandwidth.usedPercent}
@@ -90,7 +90,7 @@ function UsageMetric({ icon: Icon, title, used, limit, percent, accent }) {
         </div>
         <div className="mt-2 flex items-center justify-between text-xs text-[var(--color-text-admin-muted)]">
           <span>{formatBytes(used)}</span>
-          <span>{valuePercent != null ? `${valuePercent.toFixed(1)}%` : "N/A"}</span>
+          <span>{valuePercent != null ? `${valuePercent.toFixed(1)}%` : "Yok"}</span>
         </div>
       </div>
     </div>

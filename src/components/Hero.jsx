@@ -4,6 +4,7 @@ import {
   useStaticTranslation,
   formatStaticText,
 } from "../i18n/staticContent.js";
+import AppImage from "./ui/AppImage.jsx";
 
 /**
  * slides item yapısı (backend'den heroApi.list ile geliyor):
@@ -118,9 +119,12 @@ export default function Hero({
             aria-hidden={!isActive}
           >
             {s.image?.url ? (
-              <img
+              <AppImage
                 src={s.image.url}
                 alt={s.title || ""}
+                fill
+                sizes="100vw"
+                priority={i === 0}
                 className="absolute inset-0 h-full w-full object-cover"
                 draggable="false"
               />

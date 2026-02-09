@@ -18,6 +18,8 @@ export default function GlobalLoadingOverlay({
   }, [visible]);
 
   useEffect(() => {
+    const activeIds = activeIdsRef.current;
+
     const clearTimers = () => {
       if (showTimerRef.current) {
         clearTimeout(showTimerRef.current);
@@ -52,7 +54,7 @@ export default function GlobalLoadingOverlay({
       if (!id) return;
 
       if (type === "start") {
-        activeIdsRef.current.add(id);
+        activeIds.add(id);
         if (!visibleRef.current && !showTimerRef.current) {
           showTimerRef.current = setTimeout(() => {
             visibleAtRef.current = Date.now();
@@ -64,8 +66,8 @@ export default function GlobalLoadingOverlay({
       }
 
       if (type === "end") {
-        activeIdsRef.current.delete(id);
-        if (activeIdsRef.current.size > 0) return;
+        activeIds.delete(id);
+        if (activeIds.size > 0) return;
 
         if (showTimerRef.current) {
           clearTimeout(showTimerRef.current);
@@ -88,7 +90,7 @@ export default function GlobalLoadingOverlay({
     return () => {
       window.removeEventListener("ui-loading", handleEvent);
       clearTimers();
-      activeIdsRef.current.clear();
+      activeIds.clear();
     };
   }, [delayMs, minVisibleMs]);
 

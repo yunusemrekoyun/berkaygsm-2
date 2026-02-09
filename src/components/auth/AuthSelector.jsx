@@ -15,19 +15,18 @@ export default function AuthSelector() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const paramsKey = useMemo(() => params.toString(), [params]);
-
-  const hasCachedAuth = () => Boolean(getAccessToken() || getUser());
+  const currentView = useMemo(() => params.get("view") || "", [params]);
 
   // logout query
   useEffect(() => {
     (async () => {
-      if (params.get("view") === "logout") {
+      if (currentView === "logout") {
         await authApi.logout();
         navigate("/account?view=login", { replace: true });
         setIsLogged(false);
       }
     })();
-  }, [paramsKey, navigate]);
+  }, [currentView, navigate]);
 
   // açılışta doğrula
   useEffect(() => {
@@ -45,20 +44,20 @@ export default function AuthSelector() {
         if (!cachedToken) {
           const ok = await refreshAccessToken();
           if (!ok) {
-            if (!hasCachedAuth()) setLogged(false);
+            if (!(getAccessToken() || getUser())) setLogged(false);
             return;
           }
         }
         const me = await authApi.me();
         if (me) {
           setLogged(true);
-        } else if (!hasCachedAuth()) {
+        } else if (!(getAccessToken() || getUser())) {
           setLogged(false);
         }
         // 🔴 burada admin'e zorunlu yönlendirme YOK
         // sadece guard redirect paramı olsaydı orada yakalayabilirdik
       } catch {
-        if (!hasCachedAuth()) setLogged(false);
+        if (!(getAccessToken() || getUser())) setLogged(false);
       } finally {
         if (mounted) setReady(true);
       }

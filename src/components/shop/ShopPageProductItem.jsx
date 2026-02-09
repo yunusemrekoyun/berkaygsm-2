@@ -1,6 +1,7 @@
 // src/components/shop/ShopPageProductItem.jsx
 import { Link } from "react-router-dom";
 import DiscountBadge from "../ui/DiscountBadge.jsx";
+import AppImage from "../ui/AppImage.jsx";
 
 const currency = new Intl.NumberFormat("tr-TR", {
   style: "currency",
@@ -23,9 +24,12 @@ export default function ShopPageProductItem({ product }) {
       className="glass-surface block overflow-hidden rounded-2xl bg-white ring-1 ring-border shadow-sm transition hover:shadow-md"
     >
       <div className="relative aspect-[4/5] w-full overflow-hidden bg-surface-light/60">
-        <img
+        <AppImage
           src={imageSrc}
           alt={title}
+          width={1200}
+          height={1500}
+          sizes="(max-width: 768px) 50vw, 25vw"
           className="h-full w-full object-contain p-2 sm:p-3"
           draggable="false"
         />

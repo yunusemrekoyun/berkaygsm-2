@@ -18,7 +18,7 @@ const ThemeConfigSchema = new mongoose.Schema(
     },
 
     // aktif preset anahtarı (opsiyonel)
-    activeKey: { type: String, default: "rosewood" },
+    activeKey: { type: String, default: "ocean" },
 
     // store/admin değişkenleri key-value olarak saklanır
     storeVars: { type: [KVSchema], default: [] },

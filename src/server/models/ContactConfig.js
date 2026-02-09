@@ -14,7 +14,7 @@ const ImageSchema = new mongoose.Schema(
 const BlockSchema = new mongoose.Schema(
   {
     title: { type: String, default: "" },
-    lines: { type: [String], default: [] }, // “Kurfürstendamm 45 ...” vb.
+    lines: { type: [String], default: [] }, // iletişim satırları
   },
   { _id: false }
 );
@@ -46,30 +46,30 @@ const ContactConfigSchema = new mongoose.Schema(
     key: { type: String, unique: true, default: "default", index: true },
 
     // Hero
-    heroTitle: { type: String, default: "We're here to help" },
+    heroTitle: { type: String, default: "Yardım için buradayız" },
     heroSubtitle: {
       type: String,
       default:
-        "Our customer care team is available Monday to Friday, 09:00–18:00 CET. Send us a note and we'll respond within one business day.",
+        "Bize ulaşın, sorularınızı yanıtlayalım ve ihtiyaçlarınıza uygun çözümler sunalım. Çalışma saatlerimiz pazar günü hariç her gün 09:00-18:00 arasındadır.",
     },
     heroImage: { type: ImageSchema, default: () => ({}) },
 
     // Sağdaki 4 blok
     addressBlock: {
       type: BlockSchema,
-      default: () => ({ title: "Visit our European studio", lines: [] }),
+      default: () => ({ title: "Mağazamızı ziyaret edin", lines: [] }),
     },
     hoursBlock: {
       type: BlockSchema,
-      default: () => ({ title: "Opening hours (CET)", lines: [] }),
+      default: () => ({ title: "Çalışma saatleri", lines: [] }),
     },
     emailBlock: {
       type: BlockSchema,
-      default: () => ({ title: "Customer service", lines: [] }),
+      default: () => ({ title: "Müşteri hizmetleri", lines: [] }),
     },
     phoneBlock: {
       type: BlockSchema,
-      default: () => ({ title: "Phone", lines: [] }),
+      default: () => ({ title: "Telefon", lines: [] }),
     },
 
     // Form davranışı
@@ -77,7 +77,7 @@ const ContactConfigSchema = new mongoose.Schema(
     successMessage: {
       type: String,
       default:
-        "Thank you for your message. We have received your enquiry and will reply via e-mail shortly. If you need immediate assistance, call us on the number below.",
+        "Mesajınız için teşekkür ederiz. Talebinizi aldık ve kısa süre içinde yanıt vereceğiz. Acil yardım ihtiyacınız varsa, aşağıdaki numaradan bize ulaşabilirsiniz.",
     },
     translations: {
       type: new mongoose.Schema(

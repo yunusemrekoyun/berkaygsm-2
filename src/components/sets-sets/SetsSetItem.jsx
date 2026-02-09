@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import DiscountBadge from "../ui/DiscountBadge.jsx";
 import { formatStaticText } from "../../i18n/staticContent.js";
+import AppImage from "../ui/AppImage.jsx";
 
 export default function SetsSetItem({
   image,
@@ -41,9 +42,12 @@ export default function SetsSetItem({
     <article className="glass-surface overflow-hidden rounded-2xl bg-white ring-1 ring-black/5 shadow-sm transition">
       <Wrapper>
         <div className="relative overflow-hidden">
-          <img
+          <AppImage
             src={image}
             alt={title || untitledLabel}
+            width={1400}
+            height={900}
+            sizes="(max-width: 768px) 100vw, 33vw"
             className="h-56 w-full object-cover md:h-64 transition-transform duration-300 group-hover:scale-[1.02]"
             draggable="false"
           />

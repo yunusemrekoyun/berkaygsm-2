@@ -13,6 +13,7 @@ import {
   formatStaticText,
 } from "../../i18n/staticContent.js";
 import { useStorefrontLang } from "../../context/LangContext.jsx";
+import AppImage from "../ui/AppImage.jsx";
 
 const currency = new Intl.NumberFormat("tr-TR", {
   style: "currency",
@@ -34,9 +35,7 @@ export default function ProductDetail({ product = {} }) {
   const colorLabel = copy.colorLabel || "Renk";
   const sizeLabel = copy.sizeLabel || "Model";
   const optionLabel = copy.optionLabel || "Seçenek";
-  // eslint-disable-next-line no-unused-vars
   const careTitle = copy.careTitle || "Bakım";
-  // eslint-disable-next-line no-unused-vars
   const detailsTitle = copy.detailsTitle || "Detaylar";
   const descriptionFallback =
     copy.descriptionFallback || "Ürün açıklaması bulunmuyor.";
@@ -267,9 +266,12 @@ export default function ProductDetail({ product = {} }) {
       {/* Left: Gallery */}
       <div className="md:col-span-5" data-animate="fade-right">
         <div className="glass-surface relative overflow-hidden rounded-xl border border-border bg-white">
-          <img
+          <AppImage
             src={gallery[activeImg]}
             alt={product.name || product.title || fallbackName}
+            width={1400}
+            height={1750}
+            sizes="(max-width: 768px) 100vw, 42vw"
             className="aspect-[4/5] w-full object-cover"
             draggable="false"
           />
@@ -297,9 +299,12 @@ export default function ProductDetail({ product = {} }) {
                   activeImg === index ? "border-accent" : "border-border"
                 } bg-white transition`}
               >
-                <img
+                <AppImage
                   src={img}
                   alt=""
+                  width={400}
+                  height={500}
+                  sizes="(max-width: 768px) 33vw, 160px"
                   className="aspect-[4/5] w-full object-cover"
                   draggable="false"
                 />
@@ -476,7 +481,7 @@ export default function ProductDetail({ product = {} }) {
 
           {care && (
             <div className="mt-6">
-              <h3 className="mb-1 font-semibold text-primary">Care</h3>
+              <h3 className="mb-1 font-semibold text-primary">{careTitle}</h3>
               <p className="text-sm text-secondary whitespace-pre-line">
                 {care}
               </p>
@@ -485,7 +490,7 @@ export default function ProductDetail({ product = {} }) {
 
           {details.length > 0 && (
             <div className="mt-4">
-              <h3 className="mb-1 font-semibold text-primary">Details</h3>
+              <h3 className="mb-1 font-semibold text-primary">{detailsTitle}</h3>
               <ul className="list-disc pl-5 text-sm text-secondary">
                 {details.map((detail) => (
                   <li key={detail}>{detail}</li>

@@ -1,6 +1,7 @@
 // src/components/nav/MegaMenu.jsx
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import AppImage from "../ui/AppImage.jsx";
 
 export default function MegaMenu({ label, data = [], onRootClick }) {
   const [open, setOpen] = useState(false);
@@ -108,9 +109,12 @@ function RightPanel({ items }) {
           className="glass-surface-soft group flex gap-3 overflow-hidden rounded-lg border border-border/60 bg-white p-3 hover:shadow-sm"
         >
           {c.image && (
-            <img
+            <AppImage
               src={c.image}
               alt={c.title}
+              width={320}
+              height={256}
+              sizes="160px"
               className="h-16 w-20 flex-none rounded-md object-cover"
               draggable="false"
             />

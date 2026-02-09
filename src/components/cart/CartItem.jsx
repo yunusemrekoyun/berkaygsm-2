@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useStaticTranslation } from "../../i18n/staticContent.js";
 import { getColorInfo } from "../../utils/colors.js";
 import { useStorefrontLang } from "../../context/LangContext.jsx";
+import AppImage from "../ui/AppImage.jsx";
 
 export default function CartItem({ item, onQty, onRemove }) {
   const t = useStaticTranslation();
@@ -41,9 +42,12 @@ export default function CartItem({ item, onQty, onRemove }) {
       {/* Görsel */}
       <div className="sm:col-span-2">
         <div className="glass-surface-soft overflow-hidden rounded-xl border border-border bg-white">
-          <img
+          <AppImage
             src={item.image}
             alt={item.title}
+            width={640}
+            height={640}
+            sizes="(max-width: 640px) 100vw, 160px"
             className="aspect-square w-full object-cover"
             draggable="false"
           />
