@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { aboutApi } from "../api/about";
 import { Loader2 } from "lucide-react";
 import { useStorefrontLang } from "../context/LangContext.jsx";
+import AppImage from "../components/ui/AppImage.jsx";
 
 export default function AboutPage() {
   const [about, setAbout] = useState(null);
@@ -79,9 +80,12 @@ export default function AboutPage() {
 
           {heroImage?.url && (
             <div className="mt-8 overflow-hidden rounded-xl ring-1 ring-border">
-              <img
+              <AppImage
                 src={heroImage.url}
                 alt="Hakkımızda görseli"
+                width={1800}
+                height={900}
+                sizes="(max-width: 640px) 100vw, 1400px"
                 className="h-[340px] w-full object-cover"
                 draggable="false"
               />
@@ -96,9 +100,12 @@ export default function AboutPage() {
           {leftImage?.url && (
             <div className="md:col-span-5">
               <div className="glass-surface overflow-hidden rounded-2xl border border-border bg-white">
-                <img
+                <AppImage
                   src={leftImage.url}
                   alt="Mağaza"
+                  width={1200}
+                  height={1400}
+                  sizes="(max-width: 768px) 100vw, 42vw"
                   className="h-full w-full object-cover md:h-[560px]"
                   draggable="false"
                 />
@@ -158,9 +165,12 @@ export default function AboutPage() {
           {materialsImage?.url && (
             <div className="md:col-span-5">
               <div className="overflow-hidden rounded-2xl border border-border">
-                <img
+                <AppImage
                   src={materialsImage.url}
-                  alt="Fabric"
+                  alt="Malzeme görseli"
+                  width={1200}
+                  height={900}
+                  sizes="(max-width: 768px) 100vw, 42vw"
                   className="h-full w-full object-cover md:h-[360px]"
                   draggable="false"
                 />

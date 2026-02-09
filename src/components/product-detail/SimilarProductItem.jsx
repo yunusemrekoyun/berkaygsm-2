@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import DiscountBadge from "../ui/DiscountBadge.jsx";
+import AppImage from "../ui/AppImage.jsx";
 
 const currency = new Intl.NumberFormat("tr-TR", {
   style: "currency",
@@ -25,9 +26,12 @@ export default function SimilarProductItem({
       className="glass-surface block overflow-hidden rounded-xl bg-white ring-1 ring-border transition hover:shadow-sm"
     >
       <div className="relative aspect-[4/5] w-full overflow-hidden bg-surface-light/60">
-        <img
+        <AppImage
           src={image || "/shop-1.jpg"}
           alt={title}
+          width={900}
+          height={1125}
+          sizes="(max-width: 768px) 50vw, 20vw"
           className="h-full w-full object-contain p-2"
           draggable="false"
         />

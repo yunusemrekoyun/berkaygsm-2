@@ -275,26 +275,26 @@ const STATIC_CONTENT = {
           "Our customer care team is available Monday to Friday, 09:00–18:00 CET. Send us a note and we'll respond within one business day.",
       },
       defaultBlocks: {
-        addressTitle: "Visit our European studio",
+        addressTitle: "Mağazamızı ziyaret edin",
         addressLines: [
-          "Kurfürstendamm 45, 10719 Berlin",
-          "Showroom & click-and-collect (appointment recommended)",
+          "Menderes Caddesi 45, Merkez / Kütahya",
+          "Ürünleri yerinde deneyimleyin ve mağazadan teslim alma seçeneği için bizimle iletişime geçin.",
         ],
-        hoursTitle: "Opening hours (CET)",
+        hoursTitle: "Çalışma saatleri",
         hoursLines: [
-          "Mon – Fri: 09:00 – 18:00",
-          "Sat: 10:00 – 16:00",
-          "Sun & public holidays: closed",
+          "Pazartesi – Cuma: 09:00 – 20:00",
+          "Cumartesi: 9:00 – 20:00",
+          "Pazar ve resmi tatillerde kapalı",
         ],
-        emailTitle: "Customer service",
+        emailTitle: "Müşteri Servisi",
         emailLines: [
           "support@evimstil.com",
-          "Average response time: < 24 h",
+          "Ortalama yanıt süresi: < 24 saat",
         ],
-        phoneTitle: "Phone",
+        phoneTitle: "Telefon",
         phoneLines: [
-          "+49 (0) 30 234 567 89",
-          "WhatsApp & Signal available on the same number",
+          "+90 555 123 4567",
+          "WhatsApp üzerinden de ulaşabilirsiniz.",
         ],
       },
       form: {
@@ -787,13 +787,13 @@ const STATIC_CONTENT = {
         addressTitle: "Mağazamızı ziyaret edin",
         addressLines: [
           "Bağdat Caddesi 45, Kadıköy / İstanbul",
-          "Showroom ve mağazadan teslim (randevu önerilir)",
+          "Mağaza içi deneyim ve mağazadan teslim (randevu önerilir)",
         ],
         hoursTitle: "Çalışma saatleri",
         hoursLines: [
           "Pzt – Cum: 09:00 – 18:00",
           "Cmt: 10:00 – 16:00",
-          "Pazartesi ve resmi tatiller: kapalı",
+          "Pazar ve resmi tatiller: kapalı",
         ],
         emailTitle: "Müşteri hizmetleri",
         emailLines: [
@@ -832,7 +832,7 @@ const STATIC_CONTENT = {
     shopPage: {
       title: "Koleksiyonumuzu Keşfedin",
       subtitle:
-        "Admin panelinden yüklenen ürünleri inceleyin. Kategori, renk, model ve fiyata göre filtreleyerek sizin için ideal parçayı bulun.",
+        "Admin panelinden yüklenen ürünleri inceleyin. Kategori, renk, model ve fiyata göre filtreleyerek cihazınız için ideal aksesuarı bulun.",
       noProducts: "Seçili filtrelere uygun ürün bulunamadı.",
       matchingSets: {
         title: "Eşleşen Paketler",
@@ -989,7 +989,7 @@ const STATIC_CONTENT = {
     cart: {
       emptyTitle: "Sepetiniz boş",
       emptySubtitle:
-        "En yeni ürünlerimizi ve özenle seçilmiş çeyiz paketlerini keşfedin.",
+        "En yeni kılıf, şarj cihazı ve aksesuar paketlerimizi keşfedin.",
       continueShopping: "Alışverişe Devam Et",
       heading: "Alışveriş Sepeti",
       couponPlaceholder: "Kupon kodu girin",
@@ -1013,7 +1013,7 @@ const STATIC_CONTENT = {
       selectionsLabel: "Seçimler",
       options: {
         color: "Renk",
-        size: "Beden",
+        size: "Model",
         option: "Seçenek",
       },
       remove: "Kaldır",

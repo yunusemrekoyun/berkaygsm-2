@@ -435,12 +435,12 @@ function TopProducts() {
     () =>
       Array.from({ length: 6 }).map((_, i) => ({
         name: [
-          "İpek Gecelik",
-          "Dantelli Sütyen",
-          "Saten Pijama Takımı",
-          "Pamuklu Bikini",
-          "Gelin Sabahlığı",
-          "Premium Havlu",
+          "MagSafe Şeffaf Kılıf",
+          "USB-C Hızlı Şarj Adaptörü",
+          "Ekran Koruyucu Cam",
+          "Araç İçi Telefon Tutucu",
+          "Type-C Data Kablosu",
+          "Kablosuz Şarj Standı",
         ][i],
         sku: "SKU-" + (1000 + i),
         revenue: Math.round(1200 + Math.random() * 4000),

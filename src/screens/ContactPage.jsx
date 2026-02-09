@@ -12,6 +12,7 @@ import BreadCrumb from "../components/shop/BreadCrumb";
 import { contactPageApi, contactMessageApi } from "../api/contact";
 import { useStorefrontLang } from "../context/LangContext.jsx";
 import { useStaticTranslation } from "../i18n/staticContent.js";
+import AppImage from "../components/ui/AppImage.jsx";
 
 const makeBlock = (title = "", lines = []) => ({
   title,
@@ -36,15 +37,15 @@ function buildDefaultConfig(copy = {}) {
     addressBlock: makeBlock(
       blocks.addressTitle || "Mağazamızı ziyaret edin",
       blocks.addressLines || [
-        "Kurfürstendamm 45, 10719 Berlin",
-        "Showroom & mağazadan teslim (randevu önerilir)",
+        "Bağdat Caddesi 45, Kadıköy / İstanbul",
+        "Mağaza içi deneyim ve mağazadan teslim (randevu önerilir)",
       ]
     ),
     hoursBlock: makeBlock(
-      blocks.hoursTitle || "Çalışma saatleri (CET)",
+      blocks.hoursTitle || "Çalışma saatleri",
       blocks.hoursLines || [
         "Pzt – Cum: 09:00 – 18:00",
-        "Cmt: 10:00 – 16:00 (showroom)",
+        "Cmt: 10:00 – 16:00",
         "Paz ve resmi tatiller: kapalı",
       ]
     ),
@@ -58,8 +59,8 @@ function buildDefaultConfig(copy = {}) {
     phoneBlock: makeBlock(
       blocks.phoneTitle || "Telefon",
       blocks.phoneLines || [
-        "+49 (0) 30 234 567 89",
-        "WhatsApp & Signal aynı numaradan",
+        "+90 (212) 000 00 00",
+        "Aynı numaradan WhatsApp ve Signal",
       ]
     ),
     formEnabled: true,
@@ -123,7 +124,7 @@ const initialFormState = {
 };
 
 const getErrorMessage = (err) => {
-  if (!err) return "Unexpected error";
+  if (!err) return "Beklenmeyen hata";
   if (typeof err === "string") return err;
   if (err.message) {
     try {
@@ -147,16 +148,18 @@ export default function ContactPage() {
   const { lang } = useStorefrontLang();
   const t = useStaticTranslation();
   const breadcrumbs = t("breadcrumbs") || {};
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const contactCopy = useMemo(() => t("contactPage") || {}, [lang]); // gerekiyorsa [lang, t]
+  const contactCopy = useMemo(() => t("contactPage") || {}, [t]);
   const formCopy = useMemo(() => contactCopy.form || {}, [contactCopy]);
   const formFields = useMemo(() => formCopy.fields || {}, [formCopy]);
-  const baseConfig = useMemo(() => buildDefaultConfig(contactCopy), [lang]);
+  const baseConfig = useMemo(
+    () => buildDefaultConfig(contactCopy),
+    [contactCopy]
+  );
 
   const [config, setConfig] = useState(() => mergeConfig(null, baseConfig));
   useEffect(() => {
     setConfig(mergeConfig(null, baseConfig));
-  }, [lang]);
+  }, [baseConfig]);
 
   useEffect(() => {
     let active = true;
@@ -170,8 +173,7 @@ export default function ContactPage() {
       } catch (err) {
         if (!active) return;
         const message = getErrorMessage(err);
-        const fallbackMsg = formCopy?.loadError || "";
-        setLoadError(message || fallbackMsg);
+        setLoadError(message);
         setConfig(mergeConfig(null, baseConfig));
       } finally {
         if (active) setLoading(false);
@@ -180,7 +182,7 @@ export default function ContactPage() {
     return () => {
       active = false;
     };
-  }, [lang]);
+  }, [lang, baseConfig]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -238,9 +240,11 @@ export default function ContactPage() {
         <div className="glass-surface overflow-hidden rounded-2xl border border-border bg-white/90 shadow-sm">
           {config.heroImage?.url ? (
             <div className="relative h-60 w-full sm:h-72">
-              <img
+              <AppImage
                 src={config.heroImage.url}
                 alt={config.heroTitle}
+                fill
+                sizes="(max-width: 640px) 100vw, 1400px"
                 className="h-full w-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/20 to-transparent" />

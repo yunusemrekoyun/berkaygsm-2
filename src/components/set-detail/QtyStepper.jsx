@@ -29,7 +29,7 @@ export default function QtyStepper({
     <div className={["inline-flex items-center gap-2", className].join(" ")}>
       <button
         type="button"
-        aria-label="Decrease"
+        aria-label="Azalt"
         onClick={dec}
         disabled={!canDec}
         className="h-8 w-8 rounded-full border border-border bg-white text-base leading-none
@@ -44,7 +44,7 @@ export default function QtyStepper({
 
       <button
         type="button"
-        aria-label="Increase"
+        aria-label="Artır"
         onClick={inc}
         disabled={!canInc}
         className="h-8 w-8 rounded-full border border-border bg-white text-base leading-none

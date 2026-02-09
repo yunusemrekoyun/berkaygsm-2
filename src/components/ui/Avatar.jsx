@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import AppImage from "./AppImage.jsx";
 
 const COLOR_POOL = [
   "#F97316",
@@ -113,6 +114,11 @@ export default function Avatar({
   const showFallback = !resolvedSrc || errored;
   const initials = useMemo(() => extractInitials(name), [name]);
   const backgroundColor = useMemo(() => stringToColor(name), [name]);
+  const imageSizes = useMemo(() => {
+    if (typeof size === "number") return `${size}px`;
+    if (typeof size === "string" && size.trim()) return size;
+    return "64px";
+  }, [size]);
 
   const combinedStyle = {
     ...style,
@@ -152,9 +158,12 @@ export default function Avatar({
           {initials}
         </span>
       ) : (
-        <img
+        <AppImage
           src={resolvedSrc}
           alt={alt || name || "Profil"}
+          width={256}
+          height={256}
+          sizes={imageSizes}
           className="h-full w-full object-cover"
           draggable="false"
           onError={() => setErrored(true)}

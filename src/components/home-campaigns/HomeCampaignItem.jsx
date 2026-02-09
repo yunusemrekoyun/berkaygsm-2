@@ -1,6 +1,7 @@
 // src/components/home-campaigns/HomeCampaignItem.jsx
 import { Link } from "react-router-dom";
 import { useStaticTranslation } from "../../i18n/staticContent.js";
+import AppImage from "../ui/AppImage.jsx";
 
 export default function HomeCampaignItem({
   to = "#",
@@ -27,9 +28,11 @@ export default function HomeCampaignItem({
       className={`glass-surface group relative h-full min-h-[260px] overflow-hidden rounded-2xl ring-1 ring-black/5 shadow-sm ${span} ${className}`}
     >
       {/* BG image */}
-      <img
+      <AppImage
         src={image}
         alt={title}
+        fill
+        sizes="(max-width: 768px) 100vw, 25vw"
         className="absolute inset-0 h-full w-full object-cover"
         draggable="false"
       />

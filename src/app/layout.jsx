@@ -23,7 +23,7 @@ const DEFAULT_THEME_VARS = {
 
 export const metadata = {
   title: "Berkay GSM",
-  description: "Berkay GSM storefront and admin",
+  description: "Berkay GSM mağaza ve yönetim paneli",
 };
 
 export default function RootLayout({ children }) {

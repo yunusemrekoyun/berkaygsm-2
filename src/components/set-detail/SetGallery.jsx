@@ -3,6 +3,7 @@ import {
   useStaticTranslation,
   formatStaticText,
 } from "../../i18n/staticContent.js";
+import AppImage from "../ui/AppImage.jsx";
 
 export default function SetGallery({ images = [], title = "" }) {
   const [active, setActive] = useState(0);
@@ -14,9 +15,12 @@ export default function SetGallery({ images = [], title = "" }) {
   return (
     <div className="glass-surface rounded-xl bg-white ring-1 ring-black/5 p-4">
       <div className="overflow-hidden rounded-xl">
-        <img
+        <AppImage
           src={activeSrc}
           alt={title}
+          width={1600}
+          height={1200}
+          sizes="(max-width: 768px) 100vw, 60vw"
           className="h-[420px] w-full object-cover md:h-[480px]"
           draggable="false"
         />
@@ -36,14 +40,17 @@ export default function SetGallery({ images = [], title = "" }) {
               ].join(" ")}
               aria-label={formatStaticText(goToLabel, { index: i + 1 })}
             >
-          <img
-            src={img.url}
-            alt={`${title} ${i + 1}`}
-            className="h-full w-full object-cover"
-            draggable="false"
-          />
-        </button>
-      ))}
+              <AppImage
+                src={img.url}
+                alt={`${title} ${i + 1}`}
+                width={400}
+                height={500}
+                sizes="(max-width: 768px) 30vw, 180px"
+                className="h-full w-full object-cover"
+                draggable="false"
+              />
+            </button>
+          ))}
         </div>
       )}
     </div>

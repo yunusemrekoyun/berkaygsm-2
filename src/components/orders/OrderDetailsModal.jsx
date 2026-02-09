@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { X } from "lucide-react";
 import { orderApi } from "../../api/orders";
+import AppImage from "../ui/AppImage.jsx";
 
 /** Küçük yardımcılar */
 function money(v) {
@@ -265,9 +266,12 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
                   >
                     <div className="h-16 w-16 overflow-hidden rounded-lg bg-surface">
                       {it.image ? (
-                        <img
+                        <AppImage
                           src={it.image}
                           alt={it.name}
+                          width={256}
+                          height={256}
+                          sizes="64px"
                           className="h-full w-full object-cover"
                         />
                       ) : (

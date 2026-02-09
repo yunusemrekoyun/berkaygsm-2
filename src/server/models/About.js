@@ -82,11 +82,11 @@ const AboutTranslationSchema = new mongoose.Schema(
 const AboutSchema = new mongoose.Schema(
   {
     key: { type: String, unique: true, default: "about", index: true },
-    heroTitle: { type: String, default: "About Berkay GSM" },
+    heroTitle: { type: String, default: "Berkay GSM Hakkında" },
     heroSubtitle: {
       type: String,
       default:
-        "Discover the story behind our passion for dependable phone accessories—crafted for protection, power, and everyday use.",
+        "Günlük kullanım için koruma, şarj ve kullanım kolaylığı sunan telefon aksesuarlarını kalite odaklı yaklaşımımızla sizlere ulaştırıyoruz.",
     },
     heroImage: { type: ImageSchema, default: null },
     leftImage: { type: ImageSchema, default: null },
@@ -94,58 +94,58 @@ const AboutSchema = new mongoose.Schema(
       type: [DotBlockSchema],
       default: [
         {
-          title: "Our Story",
-          text: "Berkay GSMstarted with a simple idea: make reliable, stylish phone gear easy to find. From a small workshop to a growing storefront, we have always focused on quality, fit, and customer care.",
+          title: "Hikayemiz",
+          text: "Berkay GSM, güvenilir ve şık telefon aksesuarlarını ulaşılabilir hale getirme fikriyle yola çıktı. İlk günden beri ürün kalitesi, uyumluluk ve müşteri memnuniyetine odaklanıyoruz.",
         },
         {
-          title: "Our Vision",
-          text: "To be the most trusted destination for premium mobile accessories—blending durable materials with modern design and fair pricing.",
+          title: "Vizyonumuz",
+          text: "Dayanıklı malzeme, güncel tasarım ve doğru fiyat dengesini bir araya getirerek mobil aksesuar alanında en güvenilir mağaza olmak.",
         },
         {
-          title: "Our Values",
-          text: "Safety-certified charging, device-first fit, and long-lasting materials. We work with trusted partners to ensure performance and compatibility you can rely on.",
+          title: "Değerlerimiz",
+          text: "Güvenlik standartlarına uygun şarj ürünleri, cihaz odaklı uyum ve uzun ömürlü malzeme. İş ortaklarımızı performans ve güvenilirlik kriterleriyle seçiyoruz.",
         },
       ],
     },
     stats: {
       type: [StatSchema],
       default: [
-        { value: "10K+", label: "Devices Protected" },
-        { value: "45K+", label: "Happy Customers" },
-        { value: "5", label: "Service Centers" },
-        { value: "98%", label: "Compatibility Success" },
+        { value: "10K+", label: "Korunan Cihaz" },
+        { value: "45K+", label: "Memnun Müşteri" },
+        { value: "5", label: "Hizmet Noktası" },
+        { value: "98%", label: "Uyumluluk Başarısı" },
       ],
     },
     materialsTitle: {
       type: String,
-      default: "Materials & Safety",
+      default: "Malzeme ve Güvenlik",
     },
     materialsText: {
       type: String,
       default:
-        "We select impact-resistant polymers, tempered glass, and certified charging components from audited suppliers. Packaging is minimal, and we prioritize partners with responsible manufacturing practices.",
+        "Darbe dayanımlı polimerler, temperli cam ve sertifikalı şarj bileşenleri kullanıyoruz. Tedarik sürecinde kalite kontrol ve güvenlik standartlarını önceliklendiriyoruz.",
     },
     materialsBullets: {
       type: [String],
       default: [
-        "• Drop-tested case materials",
-        "• Certified charging standards",
-        "• Scratch-resistant glass protection",
-        "• Reusable & recyclable packaging",
+        "• Düşme testlerinden geçen kılıf malzemeleri",
+        "• Sertifikalı şarj standartları",
+        "• Çizilmeye dayanıklı ekran koruma çözümleri",
+        "• Geri dönüştürülebilir ve sade ambalaj",
       ],
     },
     materialsImage: { type: ImageSchema, default: null },
-    ctaTitle: { type: String, default: "Visit Our Store in Berlin" },
+    ctaTitle: { type: String, default: "Mağazamızı Ziyaret Edin" },
     ctaSubtitle: {
       type: String,
       default:
-        "Try cases, grips, and chargers in person and let our team help you find the right fit for your device.",
+        "Kılıf, şarj cihazı ve diğer aksesuarları mağazamızda deneyin. Ekibimiz cihazınıza en uygun ürünü seçmenizde yardımcı olur.",
     },
     ctas: {
       type: [CtaSchema],
       default: [
-        { text: "Explore Accessories", to: "/shop", variant: "primary" },
-        { text: "Contact Us", to: "/contact", variant: "secondary" },
+        { text: "Aksesuarları Keşfet", to: "/shop", variant: "primary" },
+        { text: "İletişime Geç", to: "/contact", variant: "secondary" },
       ],
     },
     translations: {

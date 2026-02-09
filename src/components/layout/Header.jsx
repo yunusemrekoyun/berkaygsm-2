@@ -12,6 +12,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import MegaMenu from "./MegaMenu";
+import AppImage from "../ui/AppImage.jsx";
 import { categoryApi } from "../../api/categories";
 import { mapCategoryTree } from "../../utils/catalog";
 import { useCart } from "../../hooks/useCart";
@@ -183,9 +184,12 @@ export default function Header() {
                 className="inline-flex flex-1 items-center justify-center gap-2"
                 aria-label="Berkay GSM"
               >
-                <img
+                <AppImage
                   src="/logo.png"
                   alt=""
+                  width={64}
+                  height={64}
+                  sizes="64px"
                   className="h-8 w-8 object-contain"
                   draggable="false"
                 />
@@ -236,9 +240,12 @@ export default function Header() {
               <div className="grid h-20 grid-cols-[auto_1fr_auto] items-center gap-4">
                 <div className="flex items-center">
                   <Link to="/" className="group inline-flex items-center gap-3">
-                    <img
+                    <AppImage
                       src="/logo.png"
                       alt="Berkay GSM"
+                      width={96}
+                      height={96}
+                      sizes="96px"
                       className="h-16 w-16 object-contain"
                       draggable="false"
                     />

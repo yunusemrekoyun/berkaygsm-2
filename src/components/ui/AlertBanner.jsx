@@ -31,7 +31,7 @@ export default function AlertBanner({
           type="button"
           onClick={onClose}
           className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full hover:bg-white/40 focus:outline-none"
-          aria-label="Dismiss"
+          aria-label="Kapat"
         >
           <X className="h-4 w-4" />
         </button>

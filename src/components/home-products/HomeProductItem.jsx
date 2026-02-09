@@ -1,6 +1,7 @@
 // src/components/home-products/HomeProductItem.jsx
 import { Link } from "react-router-dom";
 import DiscountBadge from "../ui/DiscountBadge.jsx";
+import AppImage from "../ui/AppImage.jsx";
 
 export default function HomeProductItem({
   to = "#",
@@ -22,9 +23,12 @@ export default function HomeProductItem({
     >
       {/* Görsel */}
       <div className="relative aspect-[4/5] w-full overflow-hidden bg-surface-light/60">
-        <img
+        <AppImage
           src={image}
           alt={title}
+          width={1200}
+          height={1500}
+          sizes="(max-width: 768px) 50vw, 25vw"
           className="h-full w-full object-contain p-2 sm:p-3"
           draggable="false"
         />

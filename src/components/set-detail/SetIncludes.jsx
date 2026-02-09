@@ -3,6 +3,7 @@ import {
   useStaticTranslation,
   formatStaticText,
 } from "../../i18n/staticContent.js";
+import AppImage from "../ui/AppImage.jsx";
 
 /**
  * SetIncludes
@@ -79,9 +80,12 @@ export default function SetIncludes({ products = [] }) {
             >
               <div className="aspect-[1/1] w-full overflow-hidden bg-zinc-100">
                 {cover ? (
-                  <img
+                  <AppImage
                     src={cover}
                     alt={p?.name || productFallback}
+                    width={640}
+                    height={640}
+                    sizes="(max-width: 768px) 50vw, 25vw"
                     className="h-full w-full object-cover group-hover:scale-[1.02] transition-transform"
                     loading="lazy"
                   />
@@ -133,10 +137,13 @@ export default function SetIncludes({ products = [] }) {
             <div className="relative">
               {active.images?.length ? (
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-100">
-                  <img
+                  <AppImage
                     key={active.images[idx]?.publicId || idx}
                     src={active.images[idx]?.url}
                     alt={`${active.name} ${idx + 1}`}
+                    width={1600}
+                    height={1200}
+                    sizes="(max-width: 768px) 100vw, 70vw"
                     className="h-full w-full object-contain"
                   />
 
@@ -184,9 +191,12 @@ export default function SetIncludes({ products = [] }) {
                     }`}
                     aria-label={formatStaticText(goToLabel, { index: i + 1 })}
                   >
-                    <img
+                    <AppImage
                       src={img.url}
                       alt={`${active.name} ${i + 1}`}
+                      width={200}
+                      height={200}
+                      sizes="64px"
                       className="h-full w-full object-cover"
                       loading="lazy"
                     />
