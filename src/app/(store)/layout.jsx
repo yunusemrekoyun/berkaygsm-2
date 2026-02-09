@@ -5,7 +5,9 @@ import RouteMemory from "../../components/RouteMemory.jsx";
 export default function StoreLayout({ children }) {
   return (
     <RootLayout>
-      <RouteMemory />
+      <Suspense fallback={null}>
+        <RouteMemory />
+      </Suspense>
       <Suspense fallback={null}>{children}</Suspense>
     </RootLayout>
   );

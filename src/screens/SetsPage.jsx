@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import BreadCrumb from "../components/shop/BreadCrumb";
@@ -21,8 +20,8 @@ export default function SetsPage() {
   const [campaignError, setCampaignError] = useState("");
   const { lang } = useStorefrontLang();
   const t = useStaticTranslation();
-  const breadcrumbs = useMemo(() => t("breadcrumbs") || {}, [t, lang]);
-  const setsCopy = useMemo(() => t("setsPage") || {}, [t, lang]);
+  const breadcrumbs = useMemo(() => t("breadcrumbs") || {}, [t]);
+  const setsCopy = useMemo(() => t("setsPage") || {}, [t]);
   const bannerCopy = useMemo(
     () => setsCopy.campaignBanner || {},
     [setsCopy.campaignBanner]

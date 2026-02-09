@@ -13,14 +13,13 @@ export default function LanguageSwitcher({
   label = "Dil",
 }) {
   const { lang, setLang } = useStorefrontLang();
-  if (SUPPORTED_LANGS.length <= 1) return null;
-
   const onChange = useCallback(
     (event) => {
       setLang(event.target.value);
     },
     [setLang]
   );
+  if (SUPPORTED_LANGS.length <= 1) return null;
 
   return (
     <label

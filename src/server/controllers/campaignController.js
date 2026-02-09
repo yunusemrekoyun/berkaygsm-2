@@ -567,14 +567,12 @@ async function parsePayload(req, { isUpdate = false } = {}) {
   const discountIds = normalizeIds(req.body.discounts);
 
   if (process.env.DEBUG_CAMPAIGNS === "true") {
-  if (process.env.DEBUG_CAMPAIGNS === "true") {
     logger.debug("[campaign:parsePayload] raw ids", {
       productIds,
       setIds,
       categoryIds,
       discountIds,
     });
-  }
   }
 
   const targetInputProvided =
@@ -623,14 +621,12 @@ async function parsePayload(req, { isUpdate = false } = {}) {
   const derivedCategories = Array.from(categoryIdSet);
   const normalizedDiscountIds = discountIds.map((id) => toObjectId(id));
   if (process.env.DEBUG_CAMPAIGNS === "true") {
-  if (process.env.DEBUG_CAMPAIGNS === "true") {
     logger.debug("[campaign:parsePayload] coverage", {
       derivedProducts,
       derivedSets,
       derivedCategories,
       discountDocs: discountDocs.map((doc) => doc._id?.toString?.() || null),
     });
-  }
   }
 
   const mixedDiscounts = findMixedDiscounts(discountDocs);
@@ -676,9 +672,7 @@ async function parsePayload(req, { isUpdate = false } = {}) {
 export async function createCampaign(req, res) {
   try {
     if (process.env.DEBUG_CAMPAIGNS === "true") {
-    if (process.env.DEBUG_CAMPAIGNS === "true") {
       logger.debug("[campaign:create] body", req.body);
-    }
     }
     const lang = normalizeLang(req.query.lang || DEFAULT_LANG);
     if (lang !== DEFAULT_LANG) {
@@ -754,9 +748,7 @@ export async function updateCampaign(req, res) {
     }
 
     if (process.env.DEBUG_CAMPAIGNS === "true") {
-    if (process.env.DEBUG_CAMPAIGNS === "true") {
       logger.debug("[campaign:update] body", req.body);
-    }
     }
     const payload = await parsePayload(req, {
       isUpdate: true,
