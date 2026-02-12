@@ -1,9 +1,18 @@
 import { http, toQueryString } from "./client.js";
 
 export const orderApi = {
-  async create({ addressId, items, couponCode = null, paymentSimulation = null }) {
+  async create({
+    addressId,
+    items,
+    couponCode = null,
+    paymentSimulation = null,
+    paymentMethod = null,
+    paymentProvider = null,
+  }) {
     const body = { addressId, items, couponCode };
     if (paymentSimulation) body.paymentSimulation = paymentSimulation;
+    if (paymentMethod) body.paymentMethod = paymentMethod;
+    if (paymentProvider) body.paymentProvider = paymentProvider;
     const data = await http("/orders", {
       method: "POST",
       auth: true,

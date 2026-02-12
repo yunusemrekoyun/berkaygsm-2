@@ -189,6 +189,7 @@ export async function capturePayPalCheckout(req, res) {
         userId,
         paymentOverride: {
           method: "paypal",
+          provider: "paypal",
           status: captureStatus === "COMPLETED" ? "success" : "pending",
           txnId: capture.id || "",
           processorOrderId: paypalOrderId,

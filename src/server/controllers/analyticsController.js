@@ -10,6 +10,8 @@ const DEFAULT_DAYS = 30;
 const PAYMENT_METHOD_LABELS = {
   cod: "Kapıda Ödeme",
   paypal: "PayPal",
+  gateway_simulation: "Ödeme Simülasyonu",
+  simulation: "Ödeme Simülasyonu",
   card: "Kredi Kartı",
   bank: "Banka Havalesi",
   transfer: "Banka Havalesi",
@@ -19,6 +21,7 @@ const PAYMENT_METHOD_LABELS = {
 const PAYMENT_COLORS = {
   "Kapıda Ödeme": "var(--color-primary)",
   PayPal: "var(--color-accent)",
+  "Ödeme Simülasyonu": "var(--color-secondary)",
   "Kredi Kartı": "var(--color-secondary)",
   "Banka Havalesi": "var(--color-surface)",
   Diğer: "var(--color-contact-bg)",

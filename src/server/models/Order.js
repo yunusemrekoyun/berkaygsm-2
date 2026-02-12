@@ -64,7 +64,8 @@ const PayerSchema = new mongoose.Schema(
 
 const PaymentSchema = new mongoose.Schema(
   {
-    method: { type: String, default: "cod" }, // ödeme şekli
+    method: { type: String, default: "gateway_simulation" }, // ödeme şekli
+    provider: { type: String, default: null },
     txnId: { type: String, default: "" },
     processorOrderId: { type: String, default: "" },
     paidAt: { type: Date, default: null },

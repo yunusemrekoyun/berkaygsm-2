@@ -42,6 +42,21 @@ const PAYMENT_STATUS_LABELS = {
   pending: "Beklemede",
   failed: "Başarısız",
 };
+
+const PAYMENT_METHOD_LABELS = {
+  gateway_simulation: "Ödeme Simülasyonu",
+  simulation: "Ödeme Simülasyonu",
+  paypal: "PayPal",
+  cod: "Kapıda Ödeme",
+  card: "Kredi Kartı",
+};
+
+function formatPaymentMethod(method) {
+  const normalized = String(method || "").trim().toLowerCase();
+  if (!normalized) return "";
+  return PAYMENT_METHOD_LABELS[normalized] || normalized.toUpperCase();
+}
+
 function normalizeImage(img) {
   if (!img) return null;
   const u =
@@ -220,7 +235,7 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
               )}
               {meta.payment?.method && (
                 <span className="text-secondary">
-                  • Ödeme: {String(meta.payment.method).toUpperCase()}
+                  • Ödeme: {formatPaymentMethod(meta.payment.method)}
                   {meta.payment.status
                     ? ` (${
                         PAYMENT_STATUS_LABELS[String(meta.payment.status).toLowerCase()] ||
