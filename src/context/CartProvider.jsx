@@ -215,11 +215,16 @@ export default function CartProvider({ children }) {
 
   const total = useMemo(() => subTotal + shippingFee, [subTotal, shippingFee]);
 
-  const couponDiscount = useMemo(() => {
-    if (!coupon) return 0;
-    if (subTotal < (coupon.minSubtotal || 0)) return 0;
-    return Math.round(((subTotal * coupon.percentage) / 100) * 100) / 100;
+  const couponApplicable = useMemo(() => {
+    if (!coupon) return false;
+    const minRequired = Number(coupon.minSubtotal || 0);
+    return subTotal >= minRequired;
   }, [coupon, subTotal]);
+
+  const couponDiscount = useMemo(() => {
+    if (!coupon || !couponApplicable) return 0;
+    return Math.round(((subTotal * coupon.percentage) / 100) * 100) / 100;
+  }, [coupon, couponApplicable, subTotal]);
 
   const grandTotal = useMemo(
     () => Math.max(0, total - couponDiscount),
@@ -229,15 +234,15 @@ export default function CartProvider({ children }) {
   useEffect(() => {
     if (coupon) {
       const minRequired = Number(coupon.minSubtotal || 0);
-      if (subTotal < minRequired) {
+      if (!couponApplicable) {
         setCouponMessage(
-          `Minimum subtotal for ${coupon.code} is ₺${minRequired.toFixed(2)}`
+          `${coupon.code} kuponu için minimum ara toplam ₺${minRequired.toFixed(2)} olmalı`
         );
       } else {
         setCouponMessage(null);
       }
     }
-  }, [coupon, subTotal]);
+  }, [coupon, couponApplicable]);
 
   const refreshShipping = async () => {
     try {
@@ -296,6 +301,7 @@ export default function CartProvider({ children }) {
         subTotal,
         total,
         coupon,
+        couponApplicable,
         couponMessage,
         couponDiscount,
         grandTotal,

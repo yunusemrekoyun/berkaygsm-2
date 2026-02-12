@@ -18,6 +18,44 @@ const TARGET_POPULATE = [
   { path: "appliesTo.categories", select: "name slug" },
 ];
 
+function parseBooleanInput(value, field = "active") {
+  if (value === undefined) return undefined;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (value === 1) return true;
+    if (value === 0) return false;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "yes"].includes(normalized)) return true;
+    if (["false", "0", "no"].includes(normalized)) return false;
+  }
+  throw new Error(`${field} alanı true/false olmalı`);
+}
+
+function parseNullableDate(value, field) {
+  if (value === undefined) return undefined;
+  if (value === null || value === "") return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`${field} geçerli bir tarih olmalı`);
+  }
+  return parsed;
+}
+
+function validateDateRange(startsAt, endsAt) {
+  if (startsAt && endsAt && startsAt.getTime() > endsAt.getTime()) {
+    throw new Error("Başlangıç tarihi bitiş tarihinden sonra olamaz");
+  }
+}
+
+function isEffectiveNow({ active, startsAt, endsAt }, now = new Date()) {
+  if (!active) return false;
+  if (startsAt && startsAt.getTime() > now.getTime()) return false;
+  if (endsAt && endsAt.getTime() < now.getTime()) return false;
+  return true;
+}
+
 function buildDiscountTrTranslation(doc) {
   const plain = typeof doc.toObject === "function" ? doc.toObject() : doc;
   return {
@@ -39,10 +77,15 @@ function applyDiscountTrTranslation(doc, translation = {}) {
 async function validateObjectIds(ids = [], model, label = "item") {
   if (!Array.isArray(ids) || !ids.length) return [];
 
+  const uniqueRawIds = [];
+  const seen = new Set();
   const objectIds = [];
   for (const value of ids) {
     const raw = String(value ?? "").trim();
     if (!raw) throw new Error(`Empty ${label} id supplied`);
+    if (seen.has(raw)) continue;
+    seen.add(raw);
+    uniqueRawIds.push(raw);
     let objectId;
     try {
       objectId = new mongoose.Types.ObjectId(raw);
@@ -55,8 +98,7 @@ async function validateObjectIds(ids = [], model, label = "item") {
   const docs = await model.find({ _id: { $in: objectIds } }, { _id: 1 }).lean();
   if (docs.length !== objectIds.length) {
     const existing = new Set(docs.map((d) => d._id.toString()));
-    const missing = objectIds
-      .map((id) => id.toString())
+    const missing = uniqueRawIds
       .filter((id) => !existing.has(id));
     throw new Error(
       missing.length
@@ -242,6 +284,9 @@ export async function createDiscount(req, res) {
       products = [],
       sets = [],
       categories = [],
+      active,
+      startsAt,
+      endsAt,
       resolve = null,
     } = req.body;
 
@@ -260,6 +305,16 @@ export async function createDiscount(req, res) {
         .status(400)
         .json({ message: "Yüzde 1-100 arasında olmalı" });
 
+    const parsedActive = parseBooleanInput(active, "active");
+    const parsedStartsAt = parseNullableDate(startsAt, "startsAt");
+    const parsedEndsAt = parseNullableDate(endsAt, "endsAt");
+    validateDateRange(parsedStartsAt, parsedEndsAt);
+    const effectiveNow = isEffectiveNow({
+      active: parsedActive ?? true,
+      startsAt: parsedStartsAt ?? null,
+      endsAt: parsedEndsAt ?? null,
+    });
+
     const productIds = await validateObjectIds(products, Product, "product");
     const setIds = await validateObjectIds(sets, Set, "set");
     const categoryIds = await validateObjectIds(
@@ -272,50 +327,53 @@ export async function createDiscount(req, res) {
       return res.status(400).json({ message: "En az bir hedef seçin" });
 
     const now = new Date();
-    const allActiveFlagged = await Discount.find({ active: true }).lean();
-    const activeDiscounts = allActiveFlagged.filter((d) => {
-      const startsOk = !d.startsAt || new Date(d.startsAt) <= now;
-      const endsOk = !d.endsAt || new Date(d.endsAt) >= now;
-      return startsOk && endsOk;
-    });
-
-    // --- FAST PATH: aynı ürüne aktif indirim var mı? (startsAt NULL dahil)
-    if (productIds.length) {
-      const directOverlap = await Discount.exists({
-        active: true,
-        $and: [
-          { $or: [{ startsAt: null }, { startsAt: { $lte: now } }] },
-          { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] },
-        ],
-        "appliesTo.products": { $in: productIds },
+    let conflicts = [];
+    if (effectiveNow) {
+      const allActiveFlagged = await Discount.find({ active: true }).lean();
+      const activeDiscounts = allActiveFlagged.filter((d) => {
+        const startsOk = !d.startsAt || new Date(d.startsAt) <= now;
+        const endsOk = !d.endsAt || new Date(d.endsAt) >= now;
+        return startsOk && endsOk;
       });
-      if (directOverlap && !resolve) {
+
+      // --- FAST PATH: aynı ürüne aktif indirim var mı? (startsAt NULL dahil)
+      if (productIds.length) {
+        const directOverlap = await Discount.exists({
+          active: true,
+          $and: [
+            { $or: [{ startsAt: null }, { startsAt: { $lte: now } }] },
+            { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] },
+          ],
+          "appliesTo.products": { $in: productIds },
+        });
+        if (directOverlap && !resolve) {
+          return res.status(409).json({
+            message: "İndirim çakışmaları tespit edildi",
+            conflicts: [
+              {
+                id: null,
+                name: "Existing discount",
+                percentage: null,
+                productIds: productIds.map(String),
+                setIds: [],
+                categoryIds: [],
+              },
+            ],
+          });
+        }
+      }
+
+      conflicts = await computeConflicts(
+        { products: productIds, sets: setIds, categories: categoryIds },
+        activeDiscounts
+      );
+
+      if (conflicts.length && !resolve)
         return res.status(409).json({
           message: "İndirim çakışmaları tespit edildi",
-          conflicts: [
-            {
-              id: null,
-              name: "Existing discount",
-              percentage: null,
-              productIds: productIds.map(String),
-              setIds: [],
-              categoryIds: [],
-            },
-          ],
+          conflicts: serializeConflicts(conflicts),
         });
-      }
     }
-
-    const conflicts = await computeConflicts(
-      { products: productIds, sets: setIds, categories: categoryIds },
-      activeDiscounts
-    );
-
-    if (conflicts.length && !resolve)
-      return res.status(409).json({
-        message: "İndirim çakışmaları tespit edildi",
-        conflicts: serializeConflicts(conflicts),
-      });
 
     // Çakışma çözümü
     let finalProducts = productIds;
@@ -368,7 +426,9 @@ export async function createDiscount(req, res) {
         sets: finalSets,
         categories: finalCategories,
       },
-      active: true,
+      active: parsedActive ?? true,
+      startsAt: parsedStartsAt ?? null,
+      endsAt: parsedEndsAt ?? null,
     });
 
     // ✅ BURASI EKLENDİ
@@ -433,10 +493,12 @@ export async function updateDiscount(req, res) {
       name,
       description,
       percentage,
-      products = [],
-      sets = [],
-      categories = [],
+      products,
+      sets,
+      categories,
       active,
+      startsAt,
+      endsAt,
       resolve = null,
     } = req.body;
 
@@ -475,106 +537,149 @@ export async function updateDiscount(req, res) {
           .json({ message: "Yüzde 1-100 arasında olmalı" });
       discount.percentage = parsed;
     }
-    if (active !== undefined) discount.active = Boolean(active);
+    const parsedActive = parseBooleanInput(active, "active");
+    if (parsedActive !== undefined) discount.active = parsedActive;
+    const parsedStartsAt = parseNullableDate(startsAt, "startsAt");
+    if (parsedStartsAt !== undefined) discount.startsAt = parsedStartsAt;
+    const parsedEndsAt = parseNullableDate(endsAt, "endsAt");
+    if (parsedEndsAt !== undefined) discount.endsAt = parsedEndsAt;
+    validateDateRange(
+      discount.startsAt ? new Date(discount.startsAt) : null,
+      discount.endsAt ? new Date(discount.endsAt) : null
+    );
 
     let productIds = discount.appliesTo.products || [];
     let setIds = discount.appliesTo.sets || [];
     let categoryIds = discount.appliesTo.categories || [];
 
-    if (products.length || sets.length || categories.length) {
-      productIds = await validateObjectIds(products, Product, "product");
-      setIds = await validateObjectIds(sets, Set, "set");
-      categoryIds = await validateObjectIds(categories, Category, "category");
+    const hasTargetPatch =
+      products !== undefined || sets !== undefined || categories !== undefined;
+    const needsConflictRecheck =
+      hasTargetPatch ||
+      parsedActive !== undefined ||
+      parsedStartsAt !== undefined ||
+      parsedEndsAt !== undefined;
+
+    if (hasTargetPatch) {
+      productIds = await validateObjectIds(
+        products ?? productIds,
+        Product,
+        "product"
+      );
+      setIds = await validateObjectIds(sets ?? setIds, Set, "set");
+      categoryIds = await validateObjectIds(
+        categories ?? categoryIds,
+        Category,
+        "category"
+      );
 
       if (!productIds.length && !setIds.length && !categoryIds.length)
         return res.status(400).json({ message: "En az bir hedef seçin" });
-
-      const now = new Date();
-      const allActiveFlagged = await Discount.find({
-        active: true,
-        _id: { $ne: discount._id },
-      }).lean();
-      const activeDiscounts = allActiveFlagged.filter((d) => {
-        const startsOk = !d.startsAt || new Date(d.startsAt) <= now;
-        const endsOk = !d.endsAt || new Date(d.endsAt) >= now;
-        return startsOk && endsOk;
-      });
-
-      // --- FAST PATH: aynı ürüne başka aktif indirim var mı? (startsAt NULL dahil)
-      if (productIds.length) {
-        const directOverlap = await Discount.exists({
-          active: true,
-          _id: { $ne: discount._id },
-          $and: [
-            { $or: [{ startsAt: null }, { startsAt: { $lte: now } }] },
-            { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] },
-          ],
-          "appliesTo.products": { $in: productIds },
-        });
-        if (directOverlap && !resolve) {
-          return res.status(409).json({
-            message: "İndirim çakışmaları tespit edildi",
-            conflicts: [
-              {
-                id: null,
-                name: "Existing discount",
-                percentage: null,
-                productIds: productIds.map(String),
-                setIds: [],
-                categoryIds: [],
-              },
-            ],
-          });
-        }
-      }
-
-      const conflicts = await computeConflicts(
-        { products: productIds, sets: setIds, categories: categoryIds },
-        activeDiscounts
-      );
-
-      if (conflicts.length && !resolve)
-        return res.status(409).json({
-          message: "İndirim çakışmaları tespit edildi",
-          conflicts: serializeConflicts(conflicts),
-        });
-
-      if (conflicts.length && resolve) {
-        const conflictingProductSet = new Set(
-          conflicts.flatMap((e) => e.products)
-        );
-        const conflictingSetIds = new Set(conflicts.flatMap((e) => e.sets));
-        const conflictingCategoryIds = new Set(
-          conflicts.flatMap((e) => e.categories)
-        );
-
-        if (resolve === "skip") {
-          productIds = productIds.filter(
-            (id) => !conflictingProductSet.has(id.toString())
-          );
-          setIds = setIds.filter((id) => !conflictingSetIds.has(id.toString()));
-          categoryIds = categoryIds.filter(
-            (id) => !conflictingCategoryIds.has(id.toString())
-          );
-          if (!productIds.length && !setIds.length && !categoryIds.length)
-            return res
-              .status(400)
-              .json({ message: "Çakışmalar çıkarıldıktan sonra hedef kalmadı" });
-        } else if (resolve === "overwrite") {
-          const conflictIds = conflicts.map((e) => e.discount._id);
-          await Discount.updateMany(
-            { _id: { $in: conflictIds } },
-            { $set: { active: false } }
-          );
-        } else if (resolve === "cancel")
-          return res.status(200).json({ cancelled: true });
-      }
 
       discount.appliesTo = {
         products: productIds,
         sets: setIds,
         categories: categoryIds,
       };
+    }
+
+    if (needsConflictRecheck) {
+      const effectiveNow = isEffectiveNow({
+        active: !!discount.active,
+        startsAt: discount.startsAt ? new Date(discount.startsAt) : null,
+        endsAt: discount.endsAt ? new Date(discount.endsAt) : null,
+      });
+
+      if (effectiveNow) {
+        const now = new Date();
+        const allActiveFlagged = await Discount.find({
+          active: true,
+          _id: { $ne: discount._id },
+        }).lean();
+        const activeDiscounts = allActiveFlagged.filter((d) => {
+          const startsOk = !d.startsAt || new Date(d.startsAt) <= now;
+          const endsOk = !d.endsAt || new Date(d.endsAt) >= now;
+          return startsOk && endsOk;
+        });
+
+        // --- FAST PATH: aynı ürüne başka aktif indirim var mı? (startsAt NULL dahil)
+        if (productIds.length) {
+          const directOverlap = await Discount.exists({
+            active: true,
+            _id: { $ne: discount._id },
+            $and: [
+              { $or: [{ startsAt: null }, { startsAt: { $lte: now } }] },
+              { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] },
+            ],
+            "appliesTo.products": { $in: productIds },
+          });
+          if (directOverlap && !resolve) {
+            return res.status(409).json({
+              message: "İndirim çakışmaları tespit edildi",
+              conflicts: [
+                {
+                  id: null,
+                  name: "Existing discount",
+                  percentage: null,
+                  productIds: productIds.map(String),
+                  setIds: [],
+                  categoryIds: [],
+                },
+              ],
+            });
+          }
+        }
+
+        const conflicts = await computeConflicts(
+          { products: productIds, sets: setIds, categories: categoryIds },
+          activeDiscounts
+        );
+
+        if (conflicts.length && !resolve)
+          return res.status(409).json({
+            message: "İndirim çakışmaları tespit edildi",
+            conflicts: serializeConflicts(conflicts),
+          });
+
+        if (conflicts.length && resolve) {
+          const conflictingProductSet = new Set(
+            conflicts.flatMap((e) => e.products)
+          );
+          const conflictingSetIds = new Set(conflicts.flatMap((e) => e.sets));
+          const conflictingCategoryIds = new Set(
+            conflicts.flatMap((e) => e.categories)
+          );
+
+          if (resolve === "skip") {
+            productIds = productIds.filter(
+              (id) => !conflictingProductSet.has(id.toString())
+            );
+            setIds = setIds.filter(
+              (id) => !conflictingSetIds.has(id.toString())
+            );
+            categoryIds = categoryIds.filter(
+              (id) => !conflictingCategoryIds.has(id.toString())
+            );
+            if (!productIds.length && !setIds.length && !categoryIds.length)
+              return res.status(400).json({
+                message: "Çakışmalar çıkarıldıktan sonra hedef kalmadı",
+              });
+            discount.appliesTo = {
+              products: productIds,
+              sets: setIds,
+              categories: categoryIds,
+            };
+          } else if (resolve === "overwrite") {
+            const conflictIds = conflicts.map((e) => e.discount._id);
+            await Discount.updateMany(
+              { _id: { $in: conflictIds } },
+              { $set: { active: false } }
+            );
+          } else if (resolve === "cancel") {
+            return res.status(200).json({ cancelled: true });
+          }
+        }
+      }
     }
 
     // ❌ TEKRAR TANIM YOK, SADECE KULLANIM VAR
