@@ -64,6 +64,7 @@ export default function CheckoutPage() {
     total = 0,
     grandTotal = 0,
     coupon = null,
+    couponApplicable: couponApplicableRaw,
     couponDiscount = 0,
     shipping: shippingInfo = {},
     clearCart = () => {},
@@ -177,6 +178,9 @@ export default function CheckoutPage() {
   const shippingFee = Number(shippingInfo?.fee ?? 0) || 0;
   const shippingName = shippingInfo?.name || "Kargo";
   const normalizedCouponDiscount = Number(couponDiscount) || 0;
+  const couponApplicable = coupon
+    ? couponApplicableRaw ?? subtotal >= Number(coupon.minSubtotal || 0)
+    : false;
   const derivedTotal = Math.max(0, subtotal + shippingFee - normalizedCouponDiscount);
   const totalDue = Number.isFinite(Number(grandTotal))
     ? Number(grandTotal)
@@ -284,7 +288,7 @@ export default function CheckoutPage() {
       const order = await orderApi.create({
         addressId,
         items: checkoutItems,
-        couponCode: coupon?.code || null,
+        couponCode: couponApplicable ? coupon?.code || null : null,
         paymentMethod: PAYMENT_METHOD,
         paymentProvider: PAYMENT_PROVIDER,
         paymentSimulation: simulationMode,
@@ -418,10 +422,16 @@ export default function CheckoutPage() {
                 </span>
                 <span className="text-primary">₺{shippingFee.toFixed(2)}</span>
               </div>
-              {coupon && (
+              {coupon && couponApplicable && (
                 <div className="flex justify-between text-rose-600">
                   <span className="text-sm">Kupon ({coupon.code})</span>
                   <span>– ₺{normalizedCouponDiscount.toFixed(2)}</span>
+                </div>
+              )}
+              {coupon && !couponApplicable && (
+                <div className="flex justify-between text-amber-700">
+                  <span className="text-sm">Kupon ({coupon.code})</span>
+                  <span>Koşul sağlanmadı</span>
                 </div>
               )}
               <div className="flex justify-between text-base font-semibold">

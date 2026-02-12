@@ -416,7 +416,7 @@ export const routes = [
   route("DELETE", ["discounts", ":id"], [requireAuth, requireRole("admin"), deleteDiscount]),
 
   // coupons
-  route("POST", ["coupons", "apply"], [applyCoupon]),
+  route("POST", ["coupons", "apply"], [strictLimiter, applyCoupon]),
   route("GET", ["coupons"], [requireAuth, requireRole("admin"), listCoupons]),
   route("POST", ["coupons"], [requireAuth, requireRole("admin"), createCoupon]),
   route("PATCH", ["coupons", ":id"], [requireAuth, requireRole("admin"), updateCoupon]),

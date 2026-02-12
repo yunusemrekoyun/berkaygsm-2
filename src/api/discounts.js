@@ -3,17 +3,6 @@ import { DEFAULT_LANG } from "../constants/lang.js";
 
 // Backend düz alanlar bekliyor: products, sets, categories (+resolve opsiyonel)
 function normalizeDiscountPayload(payload = {}) {
-  const {
-    name,
-    description = "",
-    percentage,
-    active = true,
-    products = [],
-    sets = [],
-    categories = [],
-    resolve,
-  } = payload;
-
   // 🔧 ID dönüştürme (her elemanı string ObjectId haline getir)
   const toIdArray = (arr) =>
     (arr || [])
@@ -25,17 +14,20 @@ function normalizeDiscountPayload(payload = {}) {
       })
       .filter((v) => v && /^[a-f\d]{24}$/i.test(v)); // sadece 24 haneli ObjectId'leri tut
 
-  const body = {
-    name,
-    description,
-    percentage,
-    active,
-    products: toIdArray(products),
-    sets: toIdArray(sets),
-    categories: toIdArray(categories),
-  };
+  const has = (key) => Object.prototype.hasOwnProperty.call(payload, key);
+  const body = {};
 
-  if (resolve != null) body.resolve = resolve;
+  if (has("name")) body.name = payload.name;
+  if (has("description")) body.description = payload.description ?? "";
+  if (has("percentage")) body.percentage = payload.percentage;
+  if (has("active")) body.active = payload.active;
+  if (has("startsAt")) body.startsAt = payload.startsAt || null;
+  if (has("endsAt")) body.endsAt = payload.endsAt || null;
+  if (has("products")) body.products = toIdArray(payload.products);
+  if (has("sets")) body.sets = toIdArray(payload.sets);
+  if (has("categories")) body.categories = toIdArray(payload.categories);
+  if (has("resolve") && payload.resolve != null) body.resolve = payload.resolve;
+
   return body;
 }
 
