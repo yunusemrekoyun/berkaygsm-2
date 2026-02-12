@@ -7,8 +7,10 @@ import LoadingOverlay from "../components/ui/LoadingOverlay.jsx";
 import { useCart } from "../hooks/useCart";
 import { userDetailsApi } from "../api/userDetails";
 import { orderApi } from "../api/orders";
-import { loadPayPalSdk } from "../utils/paypal.js";
 import { getAccessToken } from "../api/client";
+
+const PAYMENT_METHOD = "gateway_simulation";
+const PAYMENT_PROVIDER = "simulation";
 
 function parseError(error) {
   if (!error) return { message: "", status: null };
@@ -55,7 +57,6 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
   const [authChecked, setAuthChecked] = useState(false);
 
-  // Cart verisini oku
   const cart = useCart() || {};
   const {
     items: itemsRaw = [],
@@ -82,13 +83,11 @@ export default function CheckoutPage() {
     () =>
       itemsRaw
         .map((it) => {
-          // kind
           const rawKind =
             it.kind ||
             (it.productId ? "product" : it.setId ? "set" : undefined);
           const kind = rawKind === "set" ? "set" : "product";
 
-          // id
           const rawId =
             it.ref ||
             it.id ||
@@ -100,15 +99,12 @@ export default function CheckoutPage() {
           const id = rawId ? String(rawId).trim() : "";
           if (!id) return null;
 
-          // qty
           const qty = Math.max(
             1,
-            Number(
-              it.qty ?? it.quantity ?? it.count ?? it.amount ?? it.q ?? 1
-            ) || 1
+            Number(it.qty ?? it.quantity ?? it.count ?? it.amount ?? it.q ?? 1) ||
+              1
           );
 
-          // <<< ÖNEMLİ: set satırları için selections ekle
           if (kind === "set") {
             const selections = Array.isArray(it.items)
               ? it.items
@@ -128,9 +124,6 @@ export default function CheckoutPage() {
                       size: s.size ?? null,
                       attribute: s.attribute ?? null,
                       qtyInSet: Math.max(1, Number(s.qtyInSet || 1)),
-                      // colorHex backend için şart değilse göndermene gerek yok;
-                      // istiyorsan ekleyebilirsin:
-                      // colorHex: s.colorHex ?? null,
                     };
                   })
                   .filter(Boolean)
@@ -139,19 +132,11 @@ export default function CheckoutPage() {
             return { kind, id, qty, selections };
           }
 
-          // ürün satırı
           const variant = {
-            color:
-              it.color ??
-              it.variant?.color ??
-              it.selectedColor ??
-              null,
+            color: it.color ?? it.variant?.color ?? it.selectedColor ?? null,
             size: it.size ?? it.variant?.size ?? null,
             attribute:
-              it.attribute ??
-              it.variant?.attribute ??
-              it.attributeValue ??
-              null,
+              it.attribute ?? it.variant?.attribute ?? it.attributeValue ?? null,
           };
 
           return { kind, id, qty, variant };
@@ -160,13 +145,11 @@ export default function CheckoutPage() {
     [itemsRaw]
   );
 
-  // UI'de göstereceğimiz satırlar (isim/fiyat)
   const lines = useMemo(
     () =>
       itemsRaw.map((it) => {
         const qty =
-          Number(it.qty ?? it.quantity ?? it.count ?? it.amount ?? it.q ?? 1) ||
-          1;
+          Number(it.qty ?? it.quantity ?? it.count ?? it.amount ?? it.q ?? 1) || 1;
 
         const unitPrice =
           Number(
@@ -186,7 +169,6 @@ export default function CheckoutPage() {
     [itemsRaw]
   );
 
-  // Toplamlar: cart verisi varsa onu kullan, yoksa hesapla
   const computedSubtotal = useMemo(
     () => lines.reduce((s, l) => s + l.qty * l.unitPrice, 0),
     [lines]
@@ -199,44 +181,22 @@ export default function CheckoutPage() {
   const totalDue = Number.isFinite(Number(grandTotal))
     ? Number(grandTotal)
     : Number.isFinite(Number(total))
-    ? Number(total)
-    : derivedTotal;
+      ? Number(total)
+      : derivedTotal;
 
-  // Sipariş başarı takip
   const orderPlacedRef = useRef(false);
-  const paypalButtonsRef = useRef(null);
-  const paypalContainerRef = useRef(null);
-  const paypalDraftRef = useRef(null);
 
-  // Adresler
   const [addresses, setAddresses] = useState([]);
   const [addressId, setAddressId] = useState("");
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
   const [banner, setBanner] = useState(null);
   const [simulationMode, setSimulationMode] = useState("success");
-  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
-  const paypalCurrency = process.env.NEXT_PUBLIC_PAYPAL_CURRENCY || "TRY";
-  const paypalEnabled = Boolean(paypalClientId);
-  const [paymentMethod, setPaymentMethod] = useState(
-    paypalEnabled ? "paypal" : "cod"
-  );
-  const [paypalError, setPayPalError] = useState(null);
-  const [paypalLoading, setPayPalLoading] = useState(false);
-  const [paypalSummary, setPayPalSummary] = useState(null);
 
   const hasItems = checkoutItems.length > 0;
   const hasAddress = Boolean(addressId);
-  const canPlaceOrder =
-    paymentMethod === "cod" && hasAddress && hasItems && !placing && authChecked;
-  const canUsePayPal =
-    paymentMethod === "paypal" &&
-    paypalEnabled &&
-    hasAddress &&
-    hasItems &&
-    authChecked;
+  const canPlaceOrder = hasAddress && hasItems && !placing && authChecked;
 
-  // Adresleri çek
   useEffect(() => {
     if (!authChecked) return;
     let mounted = true;
@@ -249,7 +209,7 @@ export default function CheckoutPage() {
         setAddressId(list.find((a) => a.isDefault)?.id || list[0]?.id || "");
         if (!list.length) {
           setBanner((prev) =>
-                prev?.variant === "danger"
+            prev?.variant === "danger"
               ? prev
               : {
                   variant: "warning",
@@ -257,9 +217,7 @@ export default function CheckoutPage() {
                 }
           );
         } else {
-          setBanner((prev) =>
-            prev?.variant === "warning" ? null : prev
-          );
+          setBanner((prev) => (prev?.variant === "warning" ? null : prev));
         }
       } catch (error) {
         if (!mounted) return;
@@ -283,7 +241,6 @@ export default function CheckoutPage() {
     };
   }, [authChecked, navigate]);
 
-  // Sepet boşsa karta geri dön
   useEffect(() => {
     if (!authChecked) return;
     if (orderPlacedRef.current) return;
@@ -291,177 +248,6 @@ export default function CheckoutPage() {
       navigate("/cart", { replace: true });
     }
   }, [authChecked, lines.length, loading, navigate]);
-
-  useEffect(() => {
-    if (!authChecked) return;
-
-    if (paymentMethod !== "paypal") {
-      setPayPalError(null);
-      setPayPalSummary(null);
-      paypalDraftRef.current = null;
-      if (paypalButtonsRef.current) {
-        paypalButtonsRef.current.close();
-        paypalButtonsRef.current = null;
-      }
-      return;
-    }
-
-    if (!paypalEnabled) {
-      setPayPalError("PayPal istemci kimliği (client ID) yapılandırılmamış.");
-      return;
-    }
-
-    if (!hasAddress || !hasItems) {
-      setPayPalError(null);
-      setPayPalSummary(null);
-      paypalDraftRef.current = null;
-      if (paypalButtonsRef.current) {
-        paypalButtonsRef.current.close();
-        paypalButtonsRef.current = null;
-      }
-      return;
-    }
-
-    let cancelled = false;
-    setPayPalError(null);
-
-    (async () => {
-      try {
-        const paypal = await loadPayPalSdk({
-          clientId: paypalClientId,
-          currency: paypalCurrency,
-        });
-        if (cancelled) return;
-
-        if (paypalButtonsRef.current) {
-          paypalButtonsRef.current.close();
-          paypalButtonsRef.current = null;
-        }
-
-        const buttons = paypal.Buttons({
-          style: {
-            layout: "vertical",
-            color: "gold",
-            shape: "rect",
-            label: "pay",
-          },
-          onInit: (_, actions) => {
-            if (!canUsePayPal) {
-              actions.disable();
-            } else {
-              actions.enable();
-            }
-          },
-          createOrder: async () => {
-            setPayPalLoading(true);
-            setPayPalSummary(null);
-            try {
-              const response = await orderApi.createPayPal({
-                addressId,
-                items: checkoutItems,
-                couponCode: coupon?.code || null,
-              });
-              if (!response?.paypalOrderId || !response?.draftId) {
-                throw new Error("PayPal sipariş yanıtı geçersiz.");
-              }
-              paypalDraftRef.current = { id: response.draftId };
-              setPayPalSummary(response.summary || null);
-              return response.paypalOrderId;
-            } catch (error) {
-              const message = getErrorMessage(
-                error,
-                "PayPal siparişi oluşturulamadı."
-              );
-              setPayPalError(message);
-              throw new Error(message);
-            } finally {
-              setPayPalLoading(false);
-            }
-          },
-          onApprove: async (data) => {
-            try {
-              setPlacing(true);
-              const draftId = paypalDraftRef.current?.id;
-              if (!draftId) {
-                throw new Error("PayPal ödeme oturumu bulunamadı.");
-              }
-              const result = await orderApi.capturePayPal({
-                paypalOrderId: data.orderID,
-                draftId,
-              });
-              const orderData = result?.order;
-              if (!orderData?.id) {
-                throw new Error("Sipariş onayı alınamadı.");
-              }
-              orderPlacedRef.current = true;
-              setPayPalError(null);
-              setPayPalSummary(null);
-              paypalDraftRef.current = null;
-              clearCart();
-              clearCoupon();
-              navigate(`/checkout/success?order=${orderData.id}`, {
-                replace: true,
-              });
-            } catch (error) {
-              const message = getErrorMessage(
-                error,
-                "PayPal ödemesi tamamlanamadı."
-              );
-              setBanner({
-                variant: "danger",
-                message: `PayPal ödemesi başarısız: ${message}`,
-              });
-            } finally {
-              setPlacing(false);
-            }
-          },
-          onCancel: () => {
-            setPayPalError("PayPal ödemesi iptal edildi.");
-          },
-          onError: (error) => {
-            const message = getErrorMessage(
-              error,
-              "Beklenmeyen PayPal entegrasyon hatası"
-            );
-            setPayPalError(message);
-          },
-        });
-        paypalButtonsRef.current = buttons;
-        if (paypalContainerRef.current) {
-          await buttons.render(paypalContainerRef.current);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setPayPalError(
-            error?.message || "PayPal ödeme butonları yüklenemedi"
-          );
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      if (paypalButtonsRef.current) {
-        paypalButtonsRef.current.close();
-        paypalButtonsRef.current = null;
-      }
-    };
-  }, [
-    authChecked,
-    paymentMethod,
-    paypalEnabled,
-    paypalClientId,
-    paypalCurrency,
-    hasAddress,
-    hasItems,
-    addressId,
-    checkoutItems,
-    coupon?.code,
-    canUsePayPal,
-    clearCart,
-    clearCoupon,
-    navigate,
-  ]);
 
   if (!authChecked) {
     return null;
@@ -476,11 +262,6 @@ export default function CheckoutPage() {
       </section>
     );
   }
-
-  const getErrorMessage = (error, fallback = "Beklenmeyen hata") => {
-    const { message } = parseError(error);
-    return message || fallback;
-  };
 
   const placeOrder = async () => {
     if (!hasAddress) {
@@ -497,22 +278,35 @@ export default function CheckoutPage() {
       });
       return;
     }
+
     try {
       setPlacing(true);
       const order = await orderApi.create({
         addressId,
         items: checkoutItems,
         couponCode: coupon?.code || null,
-        paymentSimulation:
-          paymentMethod === "cod" ? simulationMode || null : null,
+        paymentMethod: PAYMENT_METHOD,
+        paymentProvider: PAYMENT_PROVIDER,
+        paymentSimulation: simulationMode,
       });
+
+      const paymentStatus = String(order?.payment?.status || "").toLowerCase();
+      const failedSimulation = paymentStatus === "failed";
+
       orderPlacedRef.current = true;
-      clearCart();
-      clearCoupon();
-      navigate(`/checkout/success?order=${order.id}`, { replace: true });
-    } catch (e) {
-      const { status, message } = parseError(e);
-      // 401 ise login’e gönder
+      if (!failedSimulation) {
+        clearCart();
+        clearCoupon();
+      }
+
+      navigate(
+        `/checkout/success?order=${order.id}&result=${
+          failedSimulation ? "failure" : "success"
+        }`,
+        { replace: true }
+      );
+    } catch (error) {
+      const { status, message } = parseError(error);
       if (status === 401) {
         navigate(`/account?view=login&redirect=/checkout`, { replace: true });
         return;
@@ -545,20 +339,14 @@ export default function CheckoutPage() {
       )}
 
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 pb-16 grid gap-6 md:grid-cols-12">
-        {/* Address / Details */}
         <div className="md:col-span-7 lg:col-span-8">
           <div className="glass-surface rounded-2xl border border-border bg-white p-6">
-            <h2 className="text-xl font-semibold text-primary">
-              Teslimat adresi
-            </h2>
+            <h2 className="text-xl font-semibold text-primary">Teslimat adresi</h2>
 
             {addresses.length === 0 ? (
               <p className="mt-3 text-secondary">
                 Kayıtlı adres yok. Lütfen{" "}
-                <a
-                  className="text-accent underline"
-                  href="/account?tab=Addresses"
-                >
+                <a className="text-accent underline" href="/account?tab=Addresses">
                   Hesabım &gt; Adresler
                 </a>
                 {" "}kısmından ekleyin.
@@ -577,24 +365,17 @@ export default function CheckoutPage() {
                       onChange={() => setAddressId(a.id)}
                     />
                     <div>
-                      <div className="font-medium text-primary">
-                        {a.fullName}
-                      </div>
+                      <div className="font-medium text-primary">{a.fullName}</div>
                       <div className="text-sm text-secondary whitespace-pre-line">
                         {a.addressLine ||
-                          `${a.addressLine1 || ""} ${
-                            a.addressLine2 || ""
-                          }`.trim()}
+                          `${a.addressLine1 || ""} ${a.addressLine2 || ""}`.trim()}
                       </div>
                       <div className="text-sm text-secondary">
                         {a.city}
-                        {a.district ? `, ${a.district}` : ""} {a.postalCode}{" "}
-                        {a.country}
+                        {a.district ? `, ${a.district}` : ""} {a.postalCode} {a.country}
                       </div>
                       {a.phone && (
-                        <div className="text-sm text-secondary">
-                          📞 {a.phone}
-                        </div>
+                        <div className="text-sm text-secondary">📞 {a.phone}</div>
                       )}
                       {a.isDefault && (
                         <span className="mt-1 inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700 ring-1 ring-emerald-200">
@@ -609,12 +390,9 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        {/* Order Summary */}
         <div className="md:col-span-5 lg:col-span-4">
           <div className="glass-surface rounded-2xl border border-border bg-white p-6">
-            <h2 className="text-xl font-semibold text-primary">
-              Sipariş özeti
-            </h2>
+            <h2 className="text-xl font-semibold text-primary">Sipariş özeti</h2>
 
             <ul className="mt-4 space-y-3 max-h-56 overflow-auto pr-1">
               {lines.map((it, idx) => (
@@ -653,149 +431,61 @@ export default function CheckoutPage() {
             </div>
 
             <div className="mt-6">
-            <h3 className="text-lg font-semibold text-primary">Ödeme yöntemi</h3>
-            {!hasAddress && (
-              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                Ödeme seçeneklerini görmek için adres ekleyin.
-              </div>
-            )}
-            <div className="mt-3 space-y-2 text-sm text-secondary">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="payment-method"
-                    value="paypal"
-                    checked={paymentMethod === "paypal"}
-                    onChange={() => setPaymentMethod("paypal")}
-                    disabled={!paypalEnabled || !hasAddress}
-                  />
-                  <span className="flex-1">
-                    PayPal (Almanya)
-                    {!paypalEnabled && (
-                      <span className="ml-2 text-xs text-rose-600">
-                        Etkinleştirmek için NEXT_PUBLIC_PAYPAL_CLIENT_ID değerini girin.
-                      </span>
-                    )}
-                  </span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="payment-method"
-                    value="cod"
-                    checked={paymentMethod === "cod"}
-                    onChange={() => setPaymentMethod("cod")}
-                  />
-                  <span className="flex-1">Kapıda ödeme</span>
-                </label>
-              </div>
-
-              {paymentMethod === "paypal" && (
-                <div className="mt-4">
-                  <div className="glass-surface-soft relative rounded-xl border border-border bg-surface p-4">
-                    <LoadingOverlay show={paypalLoading || placing} />
-                    {paypalError && (
-                      <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600">
-                        {paypalError}
-                      </div>
-                    )}
-                    {paypalSummary && (
-                      <div className="mb-3 space-y-1 text-xs text-secondary">
-                        <div className="flex justify-between">
-                          <span>Ara toplam</span>
-                          <span>
-                            ₺
-                            {Number(
-                              paypalSummary.subtotal ?? subtotal
-                            ).toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Kargo</span>
-                          <span>
-                            ₺
-                            {Number(
-                              paypalSummary.shipping ?? shippingFee
-                            ).toFixed(2)}
-                          </span>
-                        </div>
-                        {paypalSummary.discountAmount > 0 && (
-                          <div className="flex justify-between text-emerald-600">
-                            <span>İndirim</span>
-                            <span>
-                              − ₺
-                              {Number(
-                                paypalSummary.discountAmount
-                              ).toFixed(2)}
-                            </span>
-                          </div>
-                        )}
-                        <div className="mt-2 flex justify-between font-semibold text-primary">
-                          <span>PayPal Toplamı</span>
-                          <span>
-                            ₺
-                            {Number(
-                              paypalSummary.total ?? totalDue
-                            ).toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    <div ref={paypalContainerRef} />
-                    {!paypalError && (
-                      <p className="mt-3 text-xs text-secondary">
-                        Ödemenizi güvenli şekilde PayPal üzerinden tamamlayacaksınız.
-                      </p>
-                    )}
-                  </div>
+              <h3 className="text-lg font-semibold text-primary">Ödeme</h3>
+              {!hasAddress && (
+                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                  Ödeme simülasyonunu kullanmak için adres ekleyin.
                 </div>
               )}
 
-              {paymentMethod === "cod" && (
-                <>
-                  <div className="glass-surface-soft mt-6 rounded-xl border border-border bg-surface p-4 text-sm">
-                    <p className="font-semibold text-primary">
-                      Ödeme simülasyonu
-                    </p>
-                    <p className="mt-1 text-xs text-secondary">
-                      Test amaçlı ödemelerde simülasyonun nasıl davranacağını seçin.
-                    </p>
-                    <div className="mt-3 space-y-2">
-                      <label className="flex items-center gap-2 text-secondary">
-                        <input
-                          type="radio"
-                          name="simulation"
-                          value="success"
-                          checked={simulationMode === "success"}
-                          onChange={() => setSimulationMode("success")}
-                        />
-                        <span>Başarılı ödeme simüle et</span>
-                      </label>
-                      <label className="flex items-center gap-2 text-secondary">
-                        <input
-                          type="radio"
-                          name="simulation"
-                          value="failure"
-                          checked={simulationMode === "failure"}
-                          onChange={() => setSimulationMode("failure")}
-                        />
-                        <span>Başarısız ödeme simüle et</span>
-                      </label>
-                    </div>
-                  </div>
+              <div className="glass-surface-soft mt-4 rounded-xl border border-border bg-surface p-4 text-sm">
+                <p className="font-semibold text-primary">Ödeme simülasyonu</p>
+                <p className="mt-1 text-xs text-secondary">
+                  Bu akış, gerçek ödeme sağlayıcısı entegrasyonuna hazır bir test katmanıdır.
+                  Şu anda ödeme başarı/başarısız davranışını simüle eder.
+                </p>
+                <div className="mt-3 space-y-2">
+                  <label className="flex items-center gap-2 text-secondary">
+                    <input
+                      type="radio"
+                      name="simulation"
+                      value="success"
+                      checked={simulationMode === "success"}
+                      onChange={() => setSimulationMode("success")}
+                    />
+                    <span>Başarılı ödeme simüle et</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-secondary">
+                    <input
+                      type="radio"
+                      name="simulation"
+                      value="failure"
+                      checked={simulationMode === "failure"}
+                      onChange={() => setSimulationMode("failure")}
+                    />
+                    <span>Başarısız ödeme simüle et</span>
+                  </label>
+                </div>
+              </div>
 
-                  <div className="relative">
-                    <LoadingOverlay show={placing} />
-                    <button
-                      disabled={!canPlaceOrder || placing}
-                      className="mt-5 w-full rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
-                      onClick={placeOrder}
-                    >
-                      {placing ? "Sipariş veriliyor..." : "Siparişi tamamla"}
-                    </button>
-                  </div>
-                </>
-              )}
+              <div className="relative">
+                <LoadingOverlay show={placing} />
+                <button
+                  disabled={!canPlaceOrder || placing}
+                  className="mt-5 w-full rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
+                  onClick={placeOrder}
+                >
+                  {placing
+                    ? "Sipariş işleniyor..."
+                    : simulationMode === "failure"
+                      ? "Başarısız ödemeyi simüle et"
+                      : "Ödemeyi simüle et ve siparişi tamamla"}
+                </button>
+              </div>
+
+              <p className="mt-3 text-xs text-secondary">
+                Not: Başarısız simülasyonda sipariş denemesi kaydedilir ve stok düşülmez.
+              </p>
             </div>
           </div>
         </div>

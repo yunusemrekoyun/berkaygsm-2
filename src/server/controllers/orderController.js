@@ -595,6 +595,7 @@ async function finalizeOrder(prepared, options = {}) {
   }
 
   const orderNumber = options.orderNumber || (await createOrderNumber());
+  const applyStockDeductions = options.applyStockDeductions !== false;
 
   const stockUsage = new Map();
 
@@ -628,55 +629,57 @@ async function finalizeOrder(prepared, options = {}) {
     stockUsage.set(stockId, current);
   }
 
-  for (const [pid, variants] of catalogNeedMap.entries()) {
-    if (!variants.size) continue;
-    const pidStr = String(pid);
-    for (const [vkey, entry] of variants.entries()) {
-      const qty = Number(entry?.qty || 0);
-      if (qty <= 0) continue;
-      if (entry?.index === undefined || Number(entry.index) < 0) continue;
-      queueStockUsage(pidStr, vkey, qty);
+  if (applyStockDeductions) {
+    for (const [pid, variants] of catalogNeedMap.entries()) {
+      if (!variants.size) continue;
+      const pidStr = String(pid);
+      for (const [vkey, entry] of variants.entries()) {
+        const qty = Number(entry?.qty || 0);
+        if (qty <= 0) continue;
+        if (entry?.index === undefined || Number(entry.index) < 0) continue;
+        queueStockUsage(pidStr, vkey, qty);
+      }
+    }
+
+    for (const [pid, variants] of setNeedMap.entries()) {
+      if (!variants.size) continue;
+      const pidStr = String(pid);
+      for (const [vkey, needed] of variants.entries()) {
+        const qty = Number(needed || 0);
+        if (qty <= 0) continue;
+        queueStockUsage(pidStr, vkey, qty);
+      }
+    }
+
+    for (const usage of stockUsage.values()) {
+      const result = await StockItem.findOneAndUpdate(
+        { _id: usage.id, qtyOnHand: { $gte: usage.qty } },
+        { $inc: { qtyOnHand: -usage.qty } },
+        { new: true }
+      ).lean();
+
+      if (!result) {
+        fail(409, "Yetersiz stok", {
+          productId: usage.productId,
+          variant: decodeVariantKey(usage.variantKey),
+          requested: usage.qty,
+        });
+      }
+
+      const bucket = productStockMap?.get(usage.productId);
+      if (bucket) {
+        bucket.itemMap.set(usage.variantKey, result);
+      }
     }
   }
-
-  for (const [pid, variants] of setNeedMap.entries()) {
-    if (!variants.size) continue;
-    const pidStr = String(pid);
-    for (const [vkey, needed] of variants.entries()) {
-      const qty = Number(needed || 0);
-      if (qty <= 0) continue;
-      queueStockUsage(pidStr, vkey, qty);
-    }
-  }
-
-  for (const usage of stockUsage.values()) {
-    const result = await StockItem.findOneAndUpdate(
-      { _id: usage.id, qtyOnHand: { $gte: usage.qty } },
-      { $inc: { qtyOnHand: -usage.qty } },
-      { new: true }
-    ).lean();
-
-    if (!result) {
-      fail(409, "Yetersiz stok", {
-        productId: usage.productId,
-        variant: decodeVariantKey(usage.variantKey),
-        requested: usage.qty,
-      });
-    }
-
-    const bucket = productStockMap?.get(usage.productId);
-    if (bucket) {
-      bucket.itemMap.set(usage.variantKey, result);
-    }
-  }
-
 
   let payment;
   let status = options.statusOverride || "pending";
 
   if (options.paymentOverride) {
     payment = {
-      method: options.paymentOverride.method || "paypal",
+      method: options.paymentOverride.method || "gateway_simulation",
+      provider: options.paymentOverride.provider || null,
       txnId: options.paymentOverride.txnId || "",
       processorOrderId: options.paymentOverride.processorOrderId || "",
       paidAt: options.paymentOverride.paidAt || null,
@@ -694,10 +697,12 @@ async function finalizeOrder(prepared, options = {}) {
     };
   } else {
     const simulation = options.simulation || null;
-    const method = options.paymentMethod || "cod";
+    const method = options.paymentMethod || "gateway_simulation";
+    const provider = options.paymentProvider || null;
     if (simulation === "success") {
       payment = {
         method,
+        provider,
         status: "success",
         simulation: "success",
         paidAt: new Date(),
@@ -705,9 +710,20 @@ async function finalizeOrder(prepared, options = {}) {
         amount: total,
       };
       status = "paid";
+    } else if (simulation === "failure") {
+      payment = {
+        method,
+        provider,
+        status: "failed",
+        simulation: "failure",
+        currency: options.currency || PAYPAL_CURRENCY,
+        amount: total,
+      };
+      status = options.statusOverride || "cancelled";
     } else {
       payment = {
         method,
+        provider,
         status: "pending",
         simulation,
         currency: options.currency || PAYPAL_CURRENCY,
@@ -755,6 +771,9 @@ export async function createOrder(req, res) {
       addressId,
       items = [],
       couponCode = null,
+      paymentMethod = null,
+      paymentProvider = null,
+      paymentSimulation = null,
     } = req.body || {};
 
     const { details } = await buildOrderPreparation({
@@ -764,9 +783,24 @@ export async function createOrder(req, res) {
       couponCode,
     });
 
+    const simulationMode = paymentSimulation === "failure" ? "failure" : "success";
+    const normalizedMethod =
+      typeof paymentMethod === "string" && paymentMethod.trim()
+        ? paymentMethod.trim().toLowerCase()
+        : "gateway_simulation";
+    const normalizedProvider =
+      typeof paymentProvider === "string" && paymentProvider.trim()
+        ? paymentProvider.trim().toLowerCase()
+        : "simulation";
+
     const order = await finalizeOrder(details, {
       userId,
       currency: PAYPAL_CURRENCY,
+      paymentMethod: normalizedMethod,
+      paymentProvider: normalizedProvider,
+      simulation: simulationMode,
+      applyStockDeductions: simulationMode !== "failure",
+      statusOverride: simulationMode === "failure" ? "cancelled" : undefined,
     });
 
     res.status(201).json({ order: shapeOrder(order) });
@@ -1108,7 +1142,7 @@ export async function updateOrderStatus(req, res) {
     }
 
     if (paymentMethod !== undefined) {
-      order.payment.method = String(paymentMethod) || "cod";
+      order.payment.method = String(paymentMethod) || "gateway_simulation";
     }
 
     if (paymentTxnId !== undefined) {

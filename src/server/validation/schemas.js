@@ -152,6 +152,9 @@ const orderCreateBaseSchema = z.object({
     .optional(),
   items: orderItemsSchema,
   couponCode: optionalTrimmed(z.string().max(120)),
+  paymentMethod: optionalTrimmed(z.string().max(64)),
+  paymentProvider: optionalTrimmed(z.string().max(64)),
+  paymentSimulation: z.enum(["success", "failure"]).optional(),
 });
 
 // 2) Esas orderCreateSchema → refine eklenmiş hali
