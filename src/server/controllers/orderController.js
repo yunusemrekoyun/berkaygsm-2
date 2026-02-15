@@ -4,8 +4,12 @@ import UserDetails from "../models/UserDetails.js";
 import Product from "../models/Product.js";
 import Set from "../models/Set.js";
 import ShippingConfig from "../models/ShippingConfig.js";
-import Coupon from "../models/Coupon.js";
 import StockItem from "../models/StockItem.js";
+import {
+  consumeCouponAfterSuccess,
+  evaluateCouponForOrderContext,
+  normalizeCouponCodeInput,
+} from "../utils/couponEngine.js";
 import {
   fetchActiveDiscounts,
   computeProductDiscountMap,
@@ -104,8 +108,12 @@ function shapeOrder(doc) {
     total: doc.total,
     coupon: doc.coupon?.code
       ? {
+          couponId: doc.coupon.couponId?.toString?.() || null,
           code: doc.coupon.code,
+          template: doc.coupon.template || null,
+          audience: doc.coupon.audience || null,
           percentage: doc.coupon.percentage,
+          eligibleSubtotal: doc.coupon.eligibleSubtotal || 0,
           discountAmount: doc.coupon.discountAmount,
           minSubtotal: doc.coupon.minSubtotal,
         }
@@ -257,6 +265,46 @@ function summarizeOrderItems(orderItems = []) {
     unitPrice: item.unitPrice,
     qty: item.qty,
   }));
+}
+
+async function hydrateMissingProductStockBuckets(
+  productStockMap,
+  productIds = []
+) {
+  if (!Array.isArray(productIds) || !productIds.length) return;
+  const targetMap =
+    productStockMap instanceof Map ? productStockMap : new Map();
+
+  const missing = Array.from(
+    new Set(
+      productIds
+        .map((id) => String(id || "").trim())
+        .filter(Boolean)
+        .filter((id) => !targetMap.has(id))
+    )
+  ).filter((id) => mongoose.Types.ObjectId.isValid(id));
+
+  if (!missing.length) return;
+
+  const rows = await StockItem.find({
+    ownerModel: "Product",
+    owner: { $in: missing },
+    isActive: true,
+  }).lean();
+
+  rows.forEach((row) => {
+    const owner = String(row.owner || "");
+    if (!owner) return;
+    if (!targetMap.has(owner)) {
+      targetMap.set(owner, {
+        items: [],
+        itemMap: new Map(),
+      });
+    }
+    const bucket = targetMap.get(owner);
+    bucket.items.push(row);
+    bucket.itemMap.set(variantKeyOf(row), row);
+  });
 }
 
 async function buildOrderPreparation({
@@ -505,37 +553,30 @@ async function buildOrderPreparation({
   const shippingName = shippingConfig?.name || "Standart Kargo";
 
   let couponSummary = null;
+  let couponContext = null;
   let couponDiscountAmount = 0;
-  const normalizedCoupon = couponCode ? normalizeCode(couponCode) : null;
+  const normalizedCoupon = couponCode
+    ? normalizeCouponCodeInput(couponCode)
+    : null;
   if (normalizedCoupon) {
-    const now = new Date();
-    const coupon = await Coupon.findOne({
-      code: normalizedCoupon,
-      active: true,
-      $and: [
-        { $or: [{ startsAt: null }, { startsAt: { $lte: now } }] },
-        { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] },
-      ],
-    }).lean();
-
-    if (!coupon) {
-      fail(400, "Kupon bulunamadı veya pasif", { code: normalizedCoupon });
-    }
-
-    if (subtotal < (coupon.minSubtotal || 0)) {
-      fail(400, "Kupon için minimum ara toplam " + coupon.minSubtotal, {
-        reason: "minSubtotal",
-        minSubtotal: coupon.minSubtotal,
-      });
-    }
-
+    const evaluated = await evaluateCouponForOrderContext({
+      userId,
+      couponCode: normalizedCoupon,
+      orderItems,
+      productMap: pMap,
+    });
+    couponContext = evaluated.context;
     couponDiscountAmount = roundCurrency(
-      (subtotal * Number(coupon.percentage || 0)) / 100
+      Number(evaluated.summary?.discountAmount || 0)
     );
     couponSummary = {
-      code: coupon.code,
-      percentage: coupon.percentage,
-      minSubtotal: coupon.minSubtotal || 0,
+      couponId: couponContext?.couponId || null,
+      code: evaluated.summary.code,
+      percentage: evaluated.summary.percentage,
+      minSubtotal: evaluated.summary.minSubtotal || 0,
+      eligibleSubtotal: evaluated.summary.eligibleSubtotal || 0,
+      template: evaluated.summary.template || null,
+      audience: evaluated.summary.audience || null,
       discountAmount: couponDiscountAmount,
     };
   }
@@ -565,6 +606,7 @@ async function buildOrderPreparation({
       shippingName,
       total,
       couponSummary,
+      couponContext,
       catalogNeedMap,
       setNeedMap,
       productMap: pMap,
@@ -584,6 +626,7 @@ async function finalizeOrder(prepared, options = {}) {
     shippingName,
     total,
     couponSummary,
+    couponContext,
     catalogNeedMap,
     setNeedMap,
     productMap,
@@ -599,12 +642,73 @@ async function finalizeOrder(prepared, options = {}) {
 
   const stockUsage = new Map();
 
-  function queueStockUsage(productId, variantKey, amount) {
+  if (applyStockDeductions) {
+    const requiredProductIds = Array.from(
+      new Set([
+        ...catalogNeedMap.keys(),
+        ...setNeedMap.keys(),
+      ].map((id) => String(id || "").trim()).filter(Boolean))
+    );
+    await hydrateMissingProductStockBuckets(productStockMap, requiredProductIds);
+  }
+
+  async function ensureStockBucketForProduct(productId) {
+    const pid = String(productId || "").trim();
+    if (!pid) return null;
+
+    const existingBucket = productStockMap?.get(pid);
+    if (existingBucket?.itemMap instanceof Map) {
+      return existingBucket;
+    }
+
+    const rows = await StockItem.find({
+      ownerModel: "Product",
+      owner: pid,
+      isActive: true,
+    }).lean();
+
+    if (rows.length) {
+      const bucket = { items: [], itemMap: new Map() };
+      rows.forEach((row) => {
+        bucket.items.push(row);
+        bucket.itemMap.set(variantKeyOf(row), row);
+      });
+      productStockMap.set(pid, bucket);
+      return bucket;
+    }
+
+    const product = productMap?.get(pid) || null;
+    const inventory = Array.isArray(product?.inventory) ? product.inventory : [];
+    if (!inventory.length) return null;
+
+    const syntheticRows = inventory
+      .map((row) => ({
+        _id: row?.stockItemId || row?._id || null,
+        color: row?.color ?? null,
+        size: row?.size ?? null,
+        attributeValue: row?.attributeValue ?? row?.attribute ?? null,
+        qtyOnHand:
+          Number(row?.stockCatalog ?? row?.stock ?? 0) || 0,
+      }))
+      .filter((row) => row._id);
+
+    if (!syntheticRows.length) return null;
+
+    const bucket = { items: [], itemMap: new Map() };
+    syntheticRows.forEach((row) => {
+      bucket.items.push(row);
+      bucket.itemMap.set(variantKeyOf(row), row);
+    });
+    productStockMap.set(pid, bucket);
+    return bucket;
+  }
+
+  async function queueStockUsage(productId, variantKey, amount) {
     const qty = Math.max(0, Math.floor(Number(amount) || 0));
     if (qty <= 0) return;
     const pid = String(productId);
     const key = String(variantKey || "");
-    const stockBucket = productStockMap?.get(pid);
+    const stockBucket = await ensureStockBucketForProduct(pid);
     if (!stockBucket) {
       fail(400, "Ürün için stok bulunamadı", { productId: pid });
     }
@@ -637,7 +741,7 @@ async function finalizeOrder(prepared, options = {}) {
         const qty = Number(entry?.qty || 0);
         if (qty <= 0) continue;
         if (entry?.index === undefined || Number(entry.index) < 0) continue;
-        queueStockUsage(pidStr, vkey, qty);
+        await queueStockUsage(pidStr, vkey, qty);
       }
     }
 
@@ -647,7 +751,7 @@ async function finalizeOrder(prepared, options = {}) {
       for (const [vkey, needed] of variants.entries()) {
         const qty = Number(needed || 0);
         if (qty <= 0) continue;
-        queueStockUsage(pidStr, vkey, qty);
+        await queueStockUsage(pidStr, vkey, qty);
       }
     }
 
@@ -746,6 +850,25 @@ async function finalizeOrder(prepared, options = {}) {
     coupon: couponSummary,
   });
 
+  const shouldConsumeCoupon =
+    status === "paid" || payment?.status === "success";
+  if (shouldConsumeCoupon && couponContext?.couponId) {
+    try {
+      await consumeCouponAfterSuccess({
+        userId,
+        couponContext,
+        orderId: order._id,
+      });
+    } catch (error) {
+      console.error("Coupon consume failed after successful order", {
+        orderId: order._id?.toString?.() || null,
+        couponId: couponContext?.couponId || null,
+        userId,
+        error: error?.message || String(error),
+      });
+    }
+  }
+
   return order;
 }
 
@@ -807,7 +930,7 @@ export async function createOrder(req, res) {
   } catch (err) {
     if (err.status) {
       const payload = { message: err.message || "İstek başarısız" };
-      if (err.extra) payload.details = err.extra;
+      if (err.extra || err.details) payload.details = err.extra || err.details;
       return res.status(err.status).json(payload);
     }
     res.status(500).json({ message: err.message || "Sipariş oluşturulamadı" });
@@ -817,8 +940,7 @@ export async function createOrder(req, res) {
 
 function normalizeCode(code) {
   return String(code || "")
-    .trim()
-    .toUpperCase();
+    .trim();
 }
 
 function roundCurrency(value) {

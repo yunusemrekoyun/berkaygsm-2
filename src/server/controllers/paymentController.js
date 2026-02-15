@@ -74,8 +74,8 @@ export async function createPayPalCheckout(req, res) {
       const payload = {
         message: err.message || "PayPal siparişi oluşturulamadı",
       };
-      if (err.data || err.extra) {
-        payload.details = err.data || err.extra;
+      if (err.data || err.extra || err.details) {
+        payload.details = err.data || err.extra || err.details;
       }
       return res.status(status).json(payload);
     }
@@ -229,8 +229,8 @@ export async function capturePayPalCheckout(req, res) {
       const payload = {
         message: err.message || "PayPal ödemesi tahsil edilemedi",
       };
-      if (err.data || err.extra) {
-        payload.details = err.data || err.extra;
+      if (err.data || err.extra || err.details) {
+        payload.details = err.data || err.extra || err.details;
       }
       return res.status(status).json(payload);
     }

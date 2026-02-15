@@ -38,12 +38,20 @@ import {
   deleteDiscount,
 } from "./controllers/discountController.js";
 import {
+  listMyCoupons,
   listCoupons,
   createCoupon,
   updateCoupon,
   deleteCoupon,
   applyCoupon,
 } from "./controllers/couponController.js";
+import {
+  listServiceRecords,
+  createServiceRecord,
+  updateServiceRecord,
+  deleteServiceRecord,
+  restoreServiceRecord,
+} from "./controllers/serviceRecordController.js";
 import {
   listSets,
   createSet,
@@ -192,6 +200,12 @@ const uploadDefaultLimits = {
 const heroUploadLimits = {
   maxFileSizeMb: Number(process.env.HERO_MAX_FILE_MB || 80),
   allowedMime: (mime) => mime.startsWith("image/") || mime.startsWith("video/"),
+};
+
+const serviceImageUploadLimits = {
+  maxFileSizeMb: 3,
+  maxFiles: 4,
+  allowedMime: (mime) => mime.startsWith("image/"),
 };
 
 function route(method, path, handlers, options = {}) {
@@ -416,11 +430,43 @@ export const routes = [
   route("DELETE", ["discounts", ":id"], [requireAuth, requireRole("admin"), deleteDiscount]),
 
   // coupons
-  route("POST", ["coupons", "apply"], [strictLimiter, applyCoupon]),
+  route("POST", ["coupons", "apply"], [strictLimiter, requireAuth, applyCoupon]),
+  route("GET", ["coupons", "mine"], [requireAuth, listMyCoupons]),
   route("GET", ["coupons"], [requireAuth, requireRole("admin"), listCoupons]),
   route("POST", ["coupons"], [requireAuth, requireRole("admin"), createCoupon]),
   route("PATCH", ["coupons", ":id"], [requireAuth, requireRole("admin"), updateCoupon]),
   route("DELETE", ["coupons", ":id"], [requireAuth, requireRole("admin"), deleteCoupon]),
+
+  // service records (admin)
+  route("GET", ["service-records"], [requireAuth, requireRole("admin"), listServiceRecords]),
+  route(
+    "POST",
+    ["service-records"],
+    [requireAuth, requireRole("admin"), createServiceRecord],
+    {
+      body: "form",
+      upload: { type: "array", field: "images", limits: serviceImageUploadLimits },
+    }
+  ),
+  route(
+    "PATCH",
+    ["service-records", ":id"],
+    [requireAuth, requireRole("admin"), updateServiceRecord],
+    {
+      body: "form",
+      upload: { type: "array", field: "images", limits: serviceImageUploadLimits },
+    }
+  ),
+  route(
+    "DELETE",
+    ["service-records", ":id"],
+    [requireAuth, requireRole("admin"), deleteServiceRecord]
+  ),
+  route(
+    "POST",
+    ["service-records", ":id", "restore"],
+    [requireAuth, requireRole("admin"), restoreServiceRecord]
+  ),
 
   // campaigns
   route("GET", ["campaigns"], [listActiveCampaigns]),
