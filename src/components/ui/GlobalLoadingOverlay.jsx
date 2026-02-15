@@ -3,7 +3,7 @@ import LoadingOverlay from "./LoadingOverlay.jsx";
 
 export default function GlobalLoadingOverlay({
   label = "Yükleniyor...",
-  delayMs = 220,
+  delayMs = 420,
   minVisibleMs = 320,
 }) {
   const [visible, setVisible] = useState(false);
@@ -32,8 +32,6 @@ export default function GlobalLoadingOverlay({
     };
 
     const shouldIgnore = (detail) => {
-      const method = String(detail?.method || "").toUpperCase();
-      if (method && method !== "GET") return false;
       const rawPath = String(detail?.path || "");
       const path = rawPath.split("?")[0];
       if (!path) return false;
@@ -41,6 +39,7 @@ export default function GlobalLoadingOverlay({
       return [
         /^\/categories\/tree$/i,
         /^\/auth\/me$/i,
+        /^\/analytics\/track-visit$/i,
         /^\/theme$/i,
         /^\/heroes$/i,
         /^\/reviews\/home$/i,
