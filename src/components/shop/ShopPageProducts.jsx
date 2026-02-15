@@ -6,11 +6,14 @@ export default function ShopPageProducts({
   loading = false,
   emptyLabel = "Seçili filtrelere uygun ürün bulunamadı.",
 }) {
+  const gridClass =
+    "grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+
   return (
     <div>
       {loading ? (
         <div
-          className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-6"
+          className={gridClass}
           data-animate="stagger"
           data-animate-children="> *"
         >
@@ -24,7 +27,7 @@ export default function ShopPageProducts({
       ) : (
         <>
           <div
-            className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-6"
+            className={gridClass}
             data-animate="stagger"
             data-animate-children="> *"
           >
