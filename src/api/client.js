@@ -79,7 +79,7 @@ const emitUiLoading = (type, detail) => {
 
 async function request(
   path,
-  { method = "GET", body, headers, auth = false, ui = true } = {}
+  { method = "GET", body, headers, auth = false, ui = "auto" } = {}
 ) {
   const resolvedHeaders = buildHeaders({ body, headers, auth });
   const methodUpper = String(method || "GET").toUpperCase();
@@ -88,7 +88,7 @@ async function request(
     auth && isMutating
       ? `${Date.now()}-${Math.random().toString(36).slice(2)}`
       : null;
-  const uiEnabled = ui !== false;
+  const uiEnabled = ui === true || (ui !== false && isMutating);
   const uiId = uiEnabled
     ? `${Date.now()}-${Math.random().toString(36).slice(2)}`
     : null;
@@ -157,7 +157,7 @@ export async function http(
     headers = {},
     auth = false,
     retry = true,
-    ui = true,
+    ui = "auto",
   } = {}
 ) {
   const response = await request(path, { method, body, headers, auth, ui });
@@ -165,7 +165,7 @@ export async function http(
   if (auth && response.status === 401 && retry) {
     const ok = await refreshAccessToken();
     if (ok) {
-      return http(path, { method, body, headers, auth, retry: false });
+      return http(path, { method, body, headers, auth, retry: false, ui });
     }
   }
 
