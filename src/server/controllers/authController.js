@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import UserDetails from "../models/UserDetails.js";
 import { shapeUser } from "../utils/userPresenter.js";
+import { issueAutoCouponsForNewUser } from "../utils/couponEngine.js";
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
@@ -67,6 +68,15 @@ export const register = async (req, res) => {
 
   user.refreshToken = refreshToken;
   await user.save();
+
+  try {
+    await issueAutoCouponsForNewUser(user._id?.toString?.() || user._id);
+  } catch (error) {
+    console.error("Auto coupon assignment failed on register", {
+      userId: user._id?.toString?.() || null,
+      error: error?.message || String(error),
+    });
+  }
 
   setRefreshCookie(res, refreshToken);
   res

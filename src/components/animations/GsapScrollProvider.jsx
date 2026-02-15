@@ -87,7 +87,34 @@ export default function GsapScrollProvider() {
     const isMobile = window.matchMedia("(max-width: 768px)").matches;
     let rafA = null;
     let rafB = null;
+    let timeoutId = null;
+    let idleId = null;
     let ctx = null;
+
+    const scheduleRun = (fn) => {
+      const kickoff = () => {
+        if (typeof window.requestIdleCallback === "function") {
+          idleId = window.requestIdleCallback(
+            () => {
+              fn();
+            },
+            { timeout: 500 }
+          );
+          return;
+        }
+        timeoutId = window.setTimeout(fn, 120);
+      };
+
+      if (document.readyState === "complete") {
+        kickoff();
+        return () => {};
+      }
+
+      const onLoad = () => kickoff();
+      window.addEventListener("load", onLoad, { once: true });
+      return () => window.removeEventListener("load", onLoad);
+    };
+
     const run = () => {
       ensureRegistered();
 
@@ -228,11 +255,18 @@ export default function GsapScrollProvider() {
       ScrollTrigger.refresh(true);
     };
 
-    rafA = window.requestAnimationFrame(() => {
-      rafB = window.requestAnimationFrame(run);
+    const cleanupLoadListener = scheduleRun(() => {
+      rafA = window.requestAnimationFrame(() => {
+        rafB = window.requestAnimationFrame(run);
+      });
     });
 
     return () => {
+      cleanupLoadListener?.();
+      if (idleId && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId) window.clearTimeout(timeoutId);
       if (rafA) window.cancelAnimationFrame(rafA);
       if (rafB) window.cancelAnimationFrame(rafB);
       if (ctx) ctx.revert();

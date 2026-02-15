@@ -255,6 +255,39 @@ export default function CartProvider({ children }) {
     }
   };
 
+  const couponPreviewItems = useMemo(
+    () =>
+      items
+        .map((item) => {
+          const kind = item?.kind === "set" ? "set" : "product";
+          const ref =
+            item?.id ||
+            item?.ref ||
+            (kind === "set" ? item?.setId : item?.productId);
+          if (!ref) return null;
+
+          const qty = Math.max(
+            1,
+            Number(
+              item?.qty ??
+                item?.quantity ??
+                item?.count ??
+                item?.amount ??
+                item?.q ??
+                1
+            ) || 1
+          );
+          const unitPrice = Math.max(
+            0,
+            Number(item?.price ?? item?.unitPrice ?? item?.finalPrice ?? 0) || 0
+          );
+
+          return { kind, ref: String(ref), qty, unitPrice };
+        })
+        .filter(Boolean),
+    [items]
+  );
+
   const applyCoupon = async (code) => {
     const normalized = String(code || "").trim();
     if (!normalized) {
@@ -267,6 +300,7 @@ export default function CartProvider({ children }) {
       const applied = await couponApi.apply({
         code: normalized,
         subtotal: subTotal,
+        items: couponPreviewItems,
       });
       setCoupon(applied);
       return applied;

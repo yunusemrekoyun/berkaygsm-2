@@ -1,6 +1,10 @@
 import { http } from "./client.js";
 
 export const couponApi = {
+  async mine() {
+    const data = await http("/coupons/mine", { auth: true });
+    return data.coupons || [];
+  },
   async list() {
     const data = await http("/coupons", { auth: true });
     return data.coupons || [];
@@ -25,10 +29,11 @@ export const couponApi = {
     await http(`/coupons/${id}`, { method: "DELETE", auth: true });
     return true;
   },
-  async apply({ code, subtotal }) {
+  async apply({ code, subtotal, items = [] }) {
     const data = await http("/coupons/apply", {
       method: "POST",
-      body: { code, subtotal },
+      body: { code, subtotal, items },
+      auth: true,
     });
     return data.coupon;
   },

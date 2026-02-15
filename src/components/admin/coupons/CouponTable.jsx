@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Power } from "lucide-react";
+import { Pencil, Power, Trash2 } from "lucide-react";
 
 const currency = new Intl.NumberFormat("tr-TR", {
   style: "currency",
@@ -19,7 +19,7 @@ export default function CouponTable({
         {Array.from({ length: 3 }).map((_, idx) => (
           <div
             key={idx}
-            className="h-14 animate-pulse rounded-xl bg-[var(--color-bg-hover)]/70"
+            className="h-16 animate-pulse rounded-xl bg-[var(--color-bg-hover)]/70"
           />
         ))}
       </div>
@@ -40,19 +40,19 @@ export default function CouponTable({
         <thead className="bg-[var(--color-bg-hover)]/60">
           <tr>
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--color-text-admin-muted)]">
-              Kod
+              Kupon
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--color-text-admin-muted)]">
-              Yüzde
+              Kural
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--color-text-admin-muted)]">
-              Minimum Sepet Tutarı
+              Hedef
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--color-text-admin-muted)]">
+              Kullanım
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--color-text-admin-muted)]">
               Durum
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--color-text-admin-muted)]">
-              Güncellenme
             </th>
             <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--color-text-admin-muted)]">
               İşlemler
@@ -62,10 +62,14 @@ export default function CouponTable({
         <tbody className="divide-y divide-[var(--color-border-admin)]/60">
           {coupons.map((coupon) => (
             <tr key={coupon.id}>
-              <td className="px-4 py-4 align-top" data-label="Kod">
+              <td className="max-w-[300px] px-4 py-4 align-top" data-label="Kupon">
                 <div className="space-y-1">
-                  <p className="font-semibold tracking-wide text-[var(--color-text-admin)]">
-                    {coupon.code}
+                  <p className="font-semibold text-[var(--color-text-admin)]">
+                    {coupon.code || "Kişiye özel kod"}
+                  </p>
+                  <p className="text-xs text-[var(--color-text-admin-muted)]">
+                    {templateLabel(coupon.template)} •{" "}
+                    {coupon.audience === "personal" ? "Kişiye özel" : "Herkese açık"}
                   </p>
                   {coupon.description && (
                     <p className="text-xs text-[var(--color-text-admin-muted)]">
@@ -74,26 +78,87 @@ export default function CouponTable({
                   )}
                 </div>
               </td>
-              <td className="px-4 py-4 align-top text-sm text-[var(--color-text-admin)]" data-label="Yüzde">
-                {coupon.percentage}%
+
+              <td className="px-4 py-4 align-top text-sm text-[var(--color-text-admin)]" data-label="Kural">
+                <div className="space-y-1">
+                  <p>%{Number(coupon.percentage || 0)} indirim</p>
+                  <p className="text-xs text-[var(--color-text-admin-muted)]">
+                    Min:{" "}
+                    {Number(coupon.minSubtotal || 0) > 0
+                      ? currency.format(Number(coupon.minSubtotal || 0))
+                      : "Yok"}
+                  </p>
+                  {coupon.winbackDays ? (
+                    <p className="text-xs text-[var(--color-text-admin-muted)]">
+                      {coupon.winbackDays} gün sipariş vermeyen
+                    </p>
+                  ) : null}
+                  {coupon.firstPurchaseOnly ? (
+                    <p className="text-xs text-[var(--color-text-admin-muted)]">
+                      Sadece ilk sipariş
+                    </p>
+                  ) : null}
+                </div>
               </td>
-              <td className="px-4 py-4 align-top text-sm text-[var(--color-text-admin)]" data-label="Minimum">
-                {coupon.minSubtotal ? currency.format(coupon.minSubtotal) : "—"}
+
+              <td className="px-4 py-4 align-top text-sm text-[var(--color-text-admin)]" data-label="Hedef">
+                <div className="space-y-1">
+                  <p>
+                    {(coupon.targets?.products?.length || 0) +
+                      (coupon.targets?.sets?.length || 0) +
+                      (coupon.targets?.categories?.length || 0) >
+                    0
+                      ? buildTargetSummary(coupon.targets)
+                      : "Tüm sepet"}
+                  </p>
+                  {coupon.audience === "personal" && (
+                    <p className="text-xs text-[var(--color-text-admin-muted)]">
+                      Atama:{" "}
+                      {coupon.assignmentMode === "manual"
+                        ? "Manuel kullanıcılar"
+                        : "Herkese"}
+                    </p>
+                  )}
+                </div>
               </td>
+
+              <td className="px-4 py-4 align-top text-sm text-[var(--color-text-admin)]" data-label="Kullanım">
+                <div className="space-y-1">
+                  <p>
+                    Toplam: {Number(coupon.totalUses || 0)}
+                    {coupon.maxTotalUses
+                      ? ` / ${Number(coupon.maxTotalUses)}`
+                      : " / limitsiz"}
+                  </p>
+                  <p className="text-xs text-[var(--color-text-admin-muted)]">
+                    Kullanıcı başı: {Number(coupon.maxUsesPerUser || 1)}
+                  </p>
+                  {coupon.audience === "personal" && (
+                    <p className="text-xs text-[var(--color-text-admin-muted)]">
+                      Atanan: {Number(coupon.assignmentStats?.total || 0)} •
+                      Kullanan: {Number(coupon.redemptionStats?.users || 0)}
+                    </p>
+                  )}
+                </div>
+              </td>
+
               <td className="px-4 py-4 align-top" data-label="Durum">
-                <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    coupon.active
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-[var(--color-border-admin)]/40 text-[var(--color-text-admin-muted)]"
-                  }`}
-                >
-                  {coupon.active ? "Aktif" : "Pasif"}
-                </span>
+                <div className="space-y-2">
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      coupon.active
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-[var(--color-border-admin)]/40 text-[var(--color-text-admin-muted)]"
+                    }`}
+                  >
+                    {coupon.active ? "Aktif" : "Pasif"}
+                  </span>
+                  <p className="text-xs text-[var(--color-text-admin-muted)]">
+                    {formatDateRange(coupon.startsAt, coupon.endsAt)}
+                  </p>
+                </div>
               </td>
-              <td className="px-4 py-4 align-top text-sm text-[var(--color-text-admin-muted)]" data-label="Güncellenme">
-                {formatTimestamp(coupon.updatedAt)}
-              </td>
+
               <td className="px-4 py-4 align-top text-left md:text-right" data-label="İşlemler">
                 <div className="mobile-full flex flex-col gap-2 md:flex-row md:justify-end">
                   <button
@@ -130,14 +195,49 @@ export default function CouponTable({
   );
 }
 
-function formatTimestamp(value) {
+function templateLabel(template) {
+  switch (template) {
+    case "first_purchase":
+      return "İlk alışveriş";
+    case "cart_threshold":
+      return "Sepet eşiği";
+    case "category_specific":
+      return "Kategori özel";
+    case "winback":
+      return "Geri kazanım";
+    case "manual":
+      return "Manuel";
+    default:
+      return "Tanımsız";
+  }
+}
+
+function buildTargetSummary(targets = {}) {
+  const productCount = targets?.products?.length || 0;
+  const setCount = targets?.sets?.length || 0;
+  const categoryCount = targets?.categories?.length || 0;
+  const parts = [];
+  if (productCount) parts.push(`${productCount} ürün`);
+  if (setCount) parts.push(`${setCount} set`);
+  if (categoryCount) parts.push(`${categoryCount} kategori`);
+  return parts.join(" • ");
+}
+
+function formatDateRange(startsAt, endsAt) {
+  if (!startsAt && !endsAt) return "Süresiz";
+  const startText = startsAt ? formatDate(startsAt) : "Hemen";
+  const endText = endsAt ? formatDate(endsAt) : "Süresiz";
+  return `${startText} - ${endText}`;
+}
+
+function formatDate(value) {
   if (!value) return "—";
   try {
     return new Intl.DateTimeFormat("tr-TR", {
-      dateStyle: "medium",
+      dateStyle: "short",
       timeStyle: "short",
     }).format(new Date(value));
   } catch {
-    return new Date(value).toLocaleString("tr-TR");
+    return String(value);
   }
 }

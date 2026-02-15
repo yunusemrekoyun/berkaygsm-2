@@ -1,9 +1,18 @@
-export const ACCOUNT_TABS = ["Overview", "Orders", "Addresses", "Wishlist"];
+export const ACCOUNT_TABS = [
+  "Overview",
+  "Orders",
+  "Addresses",
+  "Wishlist",
+  "Coupons",
+];
 
 export const normalizeTab = (raw) => {
   if (!raw) return null;
   const t = String(raw).toLowerCase();
   if (["wishlist", "favorites", "favoriler"].includes(t)) return "Wishlist";
+  if (["coupons", "coupon", "kuponlar", "kuponlarim", "kuponlarım"].includes(t)) {
+    return "Coupons";
+  }
   if (["addresses", "address", "adresler"].includes(t)) return "Addresses";
   if (["orders", "siparisler"].includes(t)) return "Orders";
   if (["overview", "profil"].includes(t)) return "Overview";

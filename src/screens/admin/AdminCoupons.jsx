@@ -1,16 +1,34 @@
 import { useEffect, useMemo, useState } from "react";
 import { TicketPercent, PlusCircle, RefreshCw } from "lucide-react";
 import { couponApi } from "../../api/coupons";
+import { userApi } from "../../api/users";
+import { productApi } from "../../api/products";
+import { setApi } from "../../api/sets";
+import { categoryApi } from "../../api/categories";
 import CouponTable from "../../components/admin/coupons/CouponTable.jsx";
 import CouponForm from "../../components/admin/coupons/CouponForm.jsx";
 import AlertBanner from "../../components/ui/AlertBanner.jsx";
 import { useConfirm } from "../../components/ui/ConfirmDialog.jsx";
+import { flattenCategoryTree } from "../../utils/catalog.js";
+
+const currency = new Intl.NumberFormat("tr-TR", {
+  style: "currency",
+  currency: "TRY",
+  minimumFractionDigits: 0,
+});
 
 export default function AdminCoupons() {
   const confirm = useConfirm();
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [banner, setBanner] = useState(null);
+  const [optionsLoading, setOptionsLoading] = useState(false);
+  const [resourceOptions, setResourceOptions] = useState({
+    users: [],
+    products: [],
+    sets: [],
+    categories: [],
+  });
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState(null);
@@ -40,6 +58,7 @@ export default function AdminCoupons() {
   const openCreateModal = () => {
     setEditingCoupon(null);
     setModalOpen(true);
+    loadResourceOptions();
   };
 
   const closeModal = () => {
@@ -51,15 +70,18 @@ export default function AdminCoupons() {
   const handleEdit = (coupon) => {
     setEditingCoupon(coupon);
     setModalOpen(true);
+    loadResourceOptions();
   };
 
   const handleDelete = async (coupon) => {
-    const ok = await confirm({
-      title: "Kuponu sil",
-      description: `“${coupon.code}” kodu kaldırılsın mı?`,
-      confirmText: "Sil",
-      tone: "danger",
-    });
+      const ok = await confirm({
+        title: "Kuponu sil",
+        description: `“${
+          coupon.code || "Kişiye özel kupon"
+        }” kaydı kaldırılsın mı?`,
+        confirmText: "Sil",
+        tone: "danger",
+      });
     if (!ok) return;
     try {
       await couponApi.remove(coupon.id);
@@ -108,6 +130,76 @@ export default function AdminCoupons() {
     } catch (error) {
       setBanner({ variant: "danger", message: extractMessage(error) });
       setFormSubmitting(false);
+    }
+  };
+
+  const loadResourceOptions = async () => {
+    if (optionsLoading) return;
+    setOptionsLoading(true);
+    try {
+      const [usersRes, productsRes, setsRes, categoryTree] = await Promise.all([
+        userApi.list({ page: 1, limit: 100, role: "user", sort: "recent" }),
+        productApi.list({ page: 1, limit: 500, includeHidden: true }),
+        setApi.list({ includeHidden: true, limit: 500 }),
+        categoryApi.tree(),
+      ]);
+
+      const users = (usersRes?.users || [])
+        .filter((user) => !user?.isDeleted)
+        .map((user) => ({
+          id: String(user.id || ""),
+          label: user.fullName || user.email || "Adsız kullanıcı",
+          hint: user.email || undefined,
+        }))
+        .filter((item) => item.id);
+
+      const products = (productsRes?.products || [])
+        .map((product) => ({
+          id: String(product.id || product._id || "").trim(),
+          label: product.name || "Adsız ürün",
+          hint: currency.format(product.finalPrice ?? product.price ?? 0),
+        }))
+        .filter((item) => item.id);
+
+      const sets = (Array.isArray(setsRes) ? setsRes : setsRes?.sets || [])
+        .map((set) => ({
+          id: String(set.id || set._id || "").trim(),
+          label: set.name || "Adsız set",
+          hint: currency.format(set.finalPrice ?? set.price ?? 0),
+        }))
+        .filter((item) => item.id);
+
+      const categories = flattenCategoryTree(categoryTree || [])
+        .map((category) => {
+          const id = category.id || category._id;
+          if (!id) return null;
+          return {
+            id: String(id),
+            label:
+              category.path?.length > 0
+                ? category.path.join(" / ")
+                : category.name || "Adsız kategori",
+            hint:
+              typeof category.level === "number"
+                ? `Seviye ${category.level + 1}`
+                : undefined,
+          };
+        })
+        .filter(Boolean);
+
+      setResourceOptions({
+        users,
+        products,
+        sets,
+        categories,
+      });
+    } catch (error) {
+      setBanner((prev) => ({
+        variant: "danger",
+        message: extractMessage(error) || prev?.message,
+      }));
+    } finally {
+      setOptionsLoading(false);
     }
   };
 
@@ -161,6 +253,12 @@ export default function AdminCoupons() {
               {activeCount} aktif • {coupons.length} toplam
             </p>
           </div>
+          <button
+            onClick={loadResourceOptions}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-xs font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
+          >
+            Form seçeneklerini yenile
+          </button>
         </div>
         <div className="pt-4">
           <CouponTable
@@ -179,6 +277,11 @@ export default function AdminCoupons() {
         onSubmit={handleSubmit}
         submitting={formSubmitting}
         initialCoupon={editingCoupon}
+        optionsLoading={optionsLoading}
+        userOptions={resourceOptions.users}
+        productOptions={resourceOptions.products}
+        setOptions={resourceOptions.sets}
+        categoryOptions={resourceOptions.categories}
       />
     </section>
   );

@@ -19,6 +19,7 @@ import {
   Percent,
   TicketPercent,
   Boxes,
+  Wrench,
   // Megaphone,
   // MessageSquare,
   Settings,
@@ -122,6 +123,7 @@ export default function AdminLayout({ children, title, subtitle, actions }) {
           { to: "/admin/discounts", label: "İndirimler", Icon: Percent },
           { to: "/admin/coupons", label: "Kuponlar", Icon: TicketPercent },
            { to: "/admin/stocks", label: "Stok Yönetimi", Icon: Boxes },
+           { to: "/admin/service-records", label: "Servis Kayıtları", Icon: Wrench },
         ],
       },
       {

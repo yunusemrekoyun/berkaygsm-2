@@ -1,18 +1,21 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { authApi } from "../api/auth";
+import { couponApi } from "../api/coupons";
 import { userDetailsApi } from "../api/userDetails";
 import { getUser, setUser } from "../api/client";
 import OverviewSection from "../features/account/components/OverviewSection.jsx";
 import OrdersSection from "../features/account/components/OrdersSection.jsx";
 import AddressesSection from "../features/account/components/AddressesSection.jsx";
 import WishlistSection from "../features/account/components/WishlistSection.jsx";
+import CouponsSection from "../features/account/components/CouponsSection.jsx";
 import BusyBar from "../features/account/components/BusyBar.jsx";
 import {
   ACCOUNT_TABS,
   normalizeTab,
   extractAvatarUrl,
+  extractErrorMessage,
 } from "../features/account/helpers.js";
 import Avatar from "../components/ui/Avatar.jsx";
 import { useStaticTranslation } from "../i18n/staticContent.js";
@@ -31,6 +34,10 @@ export default function UserAccountPage({ onLogout }) {
   const [profile, setProfile] = useState(null);
   const [addresses, setAddresses] = useState([]);
   const [favorites, setFavorites] = useState({ products: [], sets: [] });
+  const [coupons, setCoupons] = useState([]);
+  const [couponsLoading, setCouponsLoading] = useState(false);
+  const [couponsLoaded, setCouponsLoaded] = useState(false);
+  const [couponsError, setCouponsError] = useState("");
   const [busy, setBusy] = useState(false);
   const t = useStaticTranslation();
   const accountCopy = t("userAccount") || {};
@@ -99,6 +106,29 @@ export default function UserAccountPage({ onLogout }) {
       mounted = false;
     };
   }, []);
+
+  const fetchCoupons = useCallback(
+    async ({ force = false } = {}) => {
+      if (couponsLoading && !force) return;
+      try {
+        setCouponsLoading(true);
+        setCouponsError("");
+        const list = await couponApi.mine();
+        setCoupons(Array.isArray(list) ? list : []);
+      } catch (error) {
+        setCouponsError(extractErrorMessage(error));
+      } finally {
+        setCouponsLoading(false);
+        setCouponsLoaded(true);
+      }
+    },
+    [couponsLoading]
+  );
+
+  useEffect(() => {
+    if (active !== "Coupons" || couponsLoaded) return;
+    fetchCoupons();
+  }, [active, couponsLoaded, fetchCoupons]);
 
   const avatarSrc = profile?.avatarUrl || extractAvatarUrl(user) || null;
 
@@ -266,6 +296,16 @@ export default function UserAccountPage({ onLogout }) {
                       const fresh = await userDetailsApi.favorites();
                       setFavorites(fresh);
                     }}
+                  />
+                )}
+
+                {active === "Coupons" && (
+                  <CouponsSection
+                    copy={accountCopy.coupons}
+                    coupons={coupons}
+                    loading={couponsLoading}
+                    error={couponsError}
+                    onRetry={() => fetchCoupons({ force: true })}
                   />
                 )}
               </div>
