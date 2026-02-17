@@ -3,6 +3,10 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { extractErrorMessage } from "../helpers.js";
 import AlertBanner from "../../../components/ui/AlertBanner.jsx";
 import LoadingOverlay from "../../../components/ui/LoadingOverlay.jsx";
+import {
+  formatTrPhoneForInput,
+  formatTrPhoneForSubmit,
+} from "../../../utils/phoneMask.js";
 
 function emptyAddress() {
   return {
@@ -21,7 +25,7 @@ function emptyAddress() {
 function cleanAddress(address) {
   return {
     fullName: String(address.fullName || "").trim(),
-    phone: String(address.phone || "").trim(),
+    phone: formatTrPhoneForSubmit(address.phone),
     addressLine: String(
       [address.addressLine1, address.addressLine2]
         .map((item) => String(item || "").trim())
@@ -36,7 +40,16 @@ function cleanAddress(address) {
   };
 }
 
-function AddressField({ label, value, onChange, required, wide }) {
+function AddressField({
+  label,
+  value,
+  onChange,
+  required,
+  wide,
+  type = "text",
+  inputMode,
+  autoComplete,
+}) {
   return (
     <label className={wide ? "sm:col-span-2 block" : "block"}>
       <span className="mb-1 block text-sm font-medium text-primary">
@@ -44,6 +57,9 @@ function AddressField({ label, value, onChange, required, wide }) {
       </span>
       <input
         className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm outline-none"
+        type={type}
+        inputMode={inputMode}
+        autoComplete={autoComplete}
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
         required={required}
@@ -69,6 +85,7 @@ export default function AddressesSection({ addresses, onCreate, onUpdate, onDele
   const startEdit = (address) => {
     setForm({
       ...address,
+      phone: formatTrPhoneForInput(address.phone || ""),
       addressLine1: address.addressLine || address.addressLine1 || "",
       addressLine2: address.addressLine2 || "",
       state: address.district || address.state || "",
@@ -159,7 +176,9 @@ export default function AddressesSection({ addresses, onCreate, onUpdate, onDele
                 </div>
                 <div className="text-sm text-secondary">{address.country}</div>
                 {address.phone && (
-                <div className="text-sm text-secondary">📞 {address.phone}</div>
+                  <div className="text-sm text-secondary">
+                    📞 {formatTrPhoneForInput(address.phone) || address.phone}
+                  </div>
                 )}
                 {address.isDefault && (
                   <div className="mt-2 inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">
@@ -204,7 +223,15 @@ export default function AddressesSection({ addresses, onCreate, onUpdate, onDele
             <AddressField
               label={fieldCopy.phone || "Telefon"}
               value={form.phone}
-              onChange={(value) => setForm((prev) => ({ ...prev, phone: value }))}
+              onChange={(value) =>
+                setForm((prev) => ({
+                  ...prev,
+                  phone: formatTrPhoneForInput(value),
+                }))
+              }
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel"
             />
             <AddressField
               label={fieldCopy.address1 || "Adres Satırı 1"}

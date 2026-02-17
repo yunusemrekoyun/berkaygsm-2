@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { shippingReturnsApi } from "../../api/shippingReturns";
 import { Link } from "react-router-dom";
 import ShippingReturnsTranslationModal from "../../components/admin/shippingReturns/ShippingReturnsTranslationModal.jsx";
+import { sanitizeRichHtml } from "../../utils/sanitizeHtml.js";
 import {
   Loader2,
   Save,
@@ -603,7 +604,7 @@ function SidebarEditor({ sidebar, onChange }) {
         return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-accent underline">${match}</a>`;
       }
     );
-    return withLinks;
+    return sanitizeRichHtml(withLinks);
   }
   function updateQuickFacts(values) {
     onChange({ ...side, quickFacts: values });
@@ -640,13 +641,15 @@ function SidebarEditor({ sidebar, onChange }) {
             }}
             rows={10}
             className="mt-2 w-full rounded-2xl border border-[var(--color-border-admin)] bg-white px-4 py-3 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)] focus:ring-2 focus:ring-[var(--color-text-admin)]/10"
-            placeholder='Need assistance? Reach us at <a href="mailto:returns@..." class="text-accent underline">returns@...</a>'
+            placeholder='Destek için <a href="mailto:returns@..." class="text-accent underline">returns@...</a> adresine yazın'
           />
           {/* Preview (optional) */}
           {side.helpBoxHtml && (
             <div
               className="mt-3 rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-admin)]/40 p-3 text-sm"
-              dangerouslySetInnerHTML={{ __html: side.helpBoxHtml }}
+              dangerouslySetInnerHTML={{
+                __html: sanitizeRichHtml(side.helpBoxHtml),
+              }}
             />
           )}
         </div>
@@ -718,7 +721,7 @@ function SEOEditor({ seo, onChange }) {
                 type="button"
                 className="rounded-full p-1 hover:bg-[var(--color-bg-hover)]"
                 onClick={() => removeKeyword(k)}
-                title="Remove keyword"
+                title="Anahtar kelimeyi kaldır"
               >
                 ✕
               </button>
@@ -728,7 +731,7 @@ function SEOEditor({ seo, onChange }) {
             <input
               value={kwInput}
               onChange={(e) => setKwInput(e.target.value)}
-              placeholder="Add keyword"
+              placeholder="Anahtar kelime ekle"
               className="rounded-full border border-[var(--color-border-admin)] bg-white px-3 py-1 text-xs outline-none focus:border-[var(--color-text-admin)]"
             />
             <button
@@ -737,7 +740,7 @@ function SEOEditor({ seo, onChange }) {
               className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border-admin)] px-3 py-1 text-xs font-semibold hover:bg-[var(--color-bg-hover)]"
             >
               <Plus className="h-3.5 w-3.5" />
-              Add
+              Ekle
             </button>
           </div>
         </div>
@@ -906,7 +909,7 @@ function normalizeIncoming(data) {
     quickFacts: Array.isArray(safe.sidebar?.quickFacts)
       ? safe.sidebar.quickFacts
       : [],
-    helpBoxHtml: String(safe.sidebar?.helpBoxHtml || ""),
+    helpBoxHtml: sanitizeRichHtml(String(safe.sidebar?.helpBoxHtml || "")),
     helpBoxHtmlRaw: safe.sidebar?.helpBoxHtml
       ? safe.sidebar.helpBoxHtml
           .replace(/<br\s*\/?>/gi, "\n")
@@ -937,7 +940,7 @@ function normalizeOutgoing(form) {
     })),
     sidebar: {
       quickFacts: (form.sidebar?.quickFacts || []).map((x) => String(x ?? "")),
-      helpBoxHtml: String(form.sidebar?.helpBoxHtml || ""),
+      helpBoxHtml: sanitizeRichHtml(String(form.sidebar?.helpBoxHtml || "")),
     },
     seo: {
       title: String(form.seo?.title || "").trim(),

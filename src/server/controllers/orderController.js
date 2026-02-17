@@ -49,6 +49,28 @@ function toBoolean(value) {
   return Boolean(value);
 }
 
+async function runInMongoTransaction(work) {
+  const session = await mongoose.startSession();
+  let result = null;
+  try {
+    try {
+      await session.withTransaction(async () => {
+        result = await work(session);
+      });
+    } catch (error) {
+      const message = String(error?.message || "");
+      const transactionUnsupported =
+        message.includes("Transaction numbers are only allowed") ||
+        message.includes("Transaction support is not available");
+      if (!transactionUnsupported) throw error;
+      result = await work(null);
+    }
+    return result;
+  } finally {
+    await session.endSession();
+  }
+}
+
 // normalize helpers
 function normalize(v) {
   if (v === undefined || v === null) return null;
@@ -639,6 +661,7 @@ async function finalizeOrder(prepared, options = {}) {
 
   const orderNumber = options.orderNumber || (await createOrderNumber());
   const applyStockDeductions = options.applyStockDeductions !== false;
+  const session = options.session || null;
 
   const stockUsage = new Map();
 
@@ -661,11 +684,13 @@ async function finalizeOrder(prepared, options = {}) {
       return existingBucket;
     }
 
-    const rows = await StockItem.find({
+    const rowsQuery = StockItem.find({
       ownerModel: "Product",
       owner: pid,
       isActive: true,
-    }).lean();
+    });
+    if (session) rowsQuery.session(session);
+    const rows = await rowsQuery.lean();
 
     if (rows.length) {
       const bucket = { items: [], itemMap: new Map() };
@@ -756,11 +781,13 @@ async function finalizeOrder(prepared, options = {}) {
     }
 
     for (const usage of stockUsage.values()) {
-      const result = await StockItem.findOneAndUpdate(
+      const query = StockItem.findOneAndUpdate(
         { _id: usage.id, qtyOnHand: { $gte: usage.qty } },
         { $inc: { qtyOnHand: -usage.qty } },
         { new: true }
-      ).lean();
+      );
+      if (session) query.session(session);
+      const result = await query.lean();
 
       if (!result) {
         fail(409, "Yetersiz stok", {
@@ -836,7 +863,7 @@ async function finalizeOrder(prepared, options = {}) {
     }
   }
 
-  const order = await Order.create({
+  const orderPayload = {
     orderNumber,
     user: userId,
     items: orderItems,
@@ -848,25 +875,21 @@ async function finalizeOrder(prepared, options = {}) {
     status,
     payment,
     coupon: couponSummary,
-  });
+  };
+
+  const order = session
+    ? (await Order.create([orderPayload], { session }))[0]
+    : await Order.create(orderPayload);
 
   const shouldConsumeCoupon =
     status === "paid" || payment?.status === "success";
   if (shouldConsumeCoupon && couponContext?.couponId) {
-    try {
-      await consumeCouponAfterSuccess({
-        userId,
-        couponContext,
-        orderId: order._id,
-      });
-    } catch (error) {
-      console.error("Coupon consume failed after successful order", {
-        orderId: order._id?.toString?.() || null,
-        couponId: couponContext?.couponId || null,
-        userId,
-        error: error?.message || String(error),
-      });
-    }
+    await consumeCouponAfterSuccess({
+      userId,
+      couponContext,
+      orderId: order._id,
+      session,
+    });
   }
 
   return order;
@@ -906,7 +929,14 @@ export async function createOrder(req, res) {
       couponCode,
     });
 
-    const simulationMode = paymentSimulation === "failure" ? "failure" : "success";
+    const normalizedSimulation =
+      typeof paymentSimulation === "string"
+        ? paymentSimulation.trim().toLowerCase()
+        : "";
+    const simulationMode =
+      normalizedSimulation === "success" || normalizedSimulation === "failure"
+        ? normalizedSimulation
+        : null;
     const normalizedMethod =
       typeof paymentMethod === "string" && paymentMethod.trim()
         ? paymentMethod.trim().toLowerCase()
@@ -916,15 +946,18 @@ export async function createOrder(req, res) {
         ? paymentProvider.trim().toLowerCase()
         : "simulation";
 
-    const order = await finalizeOrder(details, {
-      userId,
-      currency: PAYPAL_CURRENCY,
-      paymentMethod: normalizedMethod,
-      paymentProvider: normalizedProvider,
-      simulation: simulationMode,
-      applyStockDeductions: simulationMode !== "failure",
-      statusOverride: simulationMode === "failure" ? "cancelled" : undefined,
-    });
+    const order = await runInMongoTransaction((session) =>
+      finalizeOrder(details, {
+        userId,
+        currency: PAYPAL_CURRENCY,
+        paymentMethod: normalizedMethod,
+        paymentProvider: normalizedProvider,
+        simulation: simulationMode,
+        applyStockDeductions: simulationMode !== "failure",
+        statusOverride: simulationMode === "failure" ? "cancelled" : undefined,
+        session,
+      })
+    );
 
     res.status(201).json({ order: shapeOrder(order) });
   } catch (err) {
@@ -972,6 +1005,7 @@ export {
   roundCurrency,
   PAYPAL_CURRENCY,
   PAYPAL_ORDER_TTL_MINUTES,
+  runInMongoTransaction,
 };
 
 function fail(status, message, extra = null) {

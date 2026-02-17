@@ -7,6 +7,7 @@ import {
   syncDocTranslations,
   composeResponseTranslations,
 } from "../utils/i18n.js";
+import { sanitizeRichHtml } from "../../utils/sanitizeHtml.js";
 
 /* ----------------- Yardımcılar ----------------- */
 const ensureArray = (v) => {
@@ -122,7 +123,7 @@ function applyShippingReturnsTrTranslation(doc, translation = {}) {
       );
     }
     if (translation.sidebarContact.note !== undefined) {
-      const note = String(translation.sidebarContact.note ?? "");
+      const note = sanitizeRichHtml(String(translation.sidebarContact.note ?? ""));
       doc.sidebarContact.note = note;
       doc.sidebar = doc.sidebar || {};
       doc.sidebar.helpBoxHtml = note;
@@ -166,6 +167,7 @@ const shapeToPage = (doc) => {
     d.sidebar?.helpBoxHtml && d.sidebar.helpBoxHtml.trim().length
       ? d.sidebar.helpBoxHtml
       : d.sidebarContact?.note ?? "";
+  const safeHelpBoxHtml = sanitizeRichHtml(helpBoxHtml);
 
   return {
     id: d._id?.toString?.() || d.id,
@@ -174,7 +176,7 @@ const shapeToPage = (doc) => {
     sections: Array.isArray(d.sections) ? d.sections : [],
     sidebar: {
       quickFacts,
-      helpBoxHtml: helpBoxHtml.toString(),
+      helpBoxHtml: safeHelpBoxHtml,
     },
     isActive: d.isActive !== false,
     seo: {
@@ -269,7 +271,9 @@ export async function upsertShippingReturns(req, res) {
     const sidebarQuickFacts = ensureArray(sidebarRaw.quickFacts).map((i) =>
       String(i).trim()
     );
-    const sidebarHelpBoxHtml = String(sidebarRaw.helpBoxHtml ?? "").toString();
+    const sidebarHelpBoxHtml = sanitizeRichHtml(
+      String(sidebarRaw.helpBoxHtml ?? "")
+    );
     const hasSidebarQuickFacts = Object.prototype.hasOwnProperty.call(
       sidebarRaw,
       "quickFacts"
@@ -304,7 +308,9 @@ export async function upsertShippingReturns(req, res) {
       const hoursTextValue = String(
         sidebarContactPayload.hoursText ?? ""
       ).trim();
-      const noteValue = String(sidebarContactPayload.note ?? "").trim();
+      const noteValue = sanitizeRichHtml(
+        String(sidebarContactPayload.note ?? "").trim()
+      );
 
       doc = new ShippingReturns({
         singleton: "shipping_returns",
@@ -357,7 +363,7 @@ export async function upsertShippingReturns(req, res) {
       ? String(sidebarContactPayload.hoursText || "").trim()
       : "";
     const noteValue = noteProvided
-      ? String(sidebarContactPayload.note || "").trim()
+      ? sanitizeRichHtml(String(sidebarContactPayload.note || "").trim())
       : "";
 
     if (doc) {

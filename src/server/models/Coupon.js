@@ -13,9 +13,6 @@ const CouponSchema = new mongoose.Schema(
   {
     code: {
       type: String,
-      default: null,
-      unique: true,
-      sparse: true,
       trim: true,
     },
     template: {
@@ -61,5 +58,12 @@ const CouponSchema = new mongoose.Schema(
 
 CouponSchema.index({ active: 1 });
 CouponSchema.index({ active: 1, audience: 1, template: 1 });
+CouponSchema.index(
+  { code: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { code: { $type: "string" } },
+  }
+);
 
 export default mongoose.models["Coupon"] || mongoose.model("Coupon", CouponSchema);

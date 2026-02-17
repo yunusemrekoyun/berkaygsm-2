@@ -89,6 +89,8 @@ export default function GsapScrollProvider() {
     let rafB = null;
     let timeoutId = null;
     let idleId = null;
+    let observerTimeoutId = null;
+    let observer = null;
     let ctx = null;
 
     const scheduleRun = (fn) => {
@@ -115,7 +117,36 @@ export default function GsapScrollProvider() {
       return () => window.removeEventListener("load", onLoad);
     };
 
+    const hasPendingSkeleton = () =>
+      Boolean(document.querySelector(".animate-pulse"));
+
     const run = () => {
+      if (hasPendingSkeleton()) {
+        const onMutate = () => {
+          if (hasPendingSkeleton()) return;
+          if (observer) observer.disconnect();
+          if (observerTimeoutId) window.clearTimeout(observerTimeoutId);
+          rafA = window.requestAnimationFrame(() => {
+            rafB = window.requestAnimationFrame(run);
+          });
+        };
+
+        observer = new MutationObserver(onMutate);
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["class"],
+        });
+
+        // If skeleton never clears, skip animation instead of causing hydration/style drift.
+        observerTimeoutId = window.setTimeout(() => {
+          if (observer) observer.disconnect();
+          observer = null;
+        }, 12000);
+        return;
+      }
+
       ensureRegistered();
 
       ctx = gsap.context(() => {
@@ -267,6 +298,8 @@ export default function GsapScrollProvider() {
         window.cancelIdleCallback(idleId);
       }
       if (timeoutId) window.clearTimeout(timeoutId);
+      if (observerTimeoutId) window.clearTimeout(observerTimeoutId);
+      if (observer) observer.disconnect();
       if (rafA) window.cancelAnimationFrame(rafA);
       if (rafB) window.cancelAnimationFrame(rafB);
       if (ctx) ctx.revert();

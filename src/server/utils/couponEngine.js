@@ -445,13 +445,15 @@ export async function evaluateCouponForOrderContext({
   };
 }
 
-async function incrementCouponTotalUses(couponId, maxTotalUses) {
+async function incrementCouponTotalUses(couponId, maxTotalUses, session = null) {
   if (maxTotalUses > 0) {
-    const updated = await Coupon.findOneAndUpdate(
+    const query = Coupon.findOneAndUpdate(
       { _id: couponId, totalUses: { $lt: maxTotalUses } },
       { $inc: { totalUses: 1 } },
       { new: true }
-    ).lean();
+    );
+    if (session) query.session(session);
+    const updated = await query.lean();
     if (!updated) {
       throw createError(400, "Kuponun kullanım limiti doldu", {
         reason: "totalLimit",
@@ -461,7 +463,9 @@ async function incrementCouponTotalUses(couponId, maxTotalUses) {
     return updated;
   }
 
-  await Coupon.updateOne({ _id: couponId }, { $inc: { totalUses: 1 } });
+  const query = Coupon.updateOne({ _id: couponId }, { $inc: { totalUses: 1 } });
+  if (session) query.session(session);
+  await query;
   return null;
 }
 
@@ -469,12 +473,15 @@ export async function consumeCouponAfterSuccess({
   userId,
   couponContext = null,
   orderId = null,
+  session = null,
 }) {
   if (!couponContext?.couponId || !mongoose.Types.ObjectId.isValid(userId)) {
     return null;
   }
 
-  const coupon = await Coupon.findById(couponContext.couponId);
+  const couponQuery = Coupon.findById(couponContext.couponId);
+  if (session) couponQuery.session(session);
+  const coupon = await couponQuery;
   if (!coupon) return null;
 
   const maxUsesPerUser = Math.max(1, Number(coupon.maxUsesPerUser || 1));
@@ -485,7 +492,7 @@ export async function consumeCouponAfterSuccess({
   let assignmentUpdated = false;
 
   try {
-    const redemption = await CouponRedemption.findOneAndUpdate(
+    const redemptionQuery = CouponRedemption.findOneAndUpdate(
       {
         coupon: coupon._id,
         user: userId,
@@ -505,7 +512,9 @@ export async function consumeCouponAfterSuccess({
         upsert: true,
         setDefaultsOnInsert: true,
       }
-    ).lean();
+    );
+    if (session) redemptionQuery.session(session);
+    const redemption = await redemptionQuery.lean();
 
     if (!redemption) {
       throw createError(400, "Bu kuponu kullanım hakkınız doldu", {
@@ -515,7 +524,7 @@ export async function consumeCouponAfterSuccess({
     redemptionUpdated = true;
 
     if (couponContext.assignmentId) {
-      await CouponAssignment.updateOne(
+      const assignmentQuery = CouponAssignment.updateOne(
         {
           _id: couponContext.assignmentId,
           coupon: coupon._id,
@@ -532,12 +541,16 @@ export async function consumeCouponAfterSuccess({
           },
         }
       );
+      if (session) assignmentQuery.session(session);
+      await assignmentQuery;
       assignmentUpdated = true;
     }
 
-    await incrementCouponTotalUses(coupon._id, maxTotalUses);
+    await incrementCouponTotalUses(coupon._id, maxTotalUses, session);
     return { ok: true };
   } catch (error) {
+    if (session) throw error;
+
     if (redemptionUpdated) {
       await CouponRedemption.updateOne(
         { coupon: coupon._id, user: userId, uses: { $gt: 0 } },

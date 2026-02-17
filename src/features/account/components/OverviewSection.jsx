@@ -2,8 +2,21 @@ import { useEffect, useState } from "react";
 import { User as UserIcon, Mail, Phone, X } from "lucide-react";
 import { extractErrorMessage } from "../helpers.js";
 import Avatar from "../../../components/ui/Avatar.jsx";
+import {
+  formatTrPhoneForInput,
+  formatTrPhoneForSubmit,
+} from "../../../utils/phoneMask.js";
 
-function Field({ label, value, onChange, icon, help }) {
+function Field({
+  label,
+  value,
+  onChange,
+  icon,
+  help,
+  type = "text",
+  inputMode,
+  autoComplete,
+}) {
   return (
     <label className="block">
       <span className="mb-1 block text-sm font-medium text-primary">
@@ -13,6 +26,9 @@ function Field({ label, value, onChange, icon, help }) {
         {icon && <span className="mr-2 text-secondary">{icon}</span>}
         <input
           className="w-full border-none bg-transparent text-sm outline-none"
+          type={type}
+          inputMode={inputMode}
+          autoComplete={autoComplete}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -29,7 +45,7 @@ export default function OverviewSection({ user, profile, avatarSrc, onSave, copy
     firstName: profile?.firstName ?? user?.firstName ?? "",
     lastName: profile?.lastName ?? user?.lastName ?? "",
     email: profile?.email ?? user?.email ?? "",
-    phone: profile?.phone ?? user?.phone ?? "",
+    phone: formatTrPhoneForInput(profile?.phone ?? user?.phone ?? ""),
   });
   const [avatarFile, setAvatarFile] = useState(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
@@ -44,7 +60,7 @@ export default function OverviewSection({ user, profile, avatarSrc, onSave, copy
       firstName: profile?.firstName ?? user?.firstName ?? "",
       lastName: profile?.lastName ?? user?.lastName ?? "",
       email: profile?.email ?? user?.email ?? "",
-      phone: profile?.phone ?? user?.phone ?? "",
+      phone: formatTrPhoneForInput(profile?.phone ?? user?.phone ?? ""),
     });
   }, [profile, user]);
 
@@ -55,7 +71,12 @@ export default function OverviewSection({ user, profile, avatarSrc, onSave, copy
     setSaving(true);
     setMessage(null);
     try {
-      await onSave({ ...form, avatarFile, removeAvatar });
+      await onSave({
+        ...form,
+        phone: formatTrPhoneForSubmit(form.phone),
+        avatarFile,
+        removeAvatar,
+      });
       setAvatarFile(null);
       setRemoveAvatar(false);
       setMessage({ type: "success", text: copy.success || "Profil güncellendi" });
@@ -126,8 +147,11 @@ export default function OverviewSection({ user, profile, avatarSrc, onSave, copy
         <Field
           label={fieldsCopy.phone || "Telefon"}
           value={form.phone}
-          onChange={(v) => onChange("phone", v)}
+          onChange={(v) => onChange("phone", formatTrPhoneForInput(v))}
           icon={<Phone className="h-4 w-4" />}
+          type="tel"
+          inputMode="numeric"
+          autoComplete="tel"
         />
 
         <div className="rounded-xl border border-border bg-contact-bg p-4">

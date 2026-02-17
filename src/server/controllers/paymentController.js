@@ -9,6 +9,7 @@ import {
   roundCurrency,
   PAYPAL_CURRENCY,
   PAYPAL_ORDER_TTL_MINUTES,
+  runInMongoTransaction,
 } from "./orderController.js";
 import {
   paypalCreateOrder,
@@ -185,23 +186,26 @@ export async function capturePayPalCheckout(req, res) {
 
     let orderDoc;
     try {
-      orderDoc = await finalizeOrder(details, {
-        userId,
-        paymentOverride: {
-          method: "paypal",
-          provider: "paypal",
-          status: captureStatus === "COMPLETED" ? "success" : "pending",
-          txnId: capture.id || "",
-          processorOrderId: paypalOrderId,
-          paidAt,
+      orderDoc = await runInMongoTransaction((session) =>
+        finalizeOrder(details, {
+          userId,
+          paymentOverride: {
+            method: "paypal",
+            provider: "paypal",
+            status: captureStatus === "COMPLETED" ? "success" : "pending",
+            txnId: capture.id || "",
+            processorOrderId: paypalOrderId,
+            paidAt,
+            currency: captureCurrency,
+            amount: captureAmount,
+            simulation: null,
+            payer: extractPayPalPayer(captureResponse?.payer),
+          },
+          statusOverride: captureStatus === "COMPLETED" ? "paid" : "pending",
           currency: captureCurrency,
-          amount: captureAmount,
-          simulation: null,
-          payer: extractPayPalPayer(captureResponse?.payer),
-        },
-        statusOverride: captureStatus === "COMPLETED" ? "paid" : "pending",
-        currency: captureCurrency,
-      });
+          session,
+        })
+      );
     } catch (commitError) {
       if (capture.id) {
         try {

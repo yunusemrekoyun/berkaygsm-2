@@ -4,6 +4,7 @@ import User from "../models/User.js";
 import UserDetails from "../models/UserDetails.js";
 import { shapeUser } from "../utils/userPresenter.js";
 import { issueAutoCouponsForNewUser } from "../utils/couponEngine.js";
+import { validatePasswordPolicy } from "../../utils/passwordPolicy.js";
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
@@ -45,9 +46,14 @@ function setRefreshCookie(res, token) {
 
 /** POST /api/auth/register */
 export const register = async (req, res) => {
-  const { firstName, lastName, email, phone, password, role } = req.body;
+  const { firstName, lastName, email, phone, password } = req.body;
   if (!firstName || !lastName || !email || !password)
     return res.status(400).json({ message: "Zorunlu alanlar eksik" });
+
+  const passwordCheck = validatePasswordPolicy(password);
+  if (!passwordCheck.ok) {
+    return res.status(400).json({ message: passwordCheck.message });
+  }
 
   const exists = await User.findOne({ email });
   if (exists) return res.status(409).json({ message: "E-posta zaten kullanılıyor" });
@@ -59,7 +65,7 @@ export const register = async (req, res) => {
     email,
     phone,
     passwordHash,
-    role: role && ["user", "admin"].includes(role) ? role : "user",
+    role: "user",
   });
   await UserDetails.create({ user: user._id });
 
