@@ -2,6 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 import AdminModal from "../common/AdminModal.jsx";
 import AlertBanner from "../../ui/AlertBanner.jsx";
+import {
+  formatTrPhoneForInput,
+  formatTrPhoneForSubmit,
+} from "../../../utils/phoneMask.js";
 
 const WORKFLOW_OPTIONS = [
   { value: "new", label: "Yeni Kayıt" },
@@ -64,7 +68,7 @@ export default function ServiceRecordForm({
 
     setCustomerFirstName(initialRecord?.customerFirstName || "");
     setCustomerLastName(initialRecord?.customerLastName || "");
-    setCustomerPhone(initialRecord?.customerPhone || "");
+    setCustomerPhone(formatTrPhoneForInput(initialRecord?.customerPhone || ""));
     setOperationDetails(initialRecord?.operationDetails || "");
     setWarrantyMonths(String(initialRecord?.warrantyMonths ?? 6));
     setIntakeDate(toDateInput(initialRecord?.intakeDate));
@@ -148,7 +152,8 @@ export default function ServiceRecordForm({
     event.preventDefault();
     if (submitting) return;
 
-    if (!customerFirstName.trim() || !customerLastName.trim() || !customerPhone.trim()) {
+    const normalizedPhone = formatTrPhoneForSubmit(customerPhone);
+    if (!customerFirstName.trim() || !customerLastName.trim() || !normalizedPhone) {
       setError("Müşteri adı, soyadı ve telefon zorunludur.");
       return;
     }
@@ -175,7 +180,7 @@ export default function ServiceRecordForm({
     onSubmit?.({
       customerFirstName: customerFirstName.trim(),
       customerLastName: customerLastName.trim(),
-      customerPhone: customerPhone.trim(),
+      customerPhone: normalizedPhone,
       operationDetails: operationDetails.trim(),
       warrantyMonths: Math.floor(warranty),
       intakeDate,
@@ -249,9 +254,14 @@ export default function ServiceRecordForm({
             <span className="text-sm font-medium text-[var(--color-text-admin)]">Telefon</span>
             <input
               value={customerPhone}
-              onChange={(event) => setCustomerPhone(event.target.value)}
+              onChange={(event) =>
+                setCustomerPhone(formatTrPhoneForInput(event.target.value))
+              }
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel"
               className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2 text-sm outline-none focus:border-[var(--color-text-admin)]"
-              placeholder="Örn. 05xx xxx xx xx"
+              placeholder="+90 5xx xxx xx xx"
             />
           </label>
 

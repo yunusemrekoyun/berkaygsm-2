@@ -1,4 +1,5 @@
 import { Edit3, RotateCcw, Trash2 } from "lucide-react";
+import { formatTrPhoneForInput } from "../../../utils/phoneMask.js";
 
 const workflowLabels = {
   new: "Yeni Kayıt",
@@ -108,7 +109,9 @@ export default function ServiceRecordTable({
                       {record.customerFullName || "—"}
                     </p>
                     <p className="text-xs text-[var(--color-text-admin-muted)]">
-                      {record.customerPhone || "—"}
+                      {formatTrPhoneForInput(record.customerPhone) ||
+                        record.customerPhone ||
+                        "—"}
                     </p>
                   </td>
                   <td className="px-4 py-3 align-top">

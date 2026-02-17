@@ -13,6 +13,10 @@ import { contactPageApi, contactMessageApi } from "../api/contact";
 import { useStorefrontLang } from "../context/LangContext.jsx";
 import { useStaticTranslation } from "../i18n/staticContent.js";
 import AppImage from "../components/ui/AppImage.jsx";
+import {
+  formatTrPhoneForInput,
+  formatTrPhoneForSubmit,
+} from "../utils/phoneMask.js";
 
 const makeBlock = (title = "", lines = []) => ({
   title,
@@ -186,7 +190,10 @@ export default function ContactPage() {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "phone" ? formatTrPhoneForInput(value) : value,
+    }));
     if (submitted) setSubmitted(false);
     if (submitError) setSubmitError(null);
   };
@@ -200,7 +207,7 @@ export default function ContactPage() {
       await contactMessageApi.submit({
         name: formData.name,
         email: formData.email,
-        phone: formData.phone,
+        phone: formatTrPhoneForSubmit(formData.phone),
         subject: formData.subject,
         message: formData.message,
         hp: formData.hp,
@@ -321,8 +328,10 @@ export default function ContactPage() {
                   id="contact-phone"
                   name="phone"
                   type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel"
                   placeholder={
-                    formFields.phonePlaceholder || "+49 170 123 4567"
+                    formFields.phonePlaceholder || "+90 5xx xxx xx xx"
                   }
                   value={formData.phone}
                   onChange={handleChange}
@@ -438,6 +447,8 @@ function TextField({
   value,
   onChange,
   disabled,
+  inputMode,
+  autoComplete,
 }) {
   const inputId = id || name;
   return (
@@ -452,6 +463,8 @@ function TextField({
         id={inputId}
         name={name}
         type={type}
+        inputMode={inputMode}
+        autoComplete={autoComplete}
         required={required}
         placeholder={placeholder}
         value={value}

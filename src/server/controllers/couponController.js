@@ -10,7 +10,6 @@ import Category from "../models/Category.js";
 import {
   COUPON_TEMPLATES,
   evaluateCouponForOrderContext,
-  generateUniqueCouponCode,
   isCouponActiveNow,
   isValidManualCouponCode,
   issueCouponAssignments,
@@ -22,6 +21,37 @@ import {
 const AUDIENCE_VALUES = ["public", "personal"];
 const ASSIGNMENT_VALUES = ["everyone", "manual"];
 const SUCCESS_ORDER_STATUSES = ["paid", "shipped", "completed"];
+
+async function ensureCouponCodeIndex() {
+  const indexes = await Coupon.collection.indexes();
+  const codeIndexes = indexes.filter(
+    (index) =>
+      index?.key &&
+      Object.keys(index.key).length === 1 &&
+      Number(index.key.code) === 1
+  );
+  const desiredIndex = codeIndexes.find(
+    (index) =>
+      index.unique === true &&
+      index.partialFilterExpression?.code?.$type === "string"
+  );
+
+  for (const index of codeIndexes) {
+    if (desiredIndex && index.name === desiredIndex.name) continue;
+    await Coupon.collection.dropIndex(index.name);
+  }
+
+  if (!desiredIndex) {
+    await Coupon.collection.createIndex(
+      { code: 1 },
+      {
+        name: "code_1",
+        unique: true,
+        partialFilterExpression: { code: { $type: "string" } },
+      }
+    );
+  }
+}
 
 function parseBooleanInput(value, field = "active") {
   if (value === undefined) return undefined;
@@ -76,10 +106,10 @@ function parseNullablePositiveInt(value, field, { min = 1 } = {}) {
   return Math.floor(parsed);
 }
 
-function parseCodeInput(value, fallback = null) {
+function parseCodeInput(value, fallback = undefined) {
   if (value === undefined) return fallback;
   const code = normalizeCouponCodeInput(value);
-  return code || null;
+  return code || undefined;
 }
 
 function parseTargetIds(raw, field) {
@@ -199,7 +229,7 @@ function buildCouponPayload(input = {}, existing = null) {
     parseBooleanInput(input.autoAssignNewUsers, "autoAssignNewUsers") ??
     (existing?.autoAssignNewUsers ?? false);
 
-  let code = parseCodeInput(input.code, existing?.code ?? null);
+  let code = parseCodeInput(input.code, existing?.code ?? undefined);
 
   if (template === "first_purchase") {
     audience = "personal";
@@ -208,7 +238,7 @@ function buildCouponPayload(input = {}, existing = null) {
     firstPurchaseOnly = true;
     winbackDays = null;
     manualUsers = [];
-    code = null;
+    code = undefined;
   }
 
   if (template === "winback") {
@@ -239,7 +269,7 @@ function buildCouponPayload(input = {}, existing = null) {
       );
     }
   } else {
-    code = null;
+    code = undefined;
     if (assignmentMode === "manual" && !manualUsers.length) {
       throw new Error("Manuel atama için en az bir kullanıcı seçmelisiniz");
     }
@@ -276,7 +306,7 @@ function buildCouponPayload(input = {}, existing = null) {
 }
 
 async function ensureUniquePublicCode(code, exceptId = null) {
-  if (!code) return;
+  if (typeof code !== "string" || !code.trim()) return;
   const query = exceptId ? { code, _id: { $ne: exceptId } } : { code };
   const exists = await Coupon.findOne(query).lean();
   if (exists) {
@@ -795,10 +825,8 @@ export async function listCoupons(req, res) {
 
 export async function createCoupon(req, res) {
   try {
+    await ensureCouponCodeIndex();
     const { document, meta } = buildCouponPayload(req.body || null, null);
-    if (document.audience === "personal" && !document.code) {
-      document.code = await generateUniqueCouponCode(12);
-    }
     await ensureUniquePublicCode(document.code);
 
     const coupon = await Coupon.create(document);
@@ -823,6 +851,7 @@ export async function createCoupon(req, res) {
 
 export async function updateCoupon(req, res) {
   try {
+    await ensureCouponCodeIndex();
     const { id } = req.params;
     const coupon = await Coupon.findById(id);
     if (!coupon) {
@@ -830,9 +859,6 @@ export async function updateCoupon(req, res) {
     }
 
     const { document, meta } = buildCouponPayload(req.body || {}, coupon);
-    if (document.audience === "personal" && !document.code) {
-      document.code = await generateUniqueCouponCode(12);
-    }
     await ensureUniquePublicCode(document.code, coupon._id);
 
     Object.assign(coupon, document);

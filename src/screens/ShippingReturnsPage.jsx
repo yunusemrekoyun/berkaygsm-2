@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import BreadCrumb from "../components/shop/BreadCrumb";
 import { shippingReturnsApi } from "../api/shippingReturns";
 import { useStorefrontLang } from "../context/LangContext.jsx";
+import { sanitizeRichHtml } from "../utils/sanitizeHtml.js";
 
 export default function ShippingReturnsPage() {
   const [page, setPage] = useState(null);
@@ -135,7 +136,7 @@ export default function ShippingReturnsPage() {
                     // Yardım kutusu HTML destekli geliyor (admin sayfasında yazılıyor)
                     dangerouslySetInnerHTML={{
                       __html:
-                        page?.sidebar?.helpBoxHtml ||
+                        sanitizeRichHtml(page?.sidebar?.helpBoxHtml || "") ||
                         `Desteğe mi ihtiyacınız var? <a href="mailto:returns@berkaygsm.com" class="text-accent underline">returns@berkaygsm.com</a> adresinden bize ulaşabilirsiniz.`,
                     }}
                   />
@@ -188,7 +189,7 @@ function normalize(data) {
     quickFacts: Array.isArray(safe.sidebar?.quickFacts)
       ? safe.sidebar.quickFacts
       : [],
-    helpBoxHtml: String(safe.sidebar?.helpBoxHtml || ""),
+    helpBoxHtml: sanitizeRichHtml(String(safe.sidebar?.helpBoxHtml || "")),
   };
   safe.isActive = Boolean(safe.isActive ?? true);
   return safe;

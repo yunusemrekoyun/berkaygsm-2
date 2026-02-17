@@ -10,9 +10,24 @@ export default function RootLayout({ children }) {
   const [enableAnimations, setEnableAnimations] = useState(false);
 
   useEffect(() => {
-    // Defer GSAP init to avoid mutating DOM during hydration.
-    const timer = window.setTimeout(() => setEnableAnimations(true), 120);
-    return () => window.clearTimeout(timer);
+    let timer = null;
+    const enable = () => {
+      // Give streamed sections enough time to hydrate before GSAP mutates DOM.
+      timer = window.setTimeout(() => setEnableAnimations(true), 1600);
+    };
+
+    if (document.readyState === "complete") {
+      enable();
+      return () => {
+        if (timer) window.clearTimeout(timer);
+      };
+    }
+
+    window.addEventListener("load", enable, { once: true });
+    return () => {
+      window.removeEventListener("load", enable);
+      if (timer) window.clearTimeout(timer);
+    };
   }, []);
 
   return (
