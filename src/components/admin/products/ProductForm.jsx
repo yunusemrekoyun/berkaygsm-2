@@ -955,7 +955,7 @@ function ProductTranslationEditors({
                         )
                       }
                       className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
-                      placeholder="Örneğin: Elde soğuk yıkayın, kurutma makinesi kullanmayın"
+                      placeholder="Örneğin: Nemden uzak tutun, sadece kuru bezle silin."
                     />
                   </label>
 
