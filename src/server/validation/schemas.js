@@ -77,9 +77,7 @@ const stockSyncRowSchema = z.object({
 export const stockSyncSchema = z.object({
   ownerModel: z.enum(["Product", "Set"]),
   owner: objectId,
-  rows: z
-    .array(stockSyncRowSchema)
-    .min(1, "Satırlar en az bir kayıt içermeli"),
+  rows: z.array(stockSyncRowSchema).min(1, "Satırlar en az bir kayıt içermeli"),
 });
 
 export const stockUpdateSchema = z
@@ -136,7 +134,7 @@ export const orderItemsSchema = z
       .or(orderProductItemSchema)
   )
   .min(1, "Sepet boş");
-// 1) Base schema (refine eklemeden)
+
 const orderCreateBaseSchema = z.object({
   addressId: z.string().optional(),
   addressSnapshot: z
@@ -152,31 +150,41 @@ const orderCreateBaseSchema = z.object({
     .optional(),
   items: orderItemsSchema,
   couponCode: optionalTrimmed(z.string().max(120)),
+  note: optionalTrimmed(z.string().max(1000)),
   paymentMethod: optionalTrimmed(z.string().max(64)),
   paymentProvider: optionalTrimmed(z.string().max(64)),
   paymentSimulation: z.enum(["success", "failure"]).optional(),
 });
 
-// 2) Esas orderCreateSchema → refine eklenmiş hali
 export const orderCreateSchema = orderCreateBaseSchema.refine(
   (data) => data.addressId || data.addressSnapshot,
   "addressId veya addressSnapshot zorunlu"
 );
 
-// 3) PayPal için subset schema → pick artık burada çalışır
-export const paypalCreateSchema = orderCreateBaseSchema
+export const paytrCreateSchema = orderCreateBaseSchema
   .pick({
     addressId: true,
+    addressSnapshot: true,
     items: true,
     couponCode: true,
+    note: true,
   })
   .refine(
-    (data) => Boolean(data.addressId),
-    "PayPal için addressId zorunlu"
+    (data) => Boolean(data.addressId || data.addressSnapshot),
+    "addressId veya addressSnapshot zorunlu"
   );
 
-// 4) PayPal capture için schema (BUNUN EXPORT’U ŞART)
-export const paypalCaptureSchema = z.object({
-  paypalOrderId: z.string().min(1, "PayPal order id zorunlu"),
-  draftId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Geçersiz taslak id"),
+export const printJobClaimSchema = z.object({
+  agentId: optionalTrimmed(z.string().max(120)).optional(),
+  printerName: optionalTrimmed(z.string().max(160)).optional(),
+});
+
+export const printJobCompleteSchema = z.object({
+  printerName: optionalTrimmed(z.string().max(160)).optional(),
+});
+
+export const printJobFailSchema = z.object({
+  printerName: optionalTrimmed(z.string().max(160)).optional(),
+  error: optionalTrimmed(z.string().max(1000)),
+  retryable: boolish,
 });

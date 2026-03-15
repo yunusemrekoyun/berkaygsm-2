@@ -9,9 +9,10 @@ const DEFAULT_DAYS = 30;
 
 const PAYMENT_METHOD_LABELS = {
   cod: "Kapıda Ödeme",
-  paypal: "PayPal",
-  gateway_simulation: "Ödeme Simülasyonu",
-  simulation: "Ödeme Simülasyonu",
+  paytr: "PayTR",
+  checkout_simulation: "Sipariş Simülasyonu",
+  gateway_simulation: "Sipariş Simülasyonu",
+  simulation: "Sipariş Simülasyonu",
   card: "Kredi Kartı",
   bank: "Banka Havalesi",
   transfer: "Banka Havalesi",
@@ -20,7 +21,8 @@ const PAYMENT_METHOD_LABELS = {
 
 const PAYMENT_COLORS = {
   "Kapıda Ödeme": "var(--color-primary)",
-  PayPal: "var(--color-accent)",
+  PayTR: "var(--color-accent)",
+  "Sipariş Simülasyonu": "var(--color-secondary)",
   "Ödeme Simülasyonu": "var(--color-secondary)",
   "Kredi Kartı": "var(--color-secondary)",
   "Banka Havalesi": "var(--color-surface)",
@@ -126,7 +128,7 @@ function normalizePaymentMethod(value) {
   const normalized = String(value || "other").trim().toLowerCase();
   if (!normalized) return "Diğer";
   if (PAYMENT_METHOD_LABELS[normalized]) return PAYMENT_METHOD_LABELS[normalized];
-  if (normalized.includes("pay")) return "PayPal";
+  if (normalized.includes("paytr")) return "PayTR";
   if (normalized.includes("card")) return "Kredi Kartı";
   if (normalized.includes("bank") || normalized.includes("transfer")) {
     return "Banka Havalesi";
@@ -706,13 +708,18 @@ export async function getAdminAnalyticsOverview(req, res) {
       );
     }
     const paymentMethods = percentRows(
-      ["Kapıda Ödeme", "PayPal", "Kredi Kartı", "Banka Havalesi", "Diğer"].map(
-        (key) => ({
-          key,
-          count: paymentGroupMap.get(key) || 0,
-          color: PAYMENT_COLORS[key],
-        })
-      )
+      [
+        "Kapıda Ödeme",
+        "PayTR",
+        "Sipariş Simülasyonu",
+        "Kredi Kartı",
+        "Banka Havalesi",
+        "Diğer",
+      ].map((key) => ({
+        key,
+        count: paymentGroupMap.get(key) || 0,
+        color: PAYMENT_COLORS[key],
+      }))
     );
 
     const statusShare = percentRows(

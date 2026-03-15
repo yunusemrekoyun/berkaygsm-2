@@ -9,8 +9,14 @@ import { userDetailsApi } from "../api/userDetails";
 import { orderApi } from "../api/orders";
 import { getAccessToken } from "../api/client";
 
-const PAYMENT_METHOD = "gateway_simulation";
-const PAYMENT_PROVIDER = "simulation";
+const SIMULATION_PAYMENT_METHOD = "checkout_simulation";
+const SIMULATION_PAYMENT_PROVIDER = "simulation";
+
+const PAYMENT_OPTIONS = {
+  SIMULATE_SUCCESS: "simulate_success",
+  SIMULATE_FAILURE: "simulate_failure",
+  PAYTR: "paytr",
+};
 
 function parseError(error) {
   if (!error) return { message: "", status: null };
@@ -195,7 +201,10 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
   const [banner, setBanner] = useState(null);
-  const [simulationMode, setSimulationMode] = useState("success");
+  const [paymentOption, setPaymentOption] = useState(
+    PAYMENT_OPTIONS.SIMULATE_SUCCESS
+  );
+  const [orderNote, setOrderNote] = useState("");
 
   const hasItems = checkoutItems.length > 0;
   const hasAddress = Boolean(addressId);
@@ -285,12 +294,37 @@ export default function CheckoutPage() {
 
     try {
       setPlacing(true);
+      const note = orderNote.trim() || null;
+      const couponCode = couponApplicable ? coupon?.code || null : null;
+
+      if (paymentOption === PAYMENT_OPTIONS.PAYTR) {
+        const paytrResult = await orderApi.createPaytr({
+          addressId,
+          items: checkoutItems,
+          couponCode,
+          note,
+        });
+
+        setBanner({
+          variant: "warning",
+          message:
+            paytrResult?.message ||
+            "PayTR seçeneği hazırlandı ancak henüz kullanıma açılmadı.",
+        });
+        return;
+      }
+
+      const simulationMode =
+        paymentOption === PAYMENT_OPTIONS.SIMULATE_FAILURE
+          ? "failure"
+          : "success";
       const order = await orderApi.create({
         addressId,
         items: checkoutItems,
-        couponCode: couponApplicable ? coupon?.code || null : null,
-        paymentMethod: PAYMENT_METHOD,
-        paymentProvider: PAYMENT_PROVIDER,
+        couponCode,
+        note,
+        paymentMethod: SIMULATION_PAYMENT_METHOD,
+        paymentProvider: SIMULATION_PAYMENT_PROVIDER,
         paymentSimulation: simulationMode,
       });
 
@@ -313,6 +347,14 @@ export default function CheckoutPage() {
       const { status, message } = parseError(error);
       if (status === 401) {
         navigate(`/account?view=login&redirect=/checkout`, { replace: true });
+        return;
+      }
+      if (paymentOption === PAYMENT_OPTIONS.PAYTR) {
+        setBanner({
+          variant: "warning",
+          message:
+            message || "PayTR seçeneği henüz etkin değil. Şimdilik simülasyon kullanın.",
+        });
         return;
       }
       setBanner({
@@ -444,38 +486,66 @@ export default function CheckoutPage() {
               <h3 className="text-lg font-semibold text-primary">Ödeme</h3>
               {!hasAddress && (
                 <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                  Ödeme simülasyonunu kullanmak için adres ekleyin.
+                  Sipariş işlemi için önce adres ekleyin.
                 </div>
               )}
 
               <div className="glass-surface-soft mt-4 rounded-xl border border-border bg-surface p-4 text-sm">
-                <p className="font-semibold text-primary">Ödeme simülasyonu</p>
+                <p className="font-semibold text-primary">Ödeme seçeneği</p>
                 <p className="mt-1 text-xs text-secondary">
-                  Bu akış, gerçek ödeme sağlayıcısı entegrasyonuna hazır bir test katmanıdır.
-                  Şu anda ödeme başarı/başarısız davranışını simüle eder.
+                  Simülasyon seçenekleri sipariş kaydını doğrudan oluşturur.
+                  PayTR seçeneği ise altyapı netleşene kadar hazır bekler.
                 </p>
                 <div className="mt-3 space-y-2">
                   <label className="flex items-center gap-2 text-secondary">
                     <input
                       type="radio"
-                      name="simulation"
-                      value="success"
-                      checked={simulationMode === "success"}
-                      onChange={() => setSimulationMode("success")}
+                      name="payment-option"
+                      value={PAYMENT_OPTIONS.SIMULATE_SUCCESS}
+                      checked={paymentOption === PAYMENT_OPTIONS.SIMULATE_SUCCESS}
+                      onChange={() => setPaymentOption(PAYMENT_OPTIONS.SIMULATE_SUCCESS)}
                     />
-                    <span>Başarılı ödeme simüle et</span>
+                    <span>Siparişi başarılı simüle et</span>
                   </label>
                   <label className="flex items-center gap-2 text-secondary">
                     <input
                       type="radio"
-                      name="simulation"
-                      value="failure"
-                      checked={simulationMode === "failure"}
-                      onChange={() => setSimulationMode("failure")}
+                      name="payment-option"
+                      value={PAYMENT_OPTIONS.SIMULATE_FAILURE}
+                      checked={paymentOption === PAYMENT_OPTIONS.SIMULATE_FAILURE}
+                      onChange={() => setPaymentOption(PAYMENT_OPTIONS.SIMULATE_FAILURE)}
                     />
-                    <span>Başarısız ödeme simüle et</span>
+                    <span>Siparişi başarısız simüle et</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-secondary">
+                    <input
+                      type="radio"
+                      name="payment-option"
+                      value={PAYMENT_OPTIONS.PAYTR}
+                      checked={paymentOption === PAYMENT_OPTIONS.PAYTR}
+                      onChange={() => setPaymentOption(PAYMENT_OPTIONS.PAYTR)}
+                    />
+                    <span>PayTR ile öde</span>
                   </label>
                 </div>
+              </div>
+
+              <div className="mt-4">
+                <label
+                  htmlFor="order-note"
+                  className="mb-2 block text-sm font-medium text-primary"
+                >
+                  Sipariş notu
+                </label>
+                <textarea
+                  id="order-note"
+                  value={orderNote}
+                  onChange={(event) => setOrderNote(event.target.value)}
+                  rows={4}
+                  maxLength={1000}
+                  className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm text-primary outline-none transition focus:border-accent"
+                  placeholder="Kargo veya paketleme için ek notunuz varsa buraya yazın."
+                />
               </div>
 
               <div className="relative">
@@ -487,14 +557,18 @@ export default function CheckoutPage() {
                 >
                   {placing
                     ? "Sipariş işleniyor..."
-                    : simulationMode === "failure"
-                      ? "Başarısız ödemeyi simüle et"
-                      : "Ödemeyi simüle et ve siparişi tamamla"}
+                    : paymentOption === PAYMENT_OPTIONS.SIMULATE_FAILURE
+                      ? "Başarısız sipariş simülasyonunu kaydet"
+                      : paymentOption === PAYMENT_OPTIONS.PAYTR
+                        ? "PayTR ile devam et"
+                        : "Başarılı sipariş simülasyonunu kaydet"}
                 </button>
               </div>
 
               <p className="mt-3 text-xs text-secondary">
-                Not: Başarısız simülasyonda sipariş denemesi kaydedilir ve stok düşülmez.
+                {paymentOption === PAYMENT_OPTIONS.PAYTR
+                  ? "PayTR seçeneği şimdilik sadece hazır bekler; sipariş kaydı açmaz."
+                  : "Başarısız simülasyonda sipariş denemesi kaydedilir, stok düşülmez ve sepet temizlenmez."}
               </p>
             </div>
           </div>

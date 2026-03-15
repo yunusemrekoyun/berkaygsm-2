@@ -85,8 +85,7 @@ import {
   updateOrderStatus,
 } from "./controllers/orderController.js";
 import {
-  createPayPalCheckout,
-  capturePayPalCheckout,
+  createPaytrCheckout,
 } from "./controllers/paymentController.js";
 import {
   listHeroes,
@@ -171,14 +170,24 @@ import {
   getAdminVisitAnalyticsOverview,
   trackVisit,
 } from "./controllers/analyticsController.js";
+import {
+  claimPrintJob,
+  completePrintJob,
+  failPrintJob,
+  getOrderPrintJob,
+  requeueOrderPrintJob,
+} from "./controllers/printJobController.js";
 
 import { requireAuth } from "./middleware/auth.js";
+import { requirePrintAgent } from "./middleware/printAgent.js";
 import { requireRole } from "./middleware/roles.js";
 import { validateBody } from "./middleware/validate.js";
 import {
   orderCreateSchema,
-  paypalCreateSchema,
-  paypalCaptureSchema,
+  paytrCreateSchema,
+  printJobClaimSchema,
+  printJobCompleteSchema,
+  printJobFailSchema,
   stockUpsertSchema,
   stockUpdateSchema,
   stockSyncSchema,
@@ -366,13 +375,8 @@ export const routes = [
   // orders
   route(
     "POST",
-    ["orders", "paypal", "create"],
-    [requireAuth, validateBody(paypalCreateSchema), createPayPalCheckout]
-  ),
-  route(
-    "POST",
-    ["orders", "paypal", "capture"],
-    [requireAuth, validateBody(paypalCaptureSchema), capturePayPalCheckout]
+    ["orders", "paytr", "create"],
+    [requireAuth, validateBody(paytrCreateSchema), createPaytrCheckout]
   ),
   route(
     "POST",
@@ -388,6 +392,33 @@ export const routes = [
     [requireAuth, requireRole("admin"), updateOrderStatus]
   ),
   route("GET", ["orders", ":id"], [requireAuth, getOrder]),
+
+  // print jobs
+  route(
+    "POST",
+    ["print-jobs", "claim"],
+    [requirePrintAgent, validateBody(printJobClaimSchema), claimPrintJob]
+  ),
+  route(
+    "POST",
+    ["print-jobs", ":id", "complete"],
+    [requirePrintAgent, validateBody(printJobCompleteSchema), completePrintJob]
+  ),
+  route(
+    "POST",
+    ["print-jobs", ":id", "fail"],
+    [requirePrintAgent, validateBody(printJobFailSchema), failPrintJob]
+  ),
+  route(
+    "GET",
+    ["print-jobs", "order", ":orderId"],
+    [requireAuth, requireRole("admin"), getOrderPrintJob]
+  ),
+  route(
+    "POST",
+    ["print-jobs", "order", ":orderId", "requeue"],
+    [requireAuth, requireRole("admin"), requeueOrderPrintJob]
+  ),
 
   // heroes
   route("GET", ["heroes"], [listHeroes]),
