@@ -56,7 +56,7 @@ const PayerSchema = new mongoose.Schema(
   {
     email: { type: String, default: null },
     name: { type: String, default: null },
-    paypalId: { type: String, default: null },
+    providerPayerId: { type: String, default: null },
     countryCode: { type: String, default: null },
   },
   { _id: false }
@@ -64,7 +64,7 @@ const PayerSchema = new mongoose.Schema(
 
 const PaymentSchema = new mongoose.Schema(
   {
-    method: { type: String, default: "gateway_simulation" }, // ödeme şekli
+    method: { type: String, default: "checkout_simulation" }, // ödeme şekli
     provider: { type: String, default: null },
     txnId: { type: String, default: "" },
     processorOrderId: { type: String, default: "" },
@@ -99,6 +99,7 @@ const OrderSchema = new mongoose.Schema(
     items: { type: [OrderItemSchema], default: [] },
 
     address: { type: AddressSnapshotSchema, required: true },
+    note: { type: String, default: "" },
 
     subtotal: { type: Number, required: true },
     shipping: { type: Number, required: true, default: 0 },

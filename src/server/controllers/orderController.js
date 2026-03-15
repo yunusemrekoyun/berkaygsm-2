@@ -17,12 +17,20 @@ import {
   applyDiscount,
 } from "../utils/discountHelpers.js";
 import { hydrateProductsWithInventory } from "../utils/stockItemHelpers.js";
+import {
+  findLatestPrintJobForOrder,
+  getLatestPrintJobMap,
+  shapePrintJob,
+  syncPrintJobsForOrder,
+} from "../services/printJobService.js";
 
-const PAYPAL_CURRENCY = (process.env.PAYPAL_CURRENCY || "TRY").toUpperCase();
-const PAYPAL_ORDER_TTL_MINUTES = Math.max(
-  5,
-  Number(process.env.PAYPAL_ORDER_TTL_MINUTES || 30)
-);
+const PAYMENT_CURRENCY = (
+  process.env.PAYMENT_CURRENCY ||
+  process.env.PAYTR_CURRENCY ||
+  "TRY"
+).toUpperCase();
+const SIMULATION_PAYMENT_METHOD = "checkout_simulation";
+const SIMULATION_PAYMENT_PROVIDER = "simulation";
 
 function generateOrderNumber() {
   const now = new Date();
@@ -78,7 +86,7 @@ function normalize(v) {
   return s ? s.toLowerCase() : null;
 }
 
-function shapeOrder(doc) {
+function shapeOrder(doc, printJob = null) {
   if (!doc) return null;
   const rawUser = doc.user;
   const populatedUser =
@@ -124,6 +132,7 @@ function shapeOrder(doc) {
           : [],
     })),
     address: doc.address,
+    note: doc.note || "",
     subtotal: doc.subtotal,
     shipping: doc.shipping,
     shippingName: doc.shippingName || "Standart Kargo",
@@ -142,6 +151,7 @@ function shapeOrder(doc) {
       : null,
     status: doc.status,
     payment: doc.payment,
+    printJob: shapePrintJob(printJob || doc.printJob || null),
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
@@ -614,7 +624,7 @@ async function buildOrderPreparation({
     discountAmount: couponDiscountAmount,
     total,
     coupon: couponSummary,
-    currency: PAYPAL_CURRENCY,
+    currency: PAYMENT_CURRENCY,
   };
 
   return {
@@ -661,6 +671,8 @@ async function finalizeOrder(prepared, options = {}) {
 
   const orderNumber = options.orderNumber || (await createOrderNumber());
   const applyStockDeductions = options.applyStockDeductions !== false;
+  const orderNote =
+    typeof options.note === "string" ? options.note.trim() : "";
   const session = options.session || null;
 
   const stockUsage = new Map();
@@ -809,7 +821,7 @@ async function finalizeOrder(prepared, options = {}) {
 
   if (options.paymentOverride) {
     payment = {
-      method: options.paymentOverride.method || "gateway_simulation",
+      method: options.paymentOverride.method || SIMULATION_PAYMENT_METHOD,
       provider: options.paymentOverride.provider || null,
       txnId: options.paymentOverride.txnId || "",
       processorOrderId: options.paymentOverride.processorOrderId || "",
@@ -822,13 +834,13 @@ async function finalizeOrder(prepared, options = {}) {
       currency:
         options.paymentOverride.currency ||
         options.currency ||
-        PAYPAL_CURRENCY,
+        PAYMENT_CURRENCY,
       amount: Number(options.paymentOverride.amount || total || 0),
       payer: options.paymentOverride.payer || null,
     };
   } else {
     const simulation = options.simulation || null;
-    const method = options.paymentMethod || "gateway_simulation";
+    const method = options.paymentMethod || SIMULATION_PAYMENT_METHOD;
     const provider = options.paymentProvider || null;
     if (simulation === "success") {
       payment = {
@@ -837,7 +849,7 @@ async function finalizeOrder(prepared, options = {}) {
         status: "success",
         simulation: "success",
         paidAt: new Date(),
-        currency: options.currency || PAYPAL_CURRENCY,
+        currency: options.currency || PAYMENT_CURRENCY,
         amount: total,
       };
       status = "paid";
@@ -847,7 +859,7 @@ async function finalizeOrder(prepared, options = {}) {
         provider,
         status: "failed",
         simulation: "failure",
-        currency: options.currency || PAYPAL_CURRENCY,
+        currency: options.currency || PAYMENT_CURRENCY,
         amount: total,
       };
       status = options.statusOverride || "cancelled";
@@ -857,7 +869,7 @@ async function finalizeOrder(prepared, options = {}) {
         provider,
         status: "pending",
         simulation,
-        currency: options.currency || PAYPAL_CURRENCY,
+        currency: options.currency || PAYMENT_CURRENCY,
         amount: total,
       };
     }
@@ -868,6 +880,7 @@ async function finalizeOrder(prepared, options = {}) {
     user: userId,
     items: orderItems,
     address: addressSnap,
+    note: orderNote,
     subtotal,
     shipping,
     shippingName,
@@ -889,6 +902,15 @@ async function finalizeOrder(prepared, options = {}) {
       couponContext,
       orderId: order._id,
       session,
+    });
+  }
+
+  try {
+    await syncPrintJobsForOrder(order, { session });
+  } catch (printError) {
+    console.error("Failed to sync print jobs for order", {
+      orderId: order._id?.toString?.() || "",
+      error: printError?.message || printError,
     });
   }
 
@@ -915,8 +937,10 @@ export async function createOrder(req, res) {
     const userId = req.userId;
     const {
       addressId,
+      addressSnapshot = null,
       items = [],
       couponCode = null,
+      note = null,
       paymentMethod = null,
       paymentProvider = null,
       paymentSimulation = null,
@@ -925,6 +949,7 @@ export async function createOrder(req, res) {
     const { details } = await buildOrderPreparation({
       userId,
       addressId,
+      addressSnapshot,
       items,
       couponCode,
     });
@@ -937,19 +962,29 @@ export async function createOrder(req, res) {
       normalizedSimulation === "success" || normalizedSimulation === "failure"
         ? normalizedSimulation
         : null;
+    if (!simulationMode) {
+      fail(
+        400,
+        "Doğrudan sipariş oluşturma kapalı. Simülasyon akışını veya ödeme sağlayıcısını kullanın."
+      );
+    }
     const normalizedMethod =
       typeof paymentMethod === "string" && paymentMethod.trim()
         ? paymentMethod.trim().toLowerCase()
-        : "gateway_simulation";
+        : SIMULATION_PAYMENT_METHOD;
     const normalizedProvider =
       typeof paymentProvider === "string" && paymentProvider.trim()
         ? paymentProvider.trim().toLowerCase()
-        : "simulation";
+        : SIMULATION_PAYMENT_PROVIDER;
+    if (normalizedMethod === "paytr" || normalizedProvider === "paytr") {
+      fail(400, "PayTR ödemesi için /orders/paytr/create endpointini kullanın.");
+    }
 
     const order = await runInMongoTransaction((session) =>
       finalizeOrder(details, {
         userId,
-        currency: PAYPAL_CURRENCY,
+        currency: PAYMENT_CURRENCY,
+        note,
         paymentMethod: normalizedMethod,
         paymentProvider: normalizedProvider,
         simulation: simulationMode,
@@ -1003,8 +1038,9 @@ export {
   summarizeOrderItems,
   normalizeCode,
   roundCurrency,
-  PAYPAL_CURRENCY,
-  PAYPAL_ORDER_TTL_MINUTES,
+  PAYMENT_CURRENCY,
+  SIMULATION_PAYMENT_METHOD,
+  SIMULATION_PAYMENT_PROVIDER,
   runInMongoTransaction,
 };
 
@@ -1180,7 +1216,14 @@ async function ensureProductLoaded(map, id) {
 export async function myOrders(req, res) {
   try {
     const list = await Order.find({ user: req.userId }).sort({ createdAt: -1 });
-    res.json({ orders: list.map(shapeOrder) });
+    const printJobMap = await getLatestPrintJobMap(
+      list.map((order) => order._id?.toString?.())
+    );
+    res.json({
+      orders: list.map((order) =>
+        shapeOrder(order, printJobMap.get(order._id?.toString?.()))
+      ),
+    });
   } catch (err) {
     res.status(500).json({ message: err.message || "Siparişler alınamadı" });
   }
@@ -1191,7 +1234,8 @@ export async function getOrder(req, res) {
   try {
     const o = await Order.findOne({ _id: req.params.id, user: req.userId });
     if (!o) return res.status(404).json({ message: "Sipariş bulunamadı" });
-    res.json({ order: shapeOrder(o) });
+    const printJob = await findLatestPrintJobForOrder(o._id);
+    res.json({ order: shapeOrder(o, printJob) });
   } catch (err) {
     res.status(500).json({ message: err.message || "Siparişler alınamadı" });
   }
@@ -1231,9 +1275,14 @@ export async function listOrders(req, res) {
         .limit(limit),
       Order.countDocuments(filter),
     ]);
+    const printJobMap = await getLatestPrintJobMap(
+      items.map((order) => order._id?.toString?.())
+    );
 
     res.json({
-      orders: items.map(shapeOrder),
+      orders: items.map((order) =>
+        shapeOrder(order, printJobMap.get(order._id?.toString?.()))
+      ),
       pagination: {
         page,
         limit,
@@ -1274,7 +1323,8 @@ export async function adminGetOrder(req, res) {
       }).populate("user", "firstName lastName email phone");
     }
     if (!order) return res.status(404).json({ message: "Sipariş bulunamadı" });
-    res.json({ order: shapeOrder(order) });
+    const printJob = await findLatestPrintJobForOrder(order._id);
+    res.json({ order: shapeOrder(order, printJob) });
   } catch (error) {
     res.status(500).json({ message: error.message || "Sipariş alınamadı" });
   }
@@ -1298,7 +1348,7 @@ export async function updateOrderStatus(req, res) {
     }
 
     if (paymentMethod !== undefined) {
-      order.payment.method = String(paymentMethod) || "gateway_simulation";
+      order.payment.method = String(paymentMethod) || SIMULATION_PAYMENT_METHOD;
     }
 
     if (paymentTxnId !== undefined) {
@@ -1317,7 +1367,9 @@ export async function updateOrderStatus(req, res) {
     }
 
     await order.save();
-    res.json({ order: shapeOrder(order) });
+    await syncPrintJobsForOrder(order);
+    const printJob = await findLatestPrintJobForOrder(order._id);
+    res.json({ order: shapeOrder(order, printJob) });
   } catch (error) {
     res
       .status(500)

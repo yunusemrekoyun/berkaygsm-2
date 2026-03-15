@@ -1,39 +1,26 @@
-// src/components/orders/OrderDetailsModal.jsx
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  CheckCircle2,
+  Download,
+  Printer,
+  RotateCcw,
+  X,
+} from "lucide-react";
 import { orderApi } from "../../api/orders";
-import AppImage from "../ui/AppImage.jsx";
+import { printJobApi } from "../../api/printJobs";
+import OrderPrintSheet from "./OrderPrintSheet.jsx";
+import {
+  buildOrderPrintHtml,
+  buildOrderPrintModel,
+  formatOrderDateTime,
+} from "./orderPrintTemplate.js";
 
-/** Küçük yardımcılar */
-function money(v) {
-  const n = Number(v || 0);
-  return `₺${n.toFixed(2)}`;
-}
-function cls(...a) {
-  return a.filter(Boolean).join(" ");
-}
-function badgeClass(status) {
-  const s = String(status || "").toLowerCase();
-  if (["paid", "completed", "delivered"].includes(s))
-    return "bg-emerald-50 text-emerald-700 ring-emerald-200";
-  if (["processing", "created", "pending"].includes(s))
-    return "bg-amber-50 text-amber-700 ring-amber-200";
-  if (["cancelled", "refunded", "failed"].includes(s))
-    return "bg-rose-50 text-rose-700 ring-rose-200";
-  return "bg-surface text-secondary ring-border";
-}
-
-const STATUS_LABELS = {
-  created: "Oluşturuldu",
+const ORDER_STATUS_LABELS = {
   pending: "Beklemede",
   paid: "Ödendi",
-  processing: "Hazırlanıyor",
   shipped: "Kargoda",
-  delivered: "Teslim edildi",
   completed: "Tamamlandı",
-  cancelled: "İptal edildi",
-  refunded: "İade edildi",
+  cancelled: "İptal Edildi",
   failed: "Başarısız",
 };
 
@@ -44,388 +31,559 @@ const PAYMENT_STATUS_LABELS = {
 };
 
 const PAYMENT_METHOD_LABELS = {
-  gateway_simulation: "Ödeme Simülasyonu",
-  simulation: "Ödeme Simülasyonu",
-  paypal: "PayPal",
+  checkout_simulation: "Sipariş Simülasyonu",
+  gateway_simulation: "Sipariş Simülasyonu",
+  simulation: "Sipariş Simülasyonu",
+  paytr: "PayTR",
   cod: "Kapıda Ödeme",
   card: "Kredi Kartı",
 };
 
+const PRINT_JOB_STATUS_LABELS = {
+  pending: "Sırada",
+  processing: "Yazdırılıyor",
+  printed: "Yazdırıldı",
+  failed: "Hata",
+  cancelled: "İptal",
+};
+
+const PRINT_JOB_STATUS_STYLES = {
+  pending: "bg-amber-50 text-amber-700 ring-amber-200",
+  processing: "bg-sky-50 text-sky-700 ring-sky-200",
+  printed: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  failed: "bg-rose-50 text-rose-700 ring-rose-200",
+  cancelled: "bg-stone-100 text-stone-600 ring-stone-200",
+};
+
+function cls(...parts) {
+  return parts.filter(Boolean).join(" ");
+}
+
 function formatPaymentMethod(method) {
   const normalized = String(method || "").trim().toLowerCase();
-  if (!normalized) return "";
+  if (!normalized) return "-";
   return PAYMENT_METHOD_LABELS[normalized] || normalized.toUpperCase();
 }
 
-function normalizeImage(img) {
-  if (!img) return null;
-  const u =
-    (img.secure_url || img.url || img.path || img) + ""; /* string'e zorla */
-  if (/^https?:\/\//i.test(u) || /^data:image\//i.test(u)) return u;
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
-  const origin = apiBase.replace(/\/api\/?$/i, "");
-  const path = u.startsWith("/") ? u : `/${u}`;
-  return `${origin}${path}`;
+function buildPaymentLabel(order) {
+  const method = formatPaymentMethod(order?.payment?.method);
+  const status =
+    PAYMENT_STATUS_LABELS[String(order?.payment?.status || "").toLowerCase()];
+  return status ? `${method} • ${status}` : method;
 }
 
-/** OrderDetailsModal */
+function getOrderLookupId(order, fallback = "") {
+  return order?.id || order?.orderNumber || fallback || "";
+}
+
+function mergePrintJob(order, printJob) {
+  if (!order) return order;
+  return {
+    ...order,
+    printJob: printJob || null,
+  };
+}
+
+function hasSamePrintJob(left, right) {
+  if (!left && !right) return true;
+  if (!left || !right) return false;
+  return (
+    String(left.id || "") === String(right.id || "") &&
+    String(left.status || "") === String(right.status || "") &&
+    Number(left.attempts || 0) === Number(right.attempts || 0) &&
+    Number(left.maxAttempts || 0) === Number(right.maxAttempts || 0) &&
+    String(left.claimedBy || "") === String(right.claimedBy || "") &&
+    String(left.printer || "") === String(right.printer || "") &&
+    String(left.printedAt || "") === String(right.printedAt || "") &&
+    String(left.createdAt || "") === String(right.createdAt || "") &&
+    String(left.lastError?.message || "") ===
+      String(right.lastError?.message || "")
+  );
+}
+
+function getPrintJobBadge(status) {
+  const normalized = String(status || "").toLowerCase();
+  return {
+    label: PRINT_JOB_STATUS_LABELS[normalized] || "Durum Yok",
+    style:
+      PRINT_JOB_STATUS_STYLES[normalized] ||
+      "bg-stone-100 text-stone-600 ring-stone-200",
+  };
+}
+
+function canRequeuePrint(order) {
+  const paymentStatus = String(order?.payment?.status || "").toLowerCase();
+  const orderStatus = String(order?.status || "").toLowerCase();
+  if (paymentStatus !== "success") return false;
+  if (["cancelled", "failed"].includes(orderStatus)) return false;
+  return true;
+}
+
 export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
+  const previewRef = useRef(null);
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [actionState, setActionState] = useState({
+    printing: false,
+    downloading: false,
+    requeueing: false,
+  });
+  const [feedback, setFeedback] = useState(null);
 
-  // Sipariş çek
   useEffect(() => {
     if (!orderId) return;
     let mounted = true;
+
     (async () => {
       try {
+        setLoading(true);
+        setFeedback(null);
         const data = admin
           ? await orderApi.adminGet(orderId)
           : await orderApi.get(orderId);
-        if (mounted) setOrder(data);
-      } catch (e) {
-        console.error("Order get error:", e);
+        if (!mounted) return;
+        setOrder(data);
+      } catch (error) {
+        if (!mounted) return;
+        console.error("Order get error:", error);
+        setFeedback({
+          variant: "danger",
+          message: "Sipariş detayı yüklenemedi.",
+        });
       } finally {
         if (mounted) setLoading(false);
       }
     })();
+
     return () => {
       mounted = false;
     };
   }, [orderId, admin]);
 
-  // Güvenli alan okuma & normalize
-  const items = useMemo(() => {
-    const src = order?.items || order?.lines || [];
-    return src.map((it) => {
-      // olası kaynaklar
-      const product = it.product || it.item?.product || null;
-      const set = it.set || it.item?.set || null;
+  const printJobLookupId = getOrderLookupId(order, orderId);
 
-      const name = it.name || product?.name || set?.name || it.title || "Ürün";
+  useEffect(() => {
+    if (!admin || !printJobLookupId) return undefined;
 
-      const qty =
-        Number(it.qty ?? it.quantity ?? it.count ?? it.amount ?? it.q ?? 1) ||
-        1;
+    let cancelled = false;
 
-      const unitPrice =
-        Number(
-          it.unitPrice ??
-            it.unit_price ??
-            it.price ??
-            product?.price ??
-            set?.price ??
-            0
-        ) || 0;
+    const refreshPrintJob = async () => {
+      try {
+        const printJob = await printJobApi.getOrderJob(printJobLookupId);
+        if (cancelled) return;
+        setOrder((current) => {
+          if (!current) return current;
+          if (hasSamePrintJob(current.printJob, printJob)) return current;
+          return mergePrintJob(current, printJob);
+        });
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Print job get error:", error);
+      }
+    };
 
-      const image =
-        normalizeImage(
-          it.image ||
-            product?.images?.[0]?.url ||
-            product?.images?.[0] ||
-            set?.images?.[0]?.url ||
-            set?.images?.[0]
-        ) || null;
+    void refreshPrintJob();
+    const intervalId = window.setInterval(() => {
+      void refreshPrintJob();
+    }, 10000);
 
-      const slug = product?.slug || set?.slug || null;
-      const href = slug
-        ? product
-          ? `/product/${slug}`
-          : `/set/${slug}`
-        : undefined;
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [admin, printJobLookupId]);
 
-      const variant = it.variant ||
-        it.options || // Sık kullanılan alanlar:
-        {
-          color:
-            it.color ||
-            it.colour ||
-            it.attributes?.color ||
-            it.options?.color ||
-            null,
-          size: it.size || it.attributes?.size || it.options?.size || null,
-        };
+  const printModel = useMemo(() => buildOrderPrintModel(order), [order]);
+  const currentPrintJob = order?.printJob || null;
+  const printJobBadge = getPrintJobBadge(currentPrintJob?.status);
 
-      return {
-        id: it.id || it._id,
-        name,
-        qty,
-        unitPrice,
-        image,
-        href,
-        variant,
-      };
-    });
-  }, [order]);
-
-  const shippingAddress = useMemo(() => {
-    // Farklı backend isimleri için normalize
-    const a =
-      order?.shippingAddress ||
-      order?.address ||
-      order?.deliveryAddress ||
-      order?.shipping ||
-      {};
+  const summary = useMemo(() => {
+    if (!order) return null;
     return {
-      fullName: a.fullName || a.name || "-",
-      addressLine:
-        a.addressLine ||
-        [a.addressLine1, a.addressLine2].filter(Boolean).join(" ") ||
-        a.line1 ||
-        a.street ||
+      status:
+        ORDER_STATUS_LABELS[String(order.status || "").toLowerCase()] ||
+        order.status ||
         "-",
-      city: a.city || "-",
-      district: a.district || a.state || "",
-      postalCode: a.postalCode || a.zip || "",
-      country: a.country || "-",
-      phone: a.phone || "",
+      payment: buildPaymentLabel(order),
+      createdAt: formatOrderDateTime(order.createdAt),
+      customerName: printModel?.customerName || "-",
+      phone: printModel?.phone || "-",
     };
-  }, [order]);
+  }, [order, printModel]);
 
-  const meta = useMemo(() => {
-    const id = order?.id || order?._id || "";
-    const number = order?.orderNumber || order?.number || String(id).slice(-6);
-    const status = order?.status || "created";
-    const createdAt = order?.createdAt ? new Date(order.createdAt) : null;
-    const payment = order?.payment || {}; // {method, status, txnId}
-    const totals = {
-      subtotal: Number(order?.totals?.subtotal ?? order?.subtotal ?? 0),
-      shipping: Number(order?.totals?.shipping ?? order?.shipping ?? 0),
-      grand: Number(
-        order?.totals?.grand ??
-          order?.total ??
-          (order?.subtotal || 0) + (order?.shipping || 0)
-      ),
-    };
-    return { number, status, createdAt, payment, totals };
-  }, [order]);
+  const handleBrowserPrint = () => {
+    if (!printModel || typeof window === "undefined") return;
+
+    const printWindow = window.open("", "_blank", "width=980,height=900");
+    if (!printWindow) {
+      setFeedback({
+        variant: "danger",
+        message: "Tarayıcı yazdırma penceresi açılamadı.",
+      });
+      return;
+    }
+
+    setActionState((prev) => ({ ...prev, printing: true }));
+    try {
+      printWindow.document.open();
+      printWindow.document.write(buildOrderPrintHtml(printModel));
+      printWindow.document.close();
+      setFeedback({
+        variant: "success",
+        message: "Tarayıcı yazdırma penceresi açıldı.",
+      });
+    } finally {
+      setActionState((prev) => ({ ...prev, printing: false }));
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!previewRef.current || !printModel) return;
+
+    setActionState((prev) => ({ ...prev, downloading: true }));
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 2.5,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        logging: false,
+      });
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: [100, 150],
+      });
+
+      pdf.addImage(
+        canvas.toDataURL("image/png"),
+        "PNG",
+        0,
+        0,
+        100,
+        150,
+        undefined,
+        "FAST"
+      );
+      pdf.save(`${printModel.orderNumber || "siparis"}-etiket.pdf`);
+
+      setFeedback({
+        variant: "success",
+        message: "Etiket PDF olarak indirildi.",
+      });
+    } catch (error) {
+      console.error("PDF export error:", error);
+      setFeedback({
+        variant: "danger",
+        message: "PDF oluşturulamadı.",
+      });
+    } finally {
+      setActionState((prev) => ({ ...prev, downloading: false }));
+    }
+  };
+
+  const handleRequeue = async () => {
+    if (!admin || !order) return;
+
+    const lookupId = getOrderLookupId(order, orderId);
+    if (!lookupId) return;
+
+    setActionState((prev) => ({ ...prev, requeueing: true }));
+    try {
+      const printJob = await printJobApi.requeueOrder(lookupId);
+      setOrder((current) => mergePrintJob(current, printJob));
+      setFeedback({
+        variant: "success",
+        message: "Etiket yeniden kuyruğa alındı.",
+      });
+    } catch (error) {
+      console.error("Print job requeue error:", error);
+      setFeedback({
+        variant: "danger",
+        message: error.message || "Yeniden yazdırma kuyruğu oluşturulamadı.",
+      });
+    } finally {
+      setActionState((prev) => ({ ...prev, requeueing: false }));
+    }
+  };
 
   if (!orderId) return null;
 
   return (
     <div className="fixed inset-0 z-[200]">
-      {/* backdrop */}
-      <div
-        className="absolute inset-0 bg-black/40"
-        onClick={onClose}
-        aria-hidden
-      />
-      {/* panel */}
-      <div className="absolute inset-x-0 top-[6%] mx-auto w-[min(860px,94vw)] rounded-2xl border border-border bg-white shadow-xl">
-        {/* header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <div className="min-w-0">
-            <div className="text-sm font-semibold text-primary">
-              Sipariş #{meta.number}
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
+
+      <div className="absolute inset-2 flex flex-col overflow-hidden rounded-[24px] border border-border bg-white shadow-[0_30px_120px_rgba(15,23,42,0.25)] sm:inset-4 lg:inset-5 xl:left-1/2 xl:top-6 xl:bottom-6 xl:w-[min(1120px,calc(100vw-64px))] xl:-translate-x-1/2">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-4 py-4 sm:px-6 sm:py-5">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary">
+              Yazdırma Önizlemesi
             </div>
-            <div className="mt-1 flex items-center gap-2 text-xs">
-              <span
-                className={cls(
-                  "inline-flex items-center rounded-full px-2 py-0.5 ring-1 capitalize",
-                  badgeClass(meta.status)
-                )}
-              >
-                {STATUS_LABELS[String(meta.status).toLowerCase()] ||
-                  String(meta.status).toLowerCase()}
-              </span>
-              {meta.createdAt && (
-                <span className="text-secondary">
-                  • {meta.createdAt.toLocaleString()}
-                </span>
-              )}
-              {meta.payment?.method && (
-                <span className="text-secondary">
-                  • Ödeme: {formatPaymentMethod(meta.payment.method)}
-                  {meta.payment.status
-                    ? ` (${
-                        PAYMENT_STATUS_LABELS[String(meta.payment.status).toLowerCase()] ||
-                        meta.payment.status
-                      })`
-                    : ""}
-                </span>
-              )}
+            <div className="mt-1 text-2xl font-semibold text-primary">
+              Sipariş #{order?.orderNumber || orderId}
             </div>
+            {!loading && summary && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-secondary">
+                <span>{summary.status}</span>
+                <span>•</span>
+                <span>{summary.payment}</span>
+                <span>•</span>
+                <span>{summary.createdAt}</span>
+              </div>
+            )}
           </div>
 
           <button
             onClick={onClose}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-surface-hover"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full hover:bg-surface-hover"
             aria-label="Kapat"
           >
             <X className="h-5 w-5 text-secondary" />
           </button>
         </div>
 
-        {/* body */}
-        <div className="max-h-[72vh] overflow-auto px-6 py-5">
-          {/* loading / empty */}
+        <div className="min-h-0 overflow-auto px-4 py-4 sm:px-6 sm:py-5">
           {loading ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="h-36 rounded-xl border border-border bg-surface animate-pulse" />
-              <div className="h-36 rounded-xl border border-border bg-surface animate-pulse" />
-              <div className="h-28 rounded-xl border border-border bg-surface animate-pulse md:col-span-2" />
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="h-[680px] animate-pulse rounded-[28px] bg-stone-100" />
+              <div className="space-y-4">
+                <div className="h-40 animate-pulse rounded-[24px] bg-stone-100" />
+                <div className="h-56 animate-pulse rounded-[24px] bg-stone-100" />
+              </div>
             </div>
-          ) : !order ? (
-            <div className="text-center text-secondary py-10">
-              Sipariş bulunamadı.
+          ) : !order || !printModel ? (
+            <div className="py-16 text-center text-secondary">
+              Sipariş şablonu oluşturulamadı.
             </div>
           ) : (
-            <>
-              {/* items */}
-              <h3 className="text-sm font-semibold text-primary">Ürünler</h3>
-              <ul className="mt-3 divide-y divide-border rounded-xl border border-border overflow-hidden">
-                {items.map((it) => (
-                  <li
-                    key={it.id}
-                    className="grid grid-cols-[64px_1fr_auto] items-center gap-3 bg-white p-3"
-                  >
-                    <div className="h-16 w-16 overflow-hidden rounded-lg bg-surface">
-                      {it.image ? (
-                        <AppImage
-                          src={it.image}
-                          alt={it.name}
-                          width={256}
-                          height={256}
-                          sizes="64px"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="grid h-full w-full place-items-center text-[11px] text-secondary/70">
-                          Görsel yok
-                        </div>
-                      )}
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+              <div>
+                <div className="rounded-[24px] border border-stone-200 bg-[linear-gradient(180deg,#f8f5ef_0%,#f1ede6_100%)] p-4 sm:p-5">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">
+                        100x150 Etiket
+                      </div>
+                      <div className="mt-1 text-sm text-stone-500">
+                        Müşteriye gidecek kutu etiketi önizlemesi
+                      </div>
                     </div>
+                    <div className="rounded-full border border-stone-300 bg-white px-3 py-1 text-xs font-medium text-stone-500">
+                      Gap label • Dikey
+                    </div>
+                  </div>
 
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-primary">
-                        {it.href ? (
-                          <Link
-                            to={it.href}
-                            className="hover:underline hover:text-accent"
-                          >
-                            {it.name}
-                          </Link>
-                        ) : (
-                          it.name
+                  <OrderPrintSheet model={printModel} previewRef={previewRef} />
+                </div>
+
+                <div className="mt-4 rounded-[22px] border border-border bg-white p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="min-w-[240px] flex-1">
+                      <div className="text-sm font-semibold text-primary">
+                        Yazdırma durumu
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                        <span
+                          className={cls(
+                            "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1",
+                            currentPrintJob
+                              ? printJobBadge.style
+                              : "bg-stone-100 text-stone-600 ring-stone-200"
+                          )}
+                        >
+                          {currentPrintJob
+                            ? printJobBadge.label
+                            : "Henüz kuyruğa alınmadı"}
+                        </span>
+                        {currentPrintJob?.claimedBy && (
+                          <span className="text-secondary">
+                            Agent:{" "}
+                            <strong className="text-primary">
+                              {currentPrintJob.claimedBy}
+                            </strong>
+                          </span>
                         )}
                       </div>
-                      <div className="mt-0.5 text-xs text-secondary">
-                        Adet: <span className="text-primary">{it.qty}</span>
-                        {" • "}
-                        Birim:{" "}
-                        <span className="text-primary">
-                          {money(it.unitPrice)}
-                        </span>
-                        {renderVariant(it.variant)}
+
+                      <div className="mt-3 space-y-1 text-sm text-secondary">
+                        {currentPrintJob ? (
+                          <>
+                            <div>
+                              Deneme:{" "}
+                              <strong className="text-primary">
+                                {currentPrintJob.attempts || 0}/
+                                {currentPrintJob.maxAttempts || 0}
+                              </strong>
+                            </div>
+                            <div>
+                              Kuyruğa alındı:{" "}
+                              <strong className="text-primary">
+                                {formatOrderDateTime(currentPrintJob.createdAt)}
+                              </strong>
+                            </div>
+                            {currentPrintJob.printedAt && (
+                              <div>
+                                Yazdırıldı:{" "}
+                                <strong className="text-primary">
+                                  {formatOrderDateTime(currentPrintJob.printedAt)}
+                                </strong>
+                              </div>
+                            )}
+                            {currentPrintJob.printer && (
+                              <div>
+                                Yazıcı:{" "}
+                                <strong className="text-primary">
+                                  {currentPrintJob.printer}
+                                </strong>
+                              </div>
+                            )}
+                            {currentPrintJob.lastError?.message && (
+                              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">
+                                Son hata: {currentPrintJob.lastError.message}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div>
+                            Bu sipariş için henüz otomatik yazdırma kaydı
+                            oluşmadı.
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="text-sm font-semibold text-primary">
-                      {money(it.unitPrice * it.qty)}
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={handleBrowserPrint}
+                        disabled={actionState.printing}
+                        className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
+                      >
+                        <Printer className="h-4 w-4" />
+                        Tarayıcıdan Yazdır
+                      </button>
+                      {admin && (
+                        <button
+                          onClick={handleRequeue}
+                          disabled={
+                            actionState.requeueing || !canRequeuePrint(order)
+                          }
+                          className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-semibold text-primary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                          {actionState.requeueing
+                            ? "Kuyruğa Ekleniyor..."
+                            : "Kuyruğa Yeniden Al"}
+                        </button>
+                      )}
+                      <button
+                        onClick={handleDownloadPdf}
+                        disabled={actionState.downloading}
+                        className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-semibold text-primary hover:bg-surface-hover disabled:opacity-60"
+                      >
+                        <Download className="h-4 w-4" />
+                        {actionState.downloading ? "Hazırlanıyor..." : "PDF İndir"}
+                      </button>
                     </div>
-                  </li>
-                ))}
-              </ul>
+                  </div>
 
-              {/* grid: Address + Totals */}
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                {/* Address */}
-                <div className="rounded-xl border border-border bg-contact-bg p-4">
-                  <div className="text-sm font-medium text-primary">
-                    Teslimat adresi
+                  <div className="mt-4 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-secondary">
+                    Tarayıcıdan yazdır ve PDF indir butonları önizleme içindir.
+                    Otomatik yazdırma, Windows agent kuyruktan işi aldığında
+                    çalışır.
                   </div>
-                  <div className="mt-2 text-sm text-secondary whitespace-pre-line">
-                    {shippingAddress.fullName}
-                    {"\n"}
-                    {shippingAddress.addressLine}
-                    {"\n"}
-                    {[
-                      shippingAddress.city,
-                      shippingAddress.district,
-                      shippingAddress.postalCode,
-                    ]
-                      .filter(Boolean)
-                      .join(", ")}
-                    {"\n"}
-                    {shippingAddress.country}
-                    {shippingAddress.phone
-                      ? `\n📞 ${shippingAddress.phone}`
-                      : ""}
-                  </div>
-                </div>
 
-                {/* Totals */}
-                <div className="rounded-xl border border-border bg-contact-bg p-4">
-                  <div className="text-sm font-medium text-primary">Toplamlar</div>
-                  <div className="mt-2 space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-secondary">Ara toplam</span>
-                      <span className="text-primary">
-                        {money(meta.totals.subtotal)}
-                      </span>
+                  {feedback && (
+                    <div
+                      className={cls(
+                        "mt-4 rounded-2xl border px-4 py-3 text-sm",
+                        feedback.variant === "success"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-rose-200 bg-rose-50 text-rose-700"
+                      )}
+                    >
+                      {feedback.message}
                     </div>
-              <div className="flex justify-between">
-                <span className="text-secondary">
-                  {order?.shippingName
-                    ? `Kargo (${order.shippingName})`
-                    : "Kargo"}
-                </span>
-                <span className="text-primary">
-                  {money(meta.totals.shipping)}
-                </span>
-              </div>
-                    <div className="flex justify-between font-semibold">
-                      <span className="text-primary">Toplam</span>
-                      <span className="text-primary">
-                        {money(meta.totals.grand)}
-                      </span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
-              {/* Payment meta (varsa) */}
-              {(order?.payment?.txnId || order?.payment?.provider) && (
-                <div className="mt-5 rounded-xl border border-dashed border-border bg-white p-4 text-xs text-secondary">
-                  <div className="font-medium text-primary text-sm">
-                    Ödeme
+              <aside className="space-y-4">
+                <div className="rounded-[24px] border border-border bg-contact-bg p-5">
+                  <div className="text-sm font-semibold text-primary">
+                    Sipariş Özeti
                   </div>
-                  <div className="mt-1">
-                    {order.payment.provider && (
-                      <div>Sağlayıcı: {String(order.payment.provider)}</div>
-                    )}
-                    {order.payment.txnId && (
-                      <div>İşlem ID: {order.payment.txnId}</div>
+                  <div className="mt-4 space-y-3 text-sm text-secondary">
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.16em] text-secondary/70">
+                        Alıcı
+                      </div>
+                      <div className="mt-1 font-medium text-primary">
+                        {summary?.customerName}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.16em] text-secondary/70">
+                        Telefon
+                      </div>
+                      <div className="mt-1 font-medium text-primary">
+                        {summary?.phone}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.16em] text-secondary/70">
+                        Sipariş Durumu
+                      </div>
+                      <div className="mt-1 font-medium text-primary">
+                        {summary?.status}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.16em] text-secondary/70">
+                        Ödeme
+                      </div>
+                      <div className="mt-1 font-medium text-primary">
+                        {summary?.payment}
+                      </div>
+                    </div>
+                    {order?.note && (
+                      <div>
+                        <div className="text-xs uppercase tracking-[0.16em] text-secondary/70">
+                          Not
+                        </div>
+                        <div className="mt-1 font-medium text-primary">
+                          {order.note}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
-              )}
-            </>
+
+                <div className="rounded-[24px] border border-border bg-white p-5">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                    <CheckCircle2 className="h-4 w-4 text-accent" />
+                    Otomatik yazdırma
+                  </div>
+                  <div className="mt-3 space-y-2 text-sm leading-6 text-secondary">
+                    <p>
+                      Sipariş ödemesi başarılı olduğunda backend otomatik bir
+                      print job oluşturur.
+                    </p>
+                    <p>
+                      Windows agent bu işi alıp ZIJIANG LABEL yazıcısına
+                      gönderecek. Bu alandaki durum da artık o kuyruktan geliyor.
+                    </p>
+                  </div>
+                </div>
+              </aside>
+            </div>
           )}
         </div>
       </div>
     </div>
-  );
-}
-
-/** Varyant bilgisi (color/size vb.) */
-function renderVariant(variant) {
-  if (!variant) return null;
-  const color =
-    (typeof variant === "object" && (variant.color || variant.colour)) || null;
-  const size =
-    (typeof variant === "object" && (variant.size || variant.dimension)) ||
-    null;
-
-  const parts = [];
-  if (color) parts.push(`Color: ${color}`);
-  if (size) parts.push(`Size: ${size}`);
-  if (!parts.length) return null;
-
-  return (
-    <>
-      {" "}
-      • <span className="text-secondary">{parts.join(" / ")}</span>
-    </>
   );
 }

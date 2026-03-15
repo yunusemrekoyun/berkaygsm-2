@@ -10,6 +10,7 @@ pnpm-debug.log*
 # Env dosyaları
 .env
 .env.*.local
+.env.example
 
 # Node.js bağımlılıkları
 node_modules
@@ -49,3 +50,7 @@ pids
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+.eslintcache
+printer-agent/
+.env.example
