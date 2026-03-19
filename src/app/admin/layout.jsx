@@ -9,7 +9,7 @@ import {
   setUser as setUserCache,
   getAccessToken,
   refreshAccessToken,
-  setAccessToken,
+  clearAuthState,
 } from "../../api/client.js";
 
 function AdminGate({ children }) {
@@ -44,12 +44,7 @@ function AdminGate({ children }) {
       if (!token) {
         const refreshed = await refreshAccessToken();
         if (!refreshed) {
-          if (cachedUser) {
-            finish(cachedUser);
-            return;
-          }
-          setAccessToken(null);
-          setUserCache(null);
+          clearAuthState();
           finish(null);
           return;
         }
@@ -65,13 +60,15 @@ function AdminGate({ children }) {
         }
       }
 
-      if (cachedUser) {
-        finish(cachedUser);
-      } else {
-        setAccessToken(null);
-        setUserCache(null);
-        finish(null);
+      const nextCachedUser = getUserCache();
+      const nextToken = getAccessToken();
+      if (nextToken && nextCachedUser) {
+        finish(nextCachedUser);
+        return;
       }
+
+      clearAuthState();
+      finish(null);
     })();
 
     return () => {

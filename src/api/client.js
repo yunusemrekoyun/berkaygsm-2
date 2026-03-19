@@ -43,6 +43,11 @@ export const setUser = (user) => {
   }
 };
 
+export const clearAuthState = () => {
+  setAccessToken(null);
+  setUser(null);
+};
+
 function buildHeaders({ body, headers = {}, auth }) {
   const isFormData =
     typeof FormData !== "undefined" && body instanceof FormData;
@@ -185,11 +190,15 @@ export async function http(
         cache,
       });
     }
+    clearAuthState();
+  }
+
+  if (auth && response.status === 401) {
+    clearAuthState();
   }
 
   if (auth && response.status === 403 && path.startsWith("/auth/me")) {
-    setAccessToken(null);
-    setUser(null);
+    clearAuthState();
   }
 
   if (!response.ok) {

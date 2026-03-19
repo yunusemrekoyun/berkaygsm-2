@@ -5,7 +5,12 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import UserAccountPage from "../../screens/UserAccountPage";
 import AuthPage from "../../screens/AuthPage";
 import { authApi } from "../../api/auth";
-import { getAccessToken, refreshAccessToken, getUser } from "../../api/client";
+import {
+  clearAuthState,
+  getAccessToken,
+  refreshAccessToken,
+  getUser,
+} from "../../api/client";
 
 export default function AuthSelector() {
   const [ready, setReady] = useState(false);
@@ -37,27 +42,35 @@ export default function AuthSelector() {
     };
 
     (async () => {
-      const cachedUser = getUser();
       const cachedToken = getAccessToken();
-      if (cachedUser || cachedToken) setLogged(true);
+      if (cachedToken || getUser()) setLogged(true);
       try {
         if (!cachedToken) {
           const ok = await refreshAccessToken();
           if (!ok) {
-            if (!(getAccessToken() || getUser())) setLogged(false);
+            clearAuthState();
+            setLogged(false);
             return;
           }
         }
         const me = await authApi.me();
         if (me) {
           setLogged(true);
-        } else if (!(getAccessToken() || getUser())) {
+        } else {
+          if (getAccessToken() || getUser()) {
+            setLogged(true);
+          } else {
+            clearAuthState();
+            setLogged(false);
+          }
+        }
+      } catch {
+        if (getAccessToken() || getUser()) {
+          setLogged(true);
+        } else {
+          clearAuthState();
           setLogged(false);
         }
-        // 🔴 burada admin'e zorunlu yönlendirme YOK
-        // sadece guard redirect paramı olsaydı orada yakalayabilirdik
-      } catch {
-        if (!(getAccessToken() || getUser())) setLogged(false);
       } finally {
         if (mounted) setReady(true);
       }

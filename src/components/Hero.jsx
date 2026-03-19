@@ -166,7 +166,7 @@ export default function Hero({
             {/* İçerik */}
             <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col items-center justify-end px-6 text-center pb-24 md:pb-32">
               {s.title ? (
-                <h1 className="max-w-4xl text-4xl font-semibold tracking-tight text-white drop-shadow md:text-5xl lg:text-6xl">
+                <h1 className="max-w-4xl text-4xl font-serif font-semibold tracking-[-0.03em] text-white drop-shadow md:text-5xl lg:text-6xl">
                   {s.title}
                 </h1>
               ) : null}

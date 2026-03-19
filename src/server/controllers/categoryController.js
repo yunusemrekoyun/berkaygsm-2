@@ -125,7 +125,7 @@ async function resolveNextCategorySortOrder(parentId = null) {
 
 const resolveCategoryFolder = () => {
   const instance = configureCloudinary();
-  const base = (instance.uploadFolder || "ayyildiz/uploads").replace(
+  const base = (instance.uploadFolder || "berkaygsm").replace(
     /\/+$/,
     ""
   );

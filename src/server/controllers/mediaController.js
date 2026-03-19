@@ -22,7 +22,7 @@ function resolveScopeConfig(scope) {
 
 function resolveFolder(scopeConfig) {
   const instance = configureCloudinary();
-  const base = (instance.uploadFolder || "ayyildiz/uploads").replace(/\/+$/, "");
+  const base = (instance.uploadFolder || "berkaygsm").replace(/\/+$/, "");
   const suffix = scopeConfig?.folder ? `/${scopeConfig.folder}` : "";
   return `${base}${suffix}`;
 }
@@ -180,7 +180,7 @@ export async function uploadMediaAsset(req, res) {
     const folder =
       req.body?.folder ||
       cloudinary.uploadFolder ||
-      "ayyildiz/uploads";
+      "berkaygsm";
     const resourceType =
       req.body?.resourceType ||
       (req.file.mimetype?.startsWith("video/") ? "video" : "image");
