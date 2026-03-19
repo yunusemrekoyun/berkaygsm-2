@@ -10,11 +10,11 @@ import RootLayout from "./RootLayout";
 import AdminLayout from "./AdminLayout";
 import { authApi } from "../../api/auth";
 import {
+  clearAuthState,
   getUser as getUserCache,
   setUser as setUserCache,
   getAccessToken,
   refreshAccessToken,
-  setAccessToken,
 } from "../../api/client";
 
 export default function LayoutSelector() {
@@ -47,8 +47,7 @@ export default function LayoutSelector() {
       if (!token) {
         const refreshed = await refreshAccessToken();
         if (!refreshed) {
-          setAccessToken(null);
-          setUserCache(null);
+          clearAuthState();
           finish(null);
           return;
         }
@@ -65,8 +64,13 @@ export default function LayoutSelector() {
         setUserCache(me);
         finish(me);
       } else {
-        setAccessToken(null);
-        setUserCache(null);
+        const nextCachedUser = getUserCache();
+        const nextToken = getAccessToken();
+        if (nextToken && nextCachedUser) {
+          finish(nextCachedUser);
+          return;
+        }
+        clearAuthState();
         finish(null);
       }
     })();

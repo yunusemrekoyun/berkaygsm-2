@@ -10,7 +10,7 @@ export function configureCloudinary() {
     CLOUDINARY_CLOUD_NAME,
     CLOUDINARY_API_KEY,
     CLOUDINARY_API_SECRET,
-    CLOUDINARY_UPLOAD_FOLDER = "ayyildiz/products",
+    CLOUDINARY_UPLOAD_FOLDER = "berkaygsm",
   } = process.env;
 
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {

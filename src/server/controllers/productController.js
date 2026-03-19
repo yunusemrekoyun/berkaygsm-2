@@ -440,7 +440,7 @@ function presentProduct(doc, lang, discount = null) {
 async function uploadImages(files = [], folderHint = "products") {
   if (!Array.isArray(files) || !files.length) return [];
   const baseFolder =
-    cloudinary.uploadFolder /* set in config */ || "ayyildiz/products";
+    cloudinary.uploadFolder /* set in config */ || "berkaygsm";
   const folder = `${baseFolder}/${folderHint}`;
 
   const uploads = files.map(async (file) => {

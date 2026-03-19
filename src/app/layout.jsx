@@ -1,5 +1,18 @@
+import { Plus_Jakarta_Sans, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers.jsx";
+
+const brandSans = Plus_Jakarta_Sans({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-brand-sans",
+  display: "swap",
+});
+
+const brandSerif = Source_Serif_4({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-brand-serif",
+  display: "swap",
+});
 
 const DEFAULT_THEME_VARS = {
   "--color-primary": "#0c4a6e",
@@ -28,8 +41,12 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="tr" style={DEFAULT_THEME_VARS}>
-      <body>
+    <html
+      lang="tr"
+      style={DEFAULT_THEME_VARS}
+      className={`${brandSans.variable} ${brandSerif.variable}`}
+    >
+      <body className="font-sans">
         <Providers>{children}</Providers>
       </body>
     </html>

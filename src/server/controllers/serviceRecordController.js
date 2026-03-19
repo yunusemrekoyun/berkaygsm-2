@@ -80,7 +80,7 @@ function normalizeEnum(value, allowedSet, fieldName, fallback) {
 
 function resolveUploadFolder() {
   const instance = configureCloudinary();
-  const base = (instance.uploadFolder || "ayyildiz/uploads").replace(/\/+$/, "");
+  const base = (instance.uploadFolder || "berkaygsm").replace(/\/+$/, "");
   return `${base}/service-records`;
 }
 

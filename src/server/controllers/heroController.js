@@ -43,7 +43,7 @@ const toPlainVideo = (video) =>
 
 const resolveFolder = () => {
   const instance = configureCloudinary();
-  const base = (instance.uploadFolder || "ayyildiz/uploads").replace(
+  const base = (instance.uploadFolder || "berkaygsm").replace(
     /\/+$/,
     ""
   );
