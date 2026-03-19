@@ -1,5 +1,6 @@
 import { Trash2, Image as ImageIcon } from "lucide-react";
 import { formatBytesShort } from "./MediaUsageCard";
+import AppImage from "../../ui/AppImage.jsx";
 
 export default function MediaResourceTable({
   resources = [],
@@ -53,9 +54,12 @@ export default function MediaResourceTable({
               <td className="px-4 py-3" data-label="Medya">
                 <div className="flex items-center gap-3">
                   {resource.secureUrl ? (
-                    <img
+                    <AppImage
                       src={resource.secureUrl}
                       alt={resource.publicId}
+                      width={48}
+                      height={48}
+                      sizes="48px"
                       className="h-12 w-12 rounded-lg object-cover"
                     />
                   ) : (

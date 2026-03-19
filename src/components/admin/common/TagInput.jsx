@@ -17,7 +17,7 @@ export default function TagInput({
   const addTag = (value) => {
     const next = value.trim();
     if (!next) return;
-    if (values.includes(next)) {
+    if (values.some((tag) => tag.toLowerCase() === next.toLowerCase())) {
       setDraft("");
       return;
     }
@@ -25,8 +25,8 @@ export default function TagInput({
     setDraft("");
   };
 
-  const removeTag = (value) => {
-    onChange?.(values.filter((tag) => tag !== value));
+  const removeTagAt = (index) => {
+    onChange?.(values.filter((_, valueIndex) => valueIndex !== index));
   };
 
   const handleKeyDown = (event) => {
@@ -37,16 +37,19 @@ export default function TagInput({
     }
     if (event.key === "Backspace" && !draft && values.length) {
       event.preventDefault();
-      removeTag(values[values.length - 1]);
+      removeTagAt(values.length - 1);
     }
   };
 
   return (
-    <label className="block">
+    <div className="block">
       {label && (
-        <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
+        <label
+          htmlFor={normalisedId}
+          className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]"
+        >
           {label}
-        </span>
+        </label>
       )}
       <div
         className={`flex min-h-[44px] flex-wrap items-center gap-2 rounded-xl border bg-[var(--color-bg-card)] px-3 py-2 transition ${
@@ -55,18 +58,26 @@ export default function TagInput({
             : "border-[var(--color-border-admin)] focus-within:border-[var(--color-text-admin)]"
         }`}
       >
-        {values.map((tag) => (
+        {values.map((tag, index) => (
           <span
-            key={tag}
+            key={`${tag}-${index}`}
             className="inline-flex items-center gap-1 rounded-full bg-[var(--color-bg-hover)] px-3 py-1 text-sm text-[var(--color-text-admin)]"
           >
             {tag}
             {!disabled && (
               <button
                 type="button"
-                onClick={() => removeTag(tag)}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  removeTagAt(index);
+                }}
                 className="text-[var(--color-text-admin-muted)] hover:text-[var(--color-text-admin)]"
-                aria-label={`Remove ${tag}`}
+                aria-label={`${tag} etiketini kaldır`}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -89,6 +100,6 @@ export default function TagInput({
       {helper && (
         <p className="mt-1 text-xs text-[var(--color-text-admin-muted)]">{helper}</p>
       )}
-    </label>
+    </div>
   );
 }

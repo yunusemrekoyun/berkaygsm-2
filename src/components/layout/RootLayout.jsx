@@ -6,7 +6,7 @@ import Footer from "./Footer";
 import GsapScrollProvider from "../animations/GsapScrollProvider.jsx";
 import GlobalLoadingOverlay from "../ui/GlobalLoadingOverlay.jsx";
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children, initialCategoryTree = null }) {
   const [enableAnimations, setEnableAnimations] = useState(false);
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function RootLayout({ children }) {
           </Suspense>
         ) : null}
         <GlobalLoadingOverlay />
-        <Header />
+        <Header initialCategoryTree={initialCategoryTree} />
         <main className="pb-20 pt-[112px] md:pb-0 md:pt-[136px]">
           {children}
         </main>

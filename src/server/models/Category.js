@@ -36,6 +36,7 @@ const CategorySchema = new mongoose.Schema(
       },
     ],
     image: { type: ImageSchema, default: null },
+    sortOrder: { type: Number, default: 0 },
     translations: {
       type: new mongoose.Schema(
         {

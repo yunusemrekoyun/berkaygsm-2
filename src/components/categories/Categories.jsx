@@ -5,12 +5,18 @@ import { categoryApi } from "../../api/categories";
 import { mapCategoryTree } from "../../utils/catalog";
 import { useStorefrontLang } from "../../context/LangContext.jsx";
 import { useStaticTranslation } from "../../i18n/staticContent.js";
+import { DEFAULT_LANG } from "../../constants/lang.js";
 
 const DESKTOP_VISIBLE = 4;
 
-export default function Categories({ title, items }) {
+export default function Categories({
+  title,
+  items,
+  initialLang = DEFAULT_LANG,
+}) {
+  const hasInitialItems = Array.isArray(items);
   const [categories, setCategories] = useState(items || []);
-  const [loading, setLoading] = useState(!items);
+  const [loading, setLoading] = useState(!hasInitialItems);
   const scrollRef = useRef(null);
   const { lang } = useStorefrontLang();
   const t = useStaticTranslation();
@@ -20,8 +26,14 @@ export default function Categories({ title, items }) {
   const nextAria = copy.next || "Sonraki kategoriler";
 
   useEffect(() => {
-    if (items) return;
     let mounted = true;
+    if (hasInitialItems && lang === initialLang) {
+      setCategories(items);
+      setLoading(false);
+      return () => {
+        mounted = false;
+      };
+    }
     (async () => {
       try {
         setLoading(true);
@@ -43,7 +55,7 @@ export default function Categories({ title, items }) {
     return () => {
       mounted = false;
     };
-  }, [items, lang]);
+  }, [hasInitialItems, initialLang, items, lang]);
 
   const showCarousel = useMemo(() => {
     return (categories?.length || 0) > DESKTOP_VISIBLE;

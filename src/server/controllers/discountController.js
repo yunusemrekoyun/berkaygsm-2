@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Discount from "../models/Discount.js";
 import Product from "../models/Product.js";
-import Set from "../models/Set.js";
+import SetModel from "../models/Set.js";
 import Category from "../models/Category.js";
 import {
   DEFAULT_LANG,
@@ -285,6 +285,8 @@ export async function createDiscount(req, res) {
       sets = [],
       categories = [],
       active,
+      allowCouponStacking,
+      allowStackedDiscountStacking,
       startsAt,
       endsAt,
       resolve = null,
@@ -306,6 +308,14 @@ export async function createDiscount(req, res) {
         .json({ message: "Yüzde 1-100 arasında olmalı" });
 
     const parsedActive = parseBooleanInput(active, "active");
+    const parsedAllowCouponStacking = parseBooleanInput(
+      allowCouponStacking,
+      "allowCouponStacking"
+    );
+    const parsedAllowStackedDiscountStacking = parseBooleanInput(
+      allowStackedDiscountStacking,
+      "allowStackedDiscountStacking"
+    );
     const parsedStartsAt = parseNullableDate(startsAt, "startsAt");
     const parsedEndsAt = parseNullableDate(endsAt, "endsAt");
     validateDateRange(parsedStartsAt, parsedEndsAt);
@@ -316,7 +326,7 @@ export async function createDiscount(req, res) {
     });
 
     const productIds = await validateObjectIds(products, Product, "product");
-    const setIds = await validateObjectIds(sets, Set, "set");
+    const setIds = await validateObjectIds(sets, SetModel, "set");
     const categoryIds = await validateObjectIds(
       categories,
       Category,
@@ -427,6 +437,9 @@ export async function createDiscount(req, res) {
         categories: finalCategories,
       },
       active: parsedActive ?? true,
+      allowCouponStacking: parsedAllowCouponStacking ?? true,
+      allowStackedDiscountStacking:
+        parsedAllowStackedDiscountStacking ?? true,
       startsAt: parsedStartsAt ?? null,
       endsAt: parsedEndsAt ?? null,
     });
@@ -497,6 +510,8 @@ export async function updateDiscount(req, res) {
       sets,
       categories,
       active,
+      allowCouponStacking,
+      allowStackedDiscountStacking,
       startsAt,
       endsAt,
       resolve = null,
@@ -539,6 +554,21 @@ export async function updateDiscount(req, res) {
     }
     const parsedActive = parseBooleanInput(active, "active");
     if (parsedActive !== undefined) discount.active = parsedActive;
+    const parsedAllowCouponStacking = parseBooleanInput(
+      allowCouponStacking,
+      "allowCouponStacking"
+    );
+    if (parsedAllowCouponStacking !== undefined) {
+      discount.allowCouponStacking = parsedAllowCouponStacking;
+    }
+    const parsedAllowStackedDiscountStacking = parseBooleanInput(
+      allowStackedDiscountStacking,
+      "allowStackedDiscountStacking"
+    );
+    if (parsedAllowStackedDiscountStacking !== undefined) {
+      discount.allowStackedDiscountStacking =
+        parsedAllowStackedDiscountStacking;
+    }
     const parsedStartsAt = parseNullableDate(startsAt, "startsAt");
     if (parsedStartsAt !== undefined) discount.startsAt = parsedStartsAt;
     const parsedEndsAt = parseNullableDate(endsAt, "endsAt");
@@ -566,7 +596,7 @@ export async function updateDiscount(req, res) {
         Product,
         "product"
       );
-      setIds = await validateObjectIds(sets ?? setIds, Set, "set");
+      setIds = await validateObjectIds(sets ?? setIds, SetModel, "set");
       categoryIds = await validateObjectIds(
         categories ?? categoryIds,
         Category,
@@ -771,6 +801,9 @@ function shapeDiscount(
     description: plain.description,
     percentage: plain.percentage,
     active: plain.active,
+    allowCouponStacking: plain.allowCouponStacking !== false,
+    allowStackedDiscountStacking:
+      plain.allowStackedDiscountStacking !== false,
     startsAt: plain.startsAt,
     endsAt: plain.endsAt,
     appliesTo: {

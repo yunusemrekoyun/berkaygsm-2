@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Review from "../models/Review.js";
 import Product from "../models/Product.js";
-import Set from "../models/Set.js";
+import SetModel from "../models/Set.js";
 import UserDetails from "../models/UserDetails.js";
 
 const isObjectId = (v) => typeof v === "string" && /^[0-9a-fA-F]{24}$/.test(v);
@@ -22,7 +22,7 @@ async function findProductByIdOrSlug(idOrSlug) {
 async function findSetByIdOrSlug(idOrSlug) {
   if (!idOrSlug) return null;
   const filter = isObjectId(idOrSlug) ? { _id: idOrSlug } : { slug: idOrSlug };
-  return Set.findOne(filter).select("_id name slug");
+  return SetModel.findOne(filter).select("_id name slug");
 }
 
 const toId = (value, depth = 0) => {

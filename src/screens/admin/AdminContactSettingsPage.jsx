@@ -20,6 +20,7 @@ import {
   Languages,
 } from "lucide-react";
 import { HAS_TRANSLATIONS, TRANSLATION_LANGS } from "../../constants/lang.js";
+import AppImage from "../../components/ui/AppImage.jsx";
 
 const BASE_LANG = "tr";
 const BASE_LANGUAGE_LABEL = "Türkçe (TR)";
@@ -409,9 +410,12 @@ export default function AdminContactSettingsPageInner() {
                   </label>
                   {data.heroImage ? (
                     <div className="overflow-hidden rounded-2xl border border-[var(--color-border-admin)] bg-white shadow-sm">
-                      <img
+                      <AppImage
                         src={data.heroImage.url}
                         alt="Hero görseli"
+                        width={960}
+                        height={384}
+                        sizes="(max-width: 1024px) 100vw, 960px"
                         className="h-48 w-full object-cover"
                       />
                     </div>

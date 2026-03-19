@@ -1,4 +1,6 @@
 const LOGO_SRC = "/logo.png";
+const PRINT_NOTE_MAX_CHARS = 36;
+const PRINT_NOTE_MAX_LINES = 4;
 
 export function formatOrderMoney(value) {
   const amount = Number(value || 0);
@@ -29,7 +31,7 @@ export function formatVariantSummary(variant) {
   if (!variant || typeof variant !== "object") return "";
   const parts = [];
   if (variant.color) parts.push(`Renk: ${variant.color}`);
-  if (variant.size) parts.push(`Beden: ${variant.size}`);
+  if (variant.size) parts.push(`Model: ${variant.size}`);
   if (variant.attribute) parts.push(`Özellik: ${variant.attribute}`);
   return parts.join(" • ");
 }
@@ -53,6 +55,102 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function normalizePrintableText(value) {
+  return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+function clampLineWithEllipsis(line, maxChars) {
+  const normalized = normalizePrintableText(line);
+  if (!normalized) return "";
+  if (normalized.endsWith("...")) return normalized;
+  if (normalized.length <= Math.max(0, maxChars - 3)) return `${normalized}...`;
+  const safeMax = Math.max(1, maxChars - 3);
+  return `${normalized.slice(0, safeMax).trimEnd()}...`;
+}
+
+function wrapPrintableText(value, maxChars, maxLines) {
+  const sourceLines = String(value ?? "")
+    .split(/\r?\n/)
+    .map(normalizePrintableText)
+    .filter(Boolean);
+
+  if (!sourceLines.length) return [];
+
+  const wrapped = [];
+  let truncated = false;
+
+  outer: for (const sourceLine of sourceLines) {
+    const words = sourceLine.split(" ");
+    let current = "";
+
+    for (const word of words) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (candidate.length <= maxChars) {
+        current = candidate;
+        continue;
+      }
+
+      if (current) {
+        if (wrapped.length >= maxLines) {
+          truncated = true;
+          break outer;
+        }
+        wrapped.push(current);
+      }
+
+      if (word.length <= maxChars) {
+        current = word;
+        continue;
+      }
+
+      let remaining = word;
+      while (remaining.length > maxChars) {
+        if (wrapped.length >= maxLines) {
+          truncated = true;
+          break outer;
+        }
+        wrapped.push(remaining.slice(0, maxChars));
+        remaining = remaining.slice(maxChars);
+      }
+      current = remaining;
+    }
+
+    if (current) {
+      if (wrapped.length >= maxLines) {
+        truncated = true;
+        break;
+      }
+      wrapped.push(current);
+    }
+  }
+
+  if (wrapped.length > maxLines) {
+    wrapped.length = maxLines;
+    truncated = true;
+  }
+
+  if (truncated && wrapped.length) {
+    wrapped[wrapped.length - 1] = clampLineWithEllipsis(
+      wrapped[wrapped.length - 1],
+      maxChars
+    );
+  }
+
+  return wrapped.filter(Boolean);
+}
+
+export function formatPrintableOrderNote(value, options = {}) {
+  const maxChars = Math.max(
+    8,
+    Number(options.maxChars || PRINT_NOTE_MAX_CHARS) || PRINT_NOTE_MAX_CHARS
+  );
+  const maxLines = Math.max(
+    1,
+    Number(options.maxLines || PRINT_NOTE_MAX_LINES) || PRINT_NOTE_MAX_LINES
+  );
+  return wrapPrintableText(value, maxChars, maxLines).join("\n");
 }
 
 export function buildOrderPrintModel(order, options = {}) {
@@ -81,6 +179,9 @@ export function buildOrderPrintModel(order, options = {}) {
     [address.city, address.district].filter(Boolean).join(" / "),
     [address.postalCode, address.country].filter(Boolean).join(" "),
   ].filter(Boolean);
+  const baseSubtotal = Number(order?.pricing?.baseSubtotal || 0);
+  const subtotalForPrint =
+    baseSubtotal > 0 ? baseSubtotal : Number(order?.subtotal || 0);
 
   return {
     logoSrc: options.logoSrc || LOGO_SRC,
@@ -94,11 +195,38 @@ export function buildOrderPrintModel(order, options = {}) {
     addressLineParts,
     items,
     itemCount: items.reduce((sum, item) => sum + item.qty, 0),
-    subtotalLabel: formatOrderMoney(order.subtotal),
+    subtotalLabel: formatOrderMoney(subtotalForPrint),
+    adjustments: [
+      Number(order?.pricing?.standardDiscountAmount || 0) > 0
+        ? {
+            label: "Normal Ind.",
+            valueLabel: `- ${formatOrderMoney(
+              order.pricing.standardDiscountAmount
+            )}`,
+          }
+        : null,
+      Number(order?.pricing?.stackedDiscountAmount || 0) > 0
+        ? {
+            label:
+              Number(order?.pricing?.stacked?.percentage || 0) > 0
+                ? `Katlanan %${order.pricing.stacked.percentage}`
+                : "Katlanan Ind.",
+            valueLabel: `- ${formatOrderMoney(
+              order.pricing.stackedDiscountAmount
+            )}`,
+          }
+        : null,
+      Number(order?.coupon?.discountAmount || 0) > 0
+        ? {
+            label: order?.coupon?.code ? `Kupon ${order.coupon.code}` : "Kupon",
+            valueLabel: `- ${formatOrderMoney(order.coupon.discountAmount)}`,
+          }
+        : null,
+    ].filter(Boolean),
     shippingLabel: formatOrderMoney(order.shipping),
     shippingName: order.shippingName || "Kargo",
     totalLabel: formatOrderMoney(order.total),
-    note: String(order.note || "").trim(),
+    note: formatPrintableOrderNote(order.note),
   };
 }
 
@@ -147,6 +275,19 @@ export function buildOrderPrintHtml(model, options = {}) {
         <div class="note-box">${escapeHtml(model.note)}</div>
       </div>
     `
+    : "";
+
+  const adjustmentHtml = Array.isArray(model.adjustments)
+    ? model.adjustments
+        .map(
+          (adjustment) => `
+            <div class="total-row total-row-discount">
+              <span>${escapeHtml(adjustment.label)}</span>
+              <span>${escapeHtml(adjustment.valueLabel)}</span>
+            </div>
+          `
+        )
+        .join("")
     : "";
 
   return `<!doctype html>
@@ -293,6 +434,9 @@ export function buildOrderPrintHtml(model, options = {}) {
           gap: 2mm;
           font-size: 2.7mm;
         }
+        .total-row-discount {
+          color: #b45309;
+        }
         .total-row strong {
           font-size: 3.15mm;
         }
@@ -301,6 +445,8 @@ export function buildOrderPrintHtml(model, options = {}) {
           line-height: 1.24;
           white-space: pre-wrap;
           word-break: break-word;
+          max-height: 12.8mm;
+          overflow: hidden;
         }
         @media print {
           html, body {
@@ -363,6 +509,7 @@ export function buildOrderPrintHtml(model, options = {}) {
               <span>Ara Toplam</span>
               <span>${escapeHtml(model.subtotalLabel)}</span>
             </div>
+            ${adjustmentHtml}
             <div class="total-row">
               <span>${escapeHtml(model.shippingName)}</span>
               <span>${escapeHtml(model.shippingLabel)}</span>

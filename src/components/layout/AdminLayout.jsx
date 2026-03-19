@@ -1,6 +1,6 @@
 // src/components/layout/AdminLayout.jsx
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Menu,
@@ -24,6 +24,8 @@ import {
   // MessageSquare,
   Settings,
   Bell,
+  AlertTriangle,
+  Loader2,
   Search,
   Home,
   LogOut,
@@ -32,6 +34,7 @@ import {
 } from "lucide-react";
 import { authApi } from "../../api/auth";
 import { getUser as getUserCache } from "../../api/client";
+import { adminNotificationsApi } from "../../api/adminNotifications";
 
 export default function AdminLayout({ children, title, subtitle, actions }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -325,9 +328,7 @@ function TopBar({ breadcrumbs, onMenuToggle, me, onLogout }) {
               className="w-48 border-0 bg-transparent text-sm outline-none placeholder:text-[var(--color-text-admin-muted)]"
             />
           </div>
-          <button className="rounded-full p-2 text-[var(--color-text-admin-muted)] hover:bg-[var(--color-bg-hover)]">
-            <Bell className="h-5 w-5" />
-          </button>
+          <AdminNotificationMenu />
           <UserMenu me={me} onLogout={onLogout} />
         </div>
       </div>
@@ -546,6 +547,235 @@ function UserMenu({ me, onLogout }) {
             <LogOut className="h-4 w-4" />
             Çıkış Yap
           </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminNotificationMenu() {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [permission, setPermission] = useState(() => {
+    if (typeof window === "undefined" || typeof Notification === "undefined") {
+      return "unsupported";
+    }
+    return Notification.permission;
+  });
+  const rootRef = useRef(null);
+  const seededUnreadRef = useRef(false);
+  const notifiedIdsRef = useRef(new Set());
+
+  const fetchNotifications = useCallback(
+    async ({
+      markRead = false,
+      showLoader = false,
+      suppressBrowserAlert = false,
+    } = {}) => {
+      if (showLoader) setLoading(true);
+      try {
+        const data = await adminNotificationsApi.list({ limit: 10 });
+        const nextItems = Array.isArray(data?.items) ? data.items : [];
+        const nextUnreadCount = Number(data?.unreadCount || 0) || 0;
+        const unreadItems = nextItems.filter((item) => !item.read);
+        const unreadIds = unreadItems.map((item) => item.id);
+
+        if (!seededUnreadRef.current) {
+          unreadIds.forEach((id) => notifiedIdsRef.current.add(id));
+          seededUnreadRef.current = true;
+        } else if (!open && !suppressBrowserAlert && permission === "granted") {
+          unreadItems
+            .filter((item) => !notifiedIdsRef.current.has(item.id))
+            .forEach((item) => {
+              try {
+                const browserNotification = new Notification(item.title, {
+                  body: item.message,
+                  tag: `admin-notification-${item.id}`,
+                });
+                browserNotification.onclick = () => {
+                  try {
+                    window.focus();
+                  } catch {
+                    // ignore focus failures
+                  }
+                  window.location.assign("/admin/stocks");
+                  browserNotification.close();
+                };
+              } catch {
+                // ignore browser notification failures
+              }
+              notifiedIdsRef.current.add(item.id);
+            });
+        }
+
+        if (markRead && unreadIds.length) {
+          await adminNotificationsApi.markRead(unreadIds);
+          const readAt = new Date().toISOString();
+          setItems(
+            nextItems.map((item) =>
+              unreadIds.includes(item.id)
+                ? { ...item, read: true, readAt }
+                : item
+            )
+          );
+          setUnreadCount(0);
+          unreadIds.forEach((id) => notifiedIdsRef.current.add(id));
+          return;
+        }
+
+        setItems(nextItems);
+        setUnreadCount(nextUnreadCount);
+      } catch {
+        // sessiz gec
+      } finally {
+        if (showLoader) setLoading(false);
+      }
+    },
+    [open, permission]
+  );
+
+  useEffect(() => {
+    fetchNotifications();
+    const intervalId = window.setInterval(() => {
+      fetchNotifications({ markRead: open, suppressBrowserAlert: open });
+    }, 20000);
+    return () => window.clearInterval(intervalId);
+  }, [fetchNotifications, open]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!(event.target instanceof Node)) return;
+      if (!rootRef.current?.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+    if (open) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [open]);
+
+  async function handleToggle(event) {
+    event.stopPropagation();
+    const nextOpen = !open;
+    setOpen(nextOpen);
+    if (!nextOpen) return;
+
+    if (typeof window !== "undefined" && typeof Notification !== "undefined") {
+      if (Notification.permission === "default") {
+        try {
+          const result = await Notification.requestPermission();
+          setPermission(result);
+        } catch {
+          setPermission(Notification.permission);
+        }
+      } else {
+        setPermission(Notification.permission);
+      }
+    }
+
+    await fetchNotifications({
+      markRead: true,
+      showLoader: true,
+      suppressBrowserAlert: true,
+    });
+  }
+
+  const badgeLabel = unreadCount > 99 ? "99+" : String(unreadCount);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        onClick={handleToggle}
+        className="relative rounded-full p-2 text-[var(--color-text-admin-muted)] hover:bg-[var(--color-bg-hover)]"
+        aria-label="Bildirimleri aç"
+      >
+        <Bell className="h-5 w-5" />
+        {unreadCount > 0 && (
+          <span className="absolute -right-1 -top-1 inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-[var(--color-accent)] px-1 text-[10px] font-semibold leading-4 text-white">
+            {badgeLabel}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 z-50 mt-2 w-[22rem] overflow-hidden rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-2xl">
+          <div className="flex items-center justify-between border-b border-[var(--color-border-admin)]/60 px-4 py-3">
+            <div>
+              <div className="text-sm font-semibold text-[var(--color-text-admin)]">
+                Bildirimler
+              </div>
+              <div className="text-xs text-[var(--color-text-admin-muted)]">
+                Düşük stok uyarıları burada listelenir.
+              </div>
+            </div>
+            {loading && (
+              <Loader2 className="h-4 w-4 animate-spin text-[var(--color-text-admin-muted)]" />
+            )}
+          </div>
+
+          {permission === "default" && (
+            <div className="flex items-start gap-2 border-b border-[var(--color-border-admin)]/60 bg-[var(--color-bg-hover)]/60 px-4 py-3 text-xs text-[var(--color-text-admin-muted)]">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-accent)]" />
+              <span>
+                Tarayıcı bildirimi için izin penceresi bu simgeye
+                tıkladığınızda gösterilir.
+              </span>
+            </div>
+          )}
+
+          {permission === "denied" && (
+            <div className="flex items-start gap-2 border-b border-[var(--color-border-admin)]/60 bg-[var(--color-bg-hover)]/60 px-4 py-3 text-xs text-[var(--color-text-admin-muted)]">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-accent)]" />
+              <span>
+                Tarayıcı bildirimi kapalı. İsterseniz bunu tarayıcı ayarlarından
+                tekrar açabilirsiniz.
+              </span>
+            </div>
+          )}
+
+          <div className="max-h-[24rem] overflow-y-auto">
+            {!items.length ? (
+              <div className="px-4 py-6 text-sm text-[var(--color-text-admin-muted)]">
+                Henüz bildiriminiz yok.
+              </div>
+            ) : (
+              items.map((item) => (
+                <Link
+                  key={item.id}
+                  to="/admin/stocks"
+                  onClick={() => setOpen(false)}
+                  className="block border-b border-[var(--color-border-admin)]/40 px-4 py-3 transition hover:bg-[var(--color-bg-hover)] last:border-b-0"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-[var(--color-text-admin)]">
+                        {item.data?.productName || item.title}
+                      </div>
+                      <div className="mt-1 text-xs text-[var(--color-text-admin-muted)]">
+                        {item.message}
+                      </div>
+                    </div>
+                    <div className="rounded-full border border-[var(--color-border-admin)] px-2 py-1 text-xs font-semibold text-[var(--color-text-admin)]">
+                      {item.data?.qtyOnHand ?? 0}
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-[var(--color-text-admin-muted)]">
+                    <span>{item.data?.variantLabel || "Tüm varyant"}</span>
+                    <span>
+                      {item.createdAt
+                        ? new Date(item.createdAt).toLocaleString("tr-TR")
+                        : ""}
+                    </span>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>

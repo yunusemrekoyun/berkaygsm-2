@@ -1,4 +1,6 @@
 import Image from "next/image";
+import { optimizeCloudinaryImageUrl } from "../../utils/cloudinaryImage.js";
+import { resolveImageSrc } from "../../utils/imageSrc.js";
 
 const REMOTE_RE = /^https?:\/\//i;
 const BLOB_RE = /^blob:/i;
@@ -19,7 +21,12 @@ export default function AppImage({
 }) {
   if (!src) return null;
 
-  const resolvedSrc = typeof src === "string" ? src : String(src);
+  const resolvedSrc = resolveImageSrc(src);
+  if (!resolvedSrc) return null;
+  const optimizedSrc = optimizeCloudinaryImageUrl(resolvedSrc, {
+    width: fill ? width : width,
+    quality,
+  });
   const unoptimized =
     REMOTE_RE.test(resolvedSrc) ||
     BLOB_RE.test(resolvedSrc) ||
@@ -28,7 +35,7 @@ export default function AppImage({
   if (fill) {
     return (
       <Image
-        src={resolvedSrc}
+        src={optimizedSrc}
         alt={alt}
         fill
         sizes={sizes}
@@ -44,7 +51,7 @@ export default function AppImage({
 
   return (
     <Image
-      src={resolvedSrc}
+      src={optimizedSrc}
       alt={alt}
       width={width}
       height={height}

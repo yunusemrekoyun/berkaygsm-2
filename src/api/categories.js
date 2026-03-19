@@ -76,4 +76,15 @@ export const categoryApi = {
       auth: true,
     });
   },
+
+  async reorder({ parent = null, orderedIds = [] } = {}) {
+    return http("/categories/reorder", {
+      method: "POST",
+      auth: true,
+      body: {
+        parent,
+        orderedIds,
+      },
+    });
+  },
 };

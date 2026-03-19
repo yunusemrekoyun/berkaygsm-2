@@ -162,12 +162,11 @@ const normalizeStockLines = (stockLines = []) => {
 };
 
 const syncProductStocks = async (ownerId, stockLines = []) => {
-  if (!ownerId || !Array.isArray(stockLines) || stockLines.length === 0) {
+  if (!ownerId || !Array.isArray(stockLines)) {
     return { ok: true, count: 0, recovered: false };
   }
 
   const normalized = normalizeStockLines(stockLines);
-  if (!normalized.length) return { ok: true, count: 0, recovered: false };
 
   await stocksApi
     .replace({
@@ -185,7 +184,7 @@ const syncProductStocks = async (ownerId, stockLines = []) => {
     : Array.isArray(verify?.stocks)
     ? verify.stocks
     : [];
-  if (existing.length) {
+  if (existing.length || normalized.length === 0) {
     return { ok: true, count: existing.length, recovered: false };
   }
 
@@ -524,7 +523,7 @@ export default function AdminProducts() {
         payloadWithStocks,
         BASE_LANG
       );
-      if (stockLines?.length) {
+      if (Array.isArray(stockLines)) {
         const ownerId =
           resolveProductObjectId(updated) ||
           resolveProductObjectId(editingProduct) ||
@@ -623,7 +622,7 @@ export default function AdminProducts() {
         ownerId = resolveProductObjectId(fallback);
       }
 
-      if (stockLines?.length) {
+      if (Array.isArray(stockLines)) {
         if (ownerId) {
           try {
             const stockResult = await syncProductStocks(ownerId, stockLines);

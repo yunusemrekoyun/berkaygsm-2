@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Edit3, Trash2, Search, Languages } from "lucide-react";
 import { getColorInfo } from "../../../utils/colors.js";
+import AppImage from "../../ui/AppImage.jsx";
 
 const currency = new Intl.NumberFormat("tr-TR", {
   style: "currency",
@@ -65,9 +66,12 @@ export default function SetTable({
                 <td className="px-4 py-3" data-label="Set">
                   <div className="flex items-center gap-3">
                     {set.images?.[0]?.url ? (
-                      <img
+                      <AppImage
                         src={set.images[0].url}
                         alt={set.name}
+                        width={48}
+                        height={48}
+                        sizes="48px"
                         className="h-12 w-12 rounded-lg object-cover"
                       />
                     ) : (

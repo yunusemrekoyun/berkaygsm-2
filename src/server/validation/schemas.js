@@ -77,7 +77,7 @@ const stockSyncRowSchema = z.object({
 export const stockSyncSchema = z.object({
   ownerModel: z.enum(["Product", "Set"]),
   owner: objectId,
-  rows: z.array(stockSyncRowSchema).min(1, "Satırlar en az bir kayıt içermeli"),
+  rows: z.array(stockSyncRowSchema),
 });
 
 export const stockUpdateSchema = z

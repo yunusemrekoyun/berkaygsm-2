@@ -17,7 +17,7 @@ export default function CartPage() {
         />
       </div>
 
-      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 pb-16">
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 pb-32 md:pb-24 lg:pb-28">
         <Cart />
       </div>
     </section>

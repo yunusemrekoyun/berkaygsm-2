@@ -4,8 +4,10 @@ import { productApi } from "../../api/products";
 import { setApi } from "../../api/sets";
 import { categoryApi } from "../../api/categories";
 import { discountApi } from "../../api/discounts";
+import { stackedDiscountApi } from "../../api/stackedDiscount";
 import DiscountTable from "../../components/admin/discounts/DiscountTable.jsx";
 import DiscountForm from "../../components/admin/discounts/DiscountForm.jsx";
+import StackedDiscountForm from "../../components/admin/discounts/StackedDiscountForm.jsx";
 import AlertBanner from "../../components/ui/AlertBanner.jsx";
 import { flattenCategoryTree } from "../../utils/catalog.js";
 import { useConfirm } from "../../components/ui/ConfirmDialog.jsx";
@@ -31,10 +33,14 @@ export default function AdminDiscounts() {
   const [editingDiscount, setEditingDiscount] = useState(null);
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [conflictState, setConflictState] = useState(null);
+  const [stackedDiscount, setStackedDiscount] = useState(null);
+  const [stackedModalOpen, setStackedModalOpen] = useState(false);
+  const [stackedSubmitting, setStackedSubmitting] = useState(false);
   const { adminLang } = useAdminLang();
 
   useEffect(() => {
     loadDiscounts();
+    loadStackedDiscount();
     loadOptions();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminLang]);
@@ -99,6 +105,17 @@ export default function AdminDiscounts() {
     }
   };
 
+  const loadStackedDiscount = async () => {
+    try {
+      const data = await stackedDiscountApi.getManage();
+      setStackedDiscount(data);
+    } catch (error) {
+      setBanner(
+        (prev) => prev ?? { variant: "danger", message: extractMessage(error) }
+      );
+    }
+  };
+
   const closeModal = () => {
     setModalOpen(false);
     setEditingDiscount(null);
@@ -112,10 +129,19 @@ export default function AdminDiscounts() {
     setModalOpen(true);
   };
 
+  const closeStackedModal = () => {
+    setStackedModalOpen(false);
+    setStackedSubmitting(false);
+  };
+
   const handleEdit = (discount) => {
     setEditingDiscount(discount);
     setConflictState(null);
     setModalOpen(true);
+  };
+
+  const handleEditStackedDiscount = () => {
+    setStackedModalOpen(true);
   };
 
   const handleDelete = async (discount) => {
@@ -232,6 +258,23 @@ export default function AdminDiscounts() {
     }
   };
 
+  const handleStackedSubmit = async (payload) => {
+    if (stackedSubmitting) return;
+    setStackedSubmitting(true);
+    try {
+      const updated = await stackedDiscountApi.update(payload);
+      setStackedDiscount(updated);
+      setBanner({
+        variant: "success",
+        message: "Katlanan indirim güncellendi",
+      });
+      closeStackedModal();
+    } catch (error) {
+      setBanner({ variant: "danger", message: extractMessage(error) });
+      setStackedSubmitting(false);
+    }
+  };
+
   const activeCount = useMemo(
     () => discounts.filter((item) => item.active).length,
     [discounts]
@@ -279,6 +322,91 @@ export default function AdminDiscounts() {
       )}
 
       <div className="rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] p-5">
+        <div className="mb-6 rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-admin)]/30 p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[var(--color-text-admin)]">
+                Katlanan İndirim
+              </p>
+              <p className="mt-1 text-xs text-[var(--color-text-admin-muted)]">
+                Sistem genelinde tek bir katlanan indirim kuralı çalışır.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleEditStackedDiscount}
+              className="inline-flex items-center justify-center rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
+            >
+              Düzenle
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-4">
+            <SummaryCard
+              label="Durum"
+              value={stackedDiscount?.active ? "Aktif" : "Pasif"}
+            />
+            <SummaryCard
+              label="Kademeler"
+              value={
+                stackedDiscount?.tiers?.length
+                  ? `${stackedDiscount.tiers.length} kademe`
+                  : "Tanımsız"
+              }
+            />
+            <SummaryCard
+              label="Kupon Etkileşimi"
+              value={
+                stackedDiscount?.allowCouponStacking === false
+                  ? "Kuponla birleşmez"
+                  : "Kuponla birleşir"
+              }
+            />
+            <SummaryCard
+              label="Normal İndirim"
+              value={
+                stackedDiscount?.allowDiscountStacking === false
+                  ? "Birleşmez"
+                  : "Birleşir"
+              }
+            />
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-admin-muted)]">
+                Hedefler
+              </p>
+              <p className="mt-2 text-sm text-[var(--color-text-admin)]">
+                {(stackedDiscount?.targets?.products?.length || 0)} ürün •{" "}
+                {(stackedDiscount?.targets?.sets?.length || 0)} set •{" "}
+                {(stackedDiscount?.targets?.categories?.length || 0)} kategori
+              </p>
+            </div>
+            <div className="rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-admin-muted)]">
+                Kural Akışı
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(stackedDiscount?.tiers || []).length ? (
+                  stackedDiscount.tiers.map((tier) => (
+                    <span
+                      key={`${tier.quantity}-${tier.percentage}`}
+                      className="rounded-full bg-[var(--color-bg-hover)] px-3 py-1 text-xs font-medium text-[var(--color-text-admin)]"
+                    >
+                      {tier.quantity}+ ürün → %{tier.percentage}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm text-[var(--color-text-admin-muted)]">
+                    Henüz kademe tanımlanmadı.
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border-admin)] pb-4">
           <div>
             <p className="text-sm font-semibold text-[var(--color-text-admin)]">
@@ -312,7 +440,31 @@ export default function AdminDiscounts() {
         conflict={conflictState}
         onResolveConflict={handleResolveConflict}
       />
+
+      <StackedDiscountForm
+        open={stackedModalOpen}
+        onClose={closeStackedModal}
+        onSubmit={handleStackedSubmit}
+        initialDiscount={stackedDiscount}
+        productOptions={productOptions}
+        setOptions={setOptionsList}
+        categoryOptions={categoryOptions}
+        submitting={stackedSubmitting}
+      />
     </section>
+  );
+}
+
+function SummaryCard({ label, value }) {
+  return (
+    <div className="rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-4 py-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-admin-muted)]">
+        {label}
+      </p>
+      <p className="mt-2 text-sm font-medium text-[var(--color-text-admin)]">
+        {value}
+      </p>
+    </div>
   );
 }
 

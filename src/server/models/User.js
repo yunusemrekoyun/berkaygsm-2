@@ -1,5 +1,16 @@
 import mongoose from "mongoose";
 
+const RefreshSessionSchema = new mongoose.Schema(
+  {
+    sid: { type: String, required: true, trim: true },
+    tokenHash: { type: String, required: true, trim: true },
+    expiresAt: { type: Date, default: null },
+    createdAt: { type: Date, default: () => new Date() },
+    lastUsedAt: { type: Date, default: () => new Date() },
+  },
+  { _id: false }
+);
+
 const UserSchema = new mongoose.Schema(
   {
     firstName: { type: String, required: true, trim: true },
@@ -16,6 +27,7 @@ const UserSchema = new mongoose.Schema(
     role: { type: String, enum: ["user", "admin"], default: "user" },
 
     refreshToken: { type: String, default: null },
+    refreshSessions: { type: [RefreshSessionSchema], default: [] },
 
     // 🔽 Soft delete alanları
     isDeleted: { type: Boolean, default: false, index: true },

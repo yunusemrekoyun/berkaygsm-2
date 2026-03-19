@@ -23,6 +23,7 @@ import {
   TRANSLATION_LANGS,
 } from "../../constants/lang.js";
 import HeroTranslationModal from "./hero/HeroTranslationModal.jsx";
+import AppImage from "../ui/AppImage.jsx";
 
 /* ----- Liste + Modal tetik ----- */
 export default function AdminHeroManagerInner() {
@@ -255,9 +256,11 @@ export default function AdminHeroManagerInner() {
           >
             <div className="relative aspect-[16/9] w-full bg-[var(--color-bg-admin)]">
               {h.image ? (
-                <img
+                <AppImage
                   src={h.image.url}
                   alt={h.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
                   className="h-full w-full object-cover"
                 />
               ) : h.video ? (
@@ -620,9 +623,11 @@ function HeroModal({
                         controls
                       />
                     ) : (
-                      <img
+                      <AppImage
                         src={mediaPreview}
                         alt="Önizleme"
+                        fill
+                        sizes="(max-width: 1024px) 100vw, 720px"
                         className="h-full w-full object-cover"
                       />
                     )
@@ -633,9 +638,11 @@ function HeroModal({
                       controls
                     />
                   ) : initialHasImage ? (
-                    <img
+                    <AppImage
                       src={mediaPreview}
                       alt="Önizleme"
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 720px"
                       className="h-full w-full object-cover"
                     />
                   ) : null

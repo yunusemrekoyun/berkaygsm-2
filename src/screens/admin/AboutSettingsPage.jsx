@@ -12,6 +12,7 @@ import {
 import toast from "react-hot-toast";
 import AboutTranslationModal from "../../components/admin/about/AboutTranslationModal.jsx";
 import { HAS_TRANSLATIONS, TRANSLATION_LANGS } from "../../constants/lang.js";
+import AppImage from "../../components/ui/AppImage.jsx";
 
 const BASE_LANG = "tr";
 
@@ -524,9 +525,12 @@ function ImageUpload({ label, current, onChange }) {
       <div className="mt-2 flex items-center gap-4">
         {current ? (
           <div className="relative">
-            <img
+            <AppImage
               src={current}
               alt=""
+              width={128}
+              height={96}
+              sizes="128px"
               className="h-24 w-32 rounded-lg border border-[var(--color-border-admin)] object-cover"
             />
             <button

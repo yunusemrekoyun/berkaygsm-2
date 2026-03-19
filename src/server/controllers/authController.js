@@ -5,6 +5,14 @@ import UserDetails from "../models/UserDetails.js";
 import { shapeUser } from "../utils/userPresenter.js";
 import { issueAutoCouponsForNewUser } from "../utils/couponEngine.js";
 import { validatePasswordPolicy } from "../../utils/passwordPolicy.js";
+import {
+  buildRefreshSessionRecord,
+  findRefreshSession,
+  generateRefreshSessionId,
+  pruneRefreshSessions,
+  removeRefreshSession,
+  upsertRefreshSession,
+} from "../utils/refreshSessions.js";
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
@@ -34,14 +42,73 @@ function signRefreshToken(payload) {
   return jwt.sign(payload, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES });
 }
 
+function clearRefreshCookie(res) {
+  const common = {
+    sameSite: sameSiteDefault,
+    secure: secureCookieDefault,
+    httpOnly: true,
+  };
+  res.clearCookie("refreshToken", {
+    ...common,
+    path: "/api/auth",
+  });
+  res.clearCookie("refreshToken", {
+    ...common,
+    path: "/api/auth/refresh",
+  });
+}
+
 function setRefreshCookie(res, token) {
+  clearRefreshCookie(res);
   res.cookie("refreshToken", token, {
     httpOnly: true,
     secure: secureCookieDefault,
     sameSite: sameSiteDefault,
-    path: "/api/auth/refresh",
+    path: "/api/auth",
     maxAge: 1000 * 60 * 60 * 24 * 30,
   });
+}
+
+function decodeRefreshExpiry(token) {
+  const decoded = jwt.decode(token);
+  const expSeconds = Number(decoded?.exp || 0);
+  if (!Number.isFinite(expSeconds) || expSeconds <= 0) return null;
+  return new Date(expSeconds * 1000);
+}
+
+function attachRefreshSession(user, { sid, token, now = new Date() }) {
+  const sessions = pruneRefreshSessions(user.refreshSessions || [], {
+    now,
+  });
+  user.refreshSessions = upsertRefreshSession(
+    sessions,
+    buildRefreshSessionRecord({
+      sid,
+      token,
+      expiresAt: decodeRefreshExpiry(token),
+      createdAt: now,
+      lastUsedAt: now,
+    }),
+    { now }
+  );
+  user.refreshToken = null;
+}
+
+function buildRefreshTokenPayload(user, sid) {
+  return {
+    sub: user._id,
+    role: user.role,
+    sid,
+  };
+}
+
+async function issueSessionTokens(user) {
+  const sid = generateRefreshSessionId();
+  const accessToken = signAccessToken({ sub: user._id, role: user.role });
+  const refreshToken = signRefreshToken(buildRefreshTokenPayload(user, sid));
+  attachRefreshSession(user, { sid, token: refreshToken });
+  await user.save();
+  return { accessToken, refreshToken };
 }
 
 /** POST /api/auth/register */
@@ -69,11 +136,7 @@ export const register = async (req, res) => {
   });
   await UserDetails.create({ user: user._id });
 
-  const accessToken = signAccessToken({ sub: user._id, role: user.role });
-  const refreshToken = signRefreshToken({ sub: user._id, role: user.role });
-
-  user.refreshToken = refreshToken;
-  await user.save();
+  const { accessToken, refreshToken } = await issueSessionTokens(user);
 
   try {
     await issueAutoCouponsForNewUser(user._id?.toString?.() || user._id);
@@ -113,11 +176,7 @@ export const login = async (req, res) => {
   if (!ok)
     return res.status(401).json({ message: "E-posta veya şifre hatalı" });
 
-  const accessToken = signAccessToken({ sub: user._id, role: user.role });
-  const refreshToken = signRefreshToken({ sub: user._id, role: user.role });
-
-  user.refreshToken = refreshToken; // rotate
-  await user.save();
+  const { accessToken, refreshToken } = await issueSessionTokens(user);
 
   setRefreshCookie(res, refreshToken);
   res.json({ user: shapeUser(user), accessToken, expiresIn: ACCESS_EXPIRES });
@@ -132,7 +191,19 @@ export const refresh = async (req, res) => {
     const payload = jwt.verify(token, REFRESH_SECRET);
     const user = await User.findById(payload.sub);
 
-    if (!user || user.refreshToken !== token)
+    if (!user)
+      return res.status(401).json({ message: "Geçersiz refresh token" });
+
+    const now = new Date();
+    const sessions = pruneRefreshSessions(user.refreshSessions || [], { now });
+    const matchedSession = findRefreshSession(sessions, {
+      sid: payload?.sid,
+      token,
+      now,
+    });
+    const legacyMatch = user.refreshToken === token;
+
+    if (!matchedSession && !legacyMatch)
       return res.status(401).json({ message: "Geçersiz refresh token" });
 
     // 🚫 Silinmiş hesap token yenileyemez
@@ -140,10 +211,25 @@ export const refresh = async (req, res) => {
       return res.status(403).json({ message: "Hesap pasif" });
     }
 
+    const sid =
+      matchedSession?.sid ||
+      (typeof payload?.sid === "string" && payload.sid.trim()) ||
+      generateRefreshSessionId();
     const newAccess = signAccessToken({ sub: user._id, role: user.role });
-    const newRefresh = signRefreshToken({ sub: user._id, role: user.role });
+    const newRefresh = signRefreshToken(buildRefreshTokenPayload(user, sid));
 
-    user.refreshToken = newRefresh; // rotate
+    user.refreshSessions = upsertRefreshSession(
+      sessions,
+      buildRefreshSessionRecord({
+        sid,
+        token: newRefresh,
+        expiresAt: decodeRefreshExpiry(newRefresh),
+        createdAt: matchedSession?.createdAt || now,
+        lastUsedAt: now,
+      }),
+      { now }
+    );
+    user.refreshToken = null;
     await user.save();
 
     setRefreshCookie(res, newRefresh);
@@ -161,18 +247,20 @@ export const logout = async (req, res) => {
       const payload = jwt.verify(token, REFRESH_SECRET);
       const user = await User.findById(payload.sub);
       if (user) {
-        user.refreshToken = null;
+        user.refreshSessions = removeRefreshSession(user.refreshSessions || [], {
+          sid: payload?.sid,
+          token,
+        });
+        if (user.refreshToken === token) {
+          user.refreshToken = null;
+        }
         await user.save();
       }
     } catch {
       // ignore invalid token
     }
   }
-  res.clearCookie("refreshToken", {
-    path: "/api/auth/refresh",
-    sameSite: sameSiteDefault,
-    secure: secureCookieDefault,
-  });
+  clearRefreshCookie(res);
   res.json({ ok: true });
 };
 

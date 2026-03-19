@@ -1,4 +1,5 @@
-import { Edit3, Trash2, Languages } from "lucide-react";
+import { Edit3, ExternalLink, Languages, Trash2 } from "lucide-react";
+import AppImage from "../../ui/AppImage.jsx";
 
 const formatter = new Intl.NumberFormat("tr-TR", {
   style: "currency",
@@ -46,6 +47,7 @@ export default function ProductTable({
             <th className="px-4 py-3 text-left font-medium">Fiyat</th>
             <th className="px-4 py-3 text-left font-medium">Setler</th>
             <th className="px-4 py-3 text-left font-medium">Durum</th>
+            <th className="px-4 py-3 text-left font-medium">Mağaza</th>
             <th className="px-4 py-3 text-left font-medium">Güncellendi</th>
             <th className="px-4 py-3 text-right font-medium">İşlemler</th>
           </tr>
@@ -59,9 +61,12 @@ export default function ProductTable({
               <td className="px-4 py-3" data-label="Ürün">
                 <div className="flex items-center gap-3">
                   {product.images?.[0]?.url ? (
-                    <img
+                    <AppImage
                       src={product.images[0].url}
                       alt={product.name}
+                      width={48}
+                      height={48}
+                      sizes="48px"
                       className="h-12 w-12 rounded-lg object-cover"
                     />
                   ) : (
@@ -90,6 +95,26 @@ export default function ProductTable({
               </td>
               <td className="px-4 py-3" data-label="Durum">
                 <StatusBadge active={product.isActive} />
+              </td>
+              <td className="px-4 py-3" data-label="Mağaza">
+                {product.isActive && product.slug ? (
+                  <a
+                    href={`/product/${product.slug}`}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex items-center justify-center gap-1 rounded-full border border-[var(--color-border-admin)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
+                  >
+                    <ExternalLink className="h-4 w-4" /> Mağazada Gör
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex items-center justify-center gap-1 rounded-full border border-[var(--color-border-admin)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-admin-muted)] opacity-60"
+                  >
+                    <ExternalLink className="h-4 w-4" /> Mağazada Gör
+                  </button>
+                )}
               </td>
               <td className="px-4 py-3 text-[var(--color-text-admin-muted)]" data-label="Güncellenme">
                 {new Date(

@@ -27,6 +27,9 @@ export default function DiscountForm({
   const [description, setDescription] = useState("");
   const [percentage, setPercentage] = useState("");
   const [active, setActive] = useState(true);
+  const [allowCouponStacking, setAllowCouponStacking] = useState(true);
+  const [allowStackedDiscountStacking, setAllowStackedDiscountStacking] =
+    useState(true);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [selectedSets, setSelectedSets] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
@@ -42,6 +45,10 @@ export default function DiscountForm({
         : ""
     );
     setActive(initialDiscount?.active ?? true);
+    setAllowCouponStacking(initialDiscount?.allowCouponStacking ?? true);
+    setAllowStackedDiscountStacking(
+      initialDiscount?.allowStackedDiscountStacking ?? true
+    );
 
     const mapInitial = (items = [], options = []) => {
       const optionMap = new Map(options.map((opt) => [opt.id, opt]));
@@ -116,6 +123,8 @@ export default function DiscountForm({
       description: description.trim(),
       percentage: perc,
       active,
+      allowCouponStacking,
+      allowStackedDiscountStacking,
       products: selectedProducts
         .map((item) => normalizeId(item.id))
         .filter(Boolean),
@@ -228,22 +237,55 @@ export default function DiscountForm({
         </label>
 
         <div className="flex items-center gap-3 rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-4 py-3">
-          <label className="inline-flex items-center gap-2 text-sm text-[var(--color-text-admin)]">
-            <input
-              type="checkbox"
-              checked={active}
-              onChange={(event) => setActive(event.target.checked)}
-              className="h-4 w-4 rounded border-[var(--color-border-admin)] text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
-              disabled={submitting}
-            />
-            Hemen aktif et
-          </label>
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="inline-flex items-center gap-2 text-sm text-[var(--color-text-admin)]">
+              <input
+                type="checkbox"
+                checked={active}
+                onChange={(event) => setActive(event.target.checked)}
+                className="h-4 w-4 rounded border-[var(--color-border-admin)] text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+                disabled={submitting}
+              />
+              Hemen aktif et
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-[var(--color-text-admin)]">
+              <input
+                type="checkbox"
+                checked={allowCouponStacking}
+                onChange={(event) => setAllowCouponStacking(event.target.checked)}
+                className="h-4 w-4 rounded border-[var(--color-border-admin)] text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+                disabled={submitting}
+              />
+              Kuponlarla birlikte uygulanabilir
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-[var(--color-text-admin)]">
+              <input
+                type="checkbox"
+                checked={allowStackedDiscountStacking}
+                onChange={(event) =>
+                  setAllowStackedDiscountStacking(event.target.checked)
+                }
+                className="h-4 w-4 rounded border-[var(--color-border-admin)] text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+                disabled={submitting}
+              />
+              Katlanan indirimle birlikte uygulanabilir
+            </label>
+          </div>
           {coverageHint && (
             <span className="text-xs text-[var(--color-text-admin-muted)]">
               Hedefler: {coverageHint}
             </span>
           )}
         </div>
+
+        <p className="-mt-2 text-xs text-[var(--color-text-admin-muted)]">
+          Bu seçenek kapalıysa bu indirimin uygulandığı ürün ve setlerde kupon
+          indirimi ayrıca hesaplanmaz.
+        </p>
+        <p className="-mt-3 text-xs text-[var(--color-text-admin-muted)]">
+          Bu seçenek kapalıysa katlanan indirimle çakışan satırlarda normal
+          indirim iptal olur.
+        </p>
 
         <EntityPicker
           label="Ürünler"

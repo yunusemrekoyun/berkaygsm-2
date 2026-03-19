@@ -116,7 +116,18 @@ export default function AdminOrdersPage() {
       setOrders((prev) =>
         prev.map((order) =>
           order.id === updated.id || order.orderNumber === updated.orderNumber
-            ? updated
+            ? {
+                ...order,
+                ...updated,
+                user:
+                  updated?.user && typeof updated.user === "object"
+                    ? updated.user
+                    : order.user,
+                items:
+                  Array.isArray(updated?.items) && updated.items.length > 0
+                    ? updated.items
+                    : order.items,
+              }
             : order
         )
       );

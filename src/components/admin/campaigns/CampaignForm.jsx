@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { UploadCloud, Image as ImageIcon, X } from "lucide-react";
 import EntityPicker from "../discounts/EntityPicker.jsx";
 import { DEFAULT_LANG } from "../../../constants/lang.js";
+import AppImage from "../../ui/AppImage.jsx";
 
 function mapSelected(ids = [], options = []) {
   if (!ids.length) return [];
@@ -458,9 +459,11 @@ export default function CampaignForm({
                   role="button"
                   tabIndex={0}
                 >
-                  <img
+                  <AppImage
                     src={imagePreview}
                     alt="Kampanya önizleme"
+                    fill
+                    sizes="320px"
                     className="h-full w-full object-cover"
                   />
                   <button

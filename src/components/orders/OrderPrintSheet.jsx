@@ -109,6 +109,15 @@ export default function OrderPrintSheet({ model, previewRef = null }) {
                 {model.subtotalLabel}
               </span>
             </div>
+            {model.adjustments.map((adjustment) => (
+              <div
+                key={`${adjustment.label}-${adjustment.valueLabel}`}
+                className="flex items-center justify-between gap-3 text-amber-700"
+              >
+                <span>{adjustment.label}</span>
+                <span className="font-medium">{adjustment.valueLabel}</span>
+              </div>
+            ))}
             <div className="flex items-center justify-between gap-3">
               <span className="text-stone-500">{model.shippingName}</span>
               <span className="font-medium text-stone-900">
