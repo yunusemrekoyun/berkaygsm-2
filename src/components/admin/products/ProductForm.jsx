@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import { ImagePlus, Upload } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { GripVertical, ImagePlus, Upload } from "lucide-react";
 import AdminModal from "../common/AdminModal";
 import TagInput from "../common/TagInput";
 import ColorSelector from "./ColorSelector.jsx";
 import ColorBadge from "../common/ColorBadge.jsx";
 import { dedupeColors, normalizeColorValue } from "../../../utils/colors.js";
+import AppImage from "../../ui/AppImage.jsx";
 
 const currencyFormatter = new Intl.NumberFormat("tr-TR", {
   style: "currency",
@@ -71,6 +72,27 @@ function normalizeOptionList(value) {
   return [];
 }
 
+function createImageItemId(prefix) {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `${prefix}:${crypto.randomUUID()}`;
+  }
+  return `${prefix}:${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function createExistingImageItems(images = []) {
+  return (images || []).map((image) => ({
+    id: `existing:${image.publicId}`,
+    type: "existing",
+    publicId: image.publicId,
+    url: image.url,
+  }));
+}
+
+function revokePreviewIfNeeded(image) {
+  if (image?.type !== "new" || !image?.preview) return;
+  URL.revokeObjectURL(image.preview);
+}
+
 export default function ProductForm({
   open,
   onClose,
@@ -96,11 +118,12 @@ export default function ProductForm({
   const [inventory, setInventory] = useState([]);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [isActive, setIsActive] = useState(true);
-  const [newImages, setNewImages] = useState([]);
-  const [existingImages, setExistingImages] = useState([]);
+  const [imageItems, setImageItems] = useState([]);
+  const [draggedImageId, setDraggedImageId] = useState(null);
   const [removeImageIds, setRemoveImageIds] = useState([]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const imageItemsRef = useRef([]);
 
   useEffect(() => {
     if (!open) return;
@@ -150,18 +173,24 @@ export default function ProductForm({
     );
     setInventoryOpen((initialProduct?.inventory || []).length > 1);
     setIsActive(initialProduct?.isActive ?? true);
-    setExistingImages(initialProduct?.images || []);
-    setNewImages([]);
+    setImageItems((prev) => {
+      prev.forEach(revokePreviewIfNeeded);
+      return createExistingImageItems(initialProduct?.images || []);
+    });
     setRemoveImageIds([]);
     setError("");
     setSubmitting(false);
   }, [initialProduct, open]);
 
   useEffect(() => {
+    imageItemsRef.current = imageItems;
+  }, [imageItems]);
+
+  useEffect(() => {
     return () => {
-      newImages.forEach((image) => URL.revokeObjectURL(image.preview));
+      imageItemsRef.current.forEach(revokePreviewIfNeeded);
     };
-  }, [newImages]);
+  }, []);
 
   const attributeActive = useMemo(() => {
     return (
@@ -256,18 +285,15 @@ export default function ProductForm({
   ]);
 
   const totalImages = useMemo(
-    () => existingImages.length + newImages.length,
-    [existingImages.length, newImages.length],
+    () => imageItems.length,
+    [imageItems.length],
   );
 
   const handleImageSelection = (event) => {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
 
-    const remainingSlots = Math.max(
-      0,
-      8 - (existingImages.length + newImages.length),
-    );
+    const remainingSlots = Math.max(0, 8 - imageItems.length);
     if (remainingSlots <= 0) {
       setError("En fazla 8 görsel eklenebilir");
       return;
@@ -276,28 +302,51 @@ export default function ProductForm({
     const mapped = files
       .filter((file) => file.type.startsWith("image/"))
       .slice(0, remainingSlots)
-      .map((file) => ({ file, preview: URL.createObjectURL(file) }));
+      .map((file) => {
+        const preview = URL.createObjectURL(file);
+        return {
+          id: createImageItemId("new"),
+          type: "new",
+          file,
+          preview,
+          url: preview,
+        };
+      });
 
     if (!mapped.length) return;
-    setNewImages((prev) => [...prev, ...mapped]);
+    setImageItems((prev) => [...prev, ...mapped]);
     setError("");
+    event.target.value = "";
   };
 
-  const removeExistingImage = (image) => {
-    setExistingImages((prev) =>
-      prev.filter((item) => item.publicId !== image.publicId),
+  const removeExistingImage = (imageId, publicId) => {
+    setImageItems((prev) => prev.filter((item) => item.id !== imageId));
+    setRemoveImageIds((prev) =>
+      prev.includes(publicId) ? prev : [...prev, publicId],
     );
-    setRemoveImageIds((prev) => [...prev, image.publicId]);
     setError("");
   };
 
-  const removeNewImage = (image) => {
-    setNewImages((prev) => {
-      const next = prev.filter((item) => item.preview !== image.preview);
-      URL.revokeObjectURL(image.preview);
-      return next;
+  const removeNewImage = (imageId) => {
+    setImageItems((prev) => {
+      const target = prev.find((item) => item.id === imageId);
+      if (target) revokePreviewIfNeeded(target);
+      return prev.filter((item) => item.id !== imageId);
     });
     setError("");
+  };
+
+  const moveImageItem = (sourceId, targetId) => {
+    if (!sourceId || !targetId || sourceId === targetId) return;
+    setImageItems((prev) => {
+      const sourceIndex = prev.findIndex((item) => item.id === sourceId);
+      const targetIndex = prev.findIndex((item) => item.id === targetId);
+      if (sourceIndex === -1 || targetIndex === -1) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(sourceIndex, 1);
+      next.splice(targetIndex, 0, moved);
+      return next;
+    });
   };
 
   const handleStockChange = (comboKey, value) => {
@@ -328,6 +377,15 @@ export default function ProductForm({
 
     try {
       const normalizedColors = dedupeColors(normalizeOptionList(colors));
+      const orderedNewImages = imageItems.filter((item) => item.type === "new");
+      const newImageIndexMap = new Map(
+        orderedNewImages.map((item, index) => [item.id, index]),
+      );
+      const imageOrder = imageItems.map((item) =>
+        item.type === "existing"
+          ? `existing:${item.publicId}`
+          : `new:${newImageIndexMap.get(item.id)}`
+      );
 
       // ✅ ÜRÜN PAYLOAD (stok hariç!)
       const productPayload = {
@@ -353,7 +411,8 @@ export default function ProductForm({
             attributeValues.length > 0,
         },
         isActive,
-        images: newImages.map((item) => item.file),
+        images: orderedNewImages.map((item) => item.file),
+        imageOrder,
         removeImagePublicIds: removeImageIds,
       };
 
@@ -715,8 +774,8 @@ export default function ProductForm({
               </span>
             </div>
             <p className="mt-1 text-xs text-[var(--color-text-admin-muted)]">
-              Yüksek kaliteli kare görseller yükleyin. Kaydettikten sonra
-              sürükleyerek sıralayabilirsiniz.
+              Yüksek kaliteli kare görseller yükleyin. Onizlemeleri
+              surukleyerek siralayabilirsiniz.
             </p>
             <div className="mt-3 flex flex-wrap gap-3">
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[var(--color-border-admin)] px-4 py-3 text-sm text-[var(--color-text-admin)] hover:border-[var(--color-text-admin)]">
@@ -730,45 +789,52 @@ export default function ProductForm({
                   onChange={handleImageSelection}
                 />
               </label>
-              {existingImages.map((image) => (
+              {imageItems.map((image) => (
                 <figure
-                  key={image.publicId}
-                  className="relative overflow-hidden rounded-xl border border-[var(--color-border-admin)]"
+                  key={image.id}
+                  draggable
+                  onDragStart={() => setDraggedImageId(image.id)}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => {
+                    moveImageItem(draggedImageId, image.id);
+                    setDraggedImageId(null);
+                  }}
+                  onDragEnd={() => setDraggedImageId(null)}
+                  className={`relative overflow-hidden rounded-xl border border-[var(--color-border-admin)] ${
+                    draggedImageId === image.id ? "opacity-60" : ""
+                  }`}
                 >
-                  <img
-                    src={image.url}
-                    alt={image.publicId}
+                  <button
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    className="absolute left-1 top-1 z-10 rounded-full bg-black/60 p-1 text-white"
+                    aria-label="Gorseli tasimak icin surukleyin"
+                    title="Siralamak icin surukleyin"
+                  >
+                    <GripVertical className="h-3.5 w-3.5" />
+                  </button>
+                  <AppImage
+                    src={image.url || image.preview}
+                    alt={image.publicId || "Yeni yukleme"}
+                    width={96}
+                    height={96}
+                    sizes="96px"
                     className="h-24 w-24 object-cover"
                   />
                   <button
                     type="button"
-                    onClick={() => removeExistingImage(image)}
+                    onClick={() =>
+                      image.type === "existing"
+                        ? removeExistingImage(image.id, image.publicId)
+                        : removeNewImage(image.id)
+                    }
                     className="absolute inset-x-0 bottom-0 bg-black/60 py-1 text-xs font-semibold text-white"
                   >
                     Kaldır
                   </button>
                 </figure>
               ))}
-              {newImages.map((image) => (
-                <figure
-                  key={image.preview}
-                  className="relative overflow-hidden rounded-xl border border-[var(--color-border-admin)]"
-                >
-                  <img
-                    src={image.preview}
-                    alt="Yeni yükleme"
-                    className="h-24 w-24 object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeNewImage(image)}
-                    className="absolute inset-x-0 bottom-0 bg-black/60 py-1 text-xs font-semibold text-white"
-                  >
-                    Kaldır
-                  </button>
-                </figure>
-              ))}
-              {!existingImages.length && !newImages.length && (
+              {!imageItems.length && (
                 <div className="grid h-24 w-24 place-items-center rounded-xl border border-dashed border-[var(--color-border-admin)] text-[var(--color-text-admin-muted)]">
                   <ImagePlus className="h-6 w-6" />
                 </div>

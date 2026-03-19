@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "../../hooks/useCart";
 import { Heart } from "lucide-react";
 import { getAccessToken } from "../../api/client";
@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom";
 import DiscountBadge from "../ui/DiscountBadge.jsx";
 import { getColorInfo } from "../../utils/colors.js";
 import ReviewSectionCard from "../reviews/ReviewSectionCard.jsx";
-import toast from "react-hot-toast";
 import {
   useStaticTranslation,
   formatStaticText,
@@ -40,7 +39,8 @@ export default function ProductDetail({ product = {} }) {
   const descriptionFallback =
     copy.descriptionFallback || "Ürün açıklaması bulunmuyor.";
   const addToCartLabel = copy.addToCart || "Sepete Ekle";
-  const addedToast = copy.addedToCart || "Ürün sepete eklendi.";
+  const addedFeedbackLabel = copy.addedToCart || "Ürün sepete eklendi.";
+  const viewCartLabel = copy.viewCart || "Sepete git";
   const fallbackName = copy.fallbackName || "Ürün";
   const favoriteAddLabel = favoritesCopy.add || "Favorilere ekle";
   const favoriteRemoveLabel = favoritesCopy.remove || "Favorilerden çıkar";
@@ -54,7 +54,7 @@ export default function ProductDetail({ product = {} }) {
   }, [product.images]);
 
   const inventory = useMemo(() => product.inventory || [], [product.inventory]);
-  const { addToCart } = useCart();
+  const { addToCart, items: cartItems = [] } = useCart();
 
   const colorOptions = useMemo(() => {
     if (product.showColors === false) return [];
@@ -123,6 +123,9 @@ export default function ProductDetail({ product = {} }) {
   const [selectedColor, setSelectedColor] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
   const [selectedAttribute, setSelectedAttribute] = useState(null);
+  const [showAddedFeedback, setShowAddedFeedback] = useState(false);
+  const [showGoToCart, setShowGoToCart] = useState(false);
+  const addedFeedbackTimeoutRef = useRef(null);
 
   const activeColorOption = useMemo(() => {
     if (!selectedColor) return null;
@@ -179,7 +182,17 @@ export default function ProductDetail({ product = {} }) {
     setSelectedColor(colorOptions[0]?.value ?? null);
     setSelectedSize(sizeOptions[0] ?? null);
     setSelectedAttribute(attribute?.values?.[0] ?? null);
+    setShowAddedFeedback(false);
+    setShowGoToCart(false);
   }, [productId, colorOptions, sizeOptions, attribute?.values]);
+
+  useEffect(() => {
+    return () => {
+      if (addedFeedbackTimeoutRef.current) {
+        clearTimeout(addedFeedbackTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const currentStock = useMemo(() => {
     if (!inventory.length) {
@@ -203,24 +216,45 @@ export default function ProductDetail({ product = {} }) {
     selectedSize,
   ]);
 
+  const cartQtyForVariant = useMemo(() => {
+    if (!productId) return 0;
+    return cartItems.reduce((sum, item) => {
+      const sameProduct =
+        item?.kind !== "set" &&
+        String(item?.productId || item?.id || "") === String(productId);
+      const sameColor = normalize(item?.color) === normalize(selectedColor);
+      const sameSize = normalize(item?.size) === normalize(selectedSize);
+      const sameAttribute =
+        normalize(item?.attribute) === normalize(selectedAttribute);
+      return sameProduct && sameColor && sameSize && sameAttribute
+        ? sum + (Number(item?.qty) || 0)
+        : sum;
+    }, 0);
+  }, [cartItems, productId, selectedAttribute, selectedColor, selectedSize]);
+
+  const availableStock = useMemo(() => {
+    if (currentStock === null) return null;
+    return Math.max(0, currentStock - cartQtyForVariant);
+  }, [cartQtyForVariant, currentStock]);
+
   useEffect(() => {
     if (
-      currentStock !== null &&
-      currentStock !== undefined &&
-      currentStock >= 0
+      availableStock !== null &&
+      availableStock !== undefined &&
+      availableStock >= 0
     ) {
-      if (currentStock === 0) {
+      if (availableStock === 0) {
         setQuantity(0);
       } else if (quantity === 0) {
         setQuantity(1);
-      } else if (quantity > currentStock) {
-        setQuantity(currentStock);
+      } else if (quantity > availableStock) {
+        setQuantity(availableStock);
       }
     }
-  }, [currentStock, quantity]);
+  }, [availableStock, quantity]);
 
-  const maxQty = currentStock === null ? 99 : Math.max(0, currentStock);
-  const canPurchase = currentStock === null ? true : currentStock > 0;
+  const maxQty = availableStock === null ? 99 : Math.max(0, availableStock);
+  const canPurchase = availableStock === null ? true : availableStock > 0;
 
   const inc = () => {
     if (!canPurchase) return;
@@ -240,16 +274,24 @@ export default function ProductDetail({ product = {} }) {
       size: selectedSize,
       attribute: selectedAttribute,
       qty: quantity,
+      stockLimit: currentStock,
     });
-    toast.success(addedToast);
+    setShowGoToCart(true);
+    setShowAddedFeedback(true);
+    if (addedFeedbackTimeoutRef.current) {
+      clearTimeout(addedFeedbackTimeoutRef.current);
+    }
+    addedFeedbackTimeoutRef.current = setTimeout(() => {
+      setShowAddedFeedback(false);
+    }, 1800);
   };
 
   const stockLabel =
-    currentStock === null
+    availableStock === null
       ? stockCopy.inStock || "Stokta"
-      : currentStock > 0
+      : availableStock > 0
       ? formatStaticText(stockCopy.inStockCount || "{count} adet stokta", {
-          count: currentStock,
+          count: availableStock,
         })
       : stockCopy.outOfStock || "Stokta yok";
 
@@ -452,31 +494,51 @@ export default function ProductDetail({ product = {} }) {
             </div>
           )}
 
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            <div className="glass-chip inline-flex items-center gap-2 rounded-full border border-border bg-white px-3 py-1.5">
+          <div className="mt-5 space-y-3">
+            {showAddedFeedback && (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                {addedFeedbackLabel}
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="glass-chip inline-flex items-center gap-2 rounded-full border border-border bg-white px-3 py-1.5">
+                <button
+                  onClick={dec}
+                  className="px-1 text-primary disabled:opacity-50"
+                  disabled={!canPurchase}
+                >
+                  –
+                </button>
+                <span className="w-6 text-center text-primary">{quantity}</span>
+                <button
+                  onClick={inc}
+                  className="px-1 text-primary disabled:opacity-50"
+                  disabled={!canPurchase}
+                >
+                  +
+                </button>
+              </div>
               <button
-                onClick={dec}
-                className="px-1 text-primary disabled:opacity-50"
+                onClick={handleAddToCart}
+                className={`inline-flex flex-1 items-center justify-center rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60 md:flex-none md:px-8 ${
+                  showAddedFeedback ? "animate-pulse ring-4 ring-accent/20" : ""
+                }`}
                 disabled={!canPurchase}
               >
-                –
-              </button>
-              <span className="w-6 text-center text-primary">{quantity}</span>
-              <button
-                onClick={inc}
-                className="px-1 text-primary disabled:opacity-50"
-                disabled={!canPurchase}
-              >
-                +
+                {addToCartLabel}
               </button>
             </div>
-            <button
-              onClick={handleAddToCart}
-              className="inline-flex flex-1 items-center justify-center rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60 md:flex-none md:px-8"
-              disabled={!canPurchase}
-            >
-              {addToCartLabel}
-            </button>
+
+            {showGoToCart && (
+              <button
+                type="button"
+                onClick={() => navigate("/cart")}
+                className="inline-flex w-full items-center justify-center rounded-full border border-border bg-white px-5 py-3 text-sm font-semibold text-primary hover:bg-surface-hover md:w-auto"
+              >
+                {viewCartLabel}
+              </button>
+            )}
           </div>
 
           {care && (

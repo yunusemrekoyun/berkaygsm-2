@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
-import Set from "../models/Set.js";
+import SetModel from "../models/Set.js";
 import StockItem from "../models/StockItem.js";
 import {
   uploadBufferToCloudinary,
@@ -66,6 +66,60 @@ const normalizeArray = (v) => {
   return [];
 };
 
+function parseImageOrder(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .flatMap((item) => parseImageOrder(item))
+      .filter(Boolean);
+  }
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item) => String(item).trim()).filter(Boolean);
+        }
+      } catch {
+        return [];
+      }
+    }
+    return trimmed
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function orderProductImages(existingImages = [], newImages = [], imageOrder = []) {
+  if (!imageOrder.length) return [...existingImages, ...newImages];
+
+  const existingMap = new Map(
+    existingImages.map((image) => [`existing:${image.publicId}`, image])
+  );
+  const newMap = new Map(
+    newImages.map((image, index) => [`new:${index}`, image])
+  );
+
+  const ordered = [];
+  imageOrder.forEach((token) => {
+    const image = existingMap.get(token) || newMap.get(token);
+    if (!image) return;
+    ordered.push(image);
+    existingMap.delete(token);
+    newMap.delete(token);
+  });
+
+  return [
+    ...ordered,
+    ...existingMap.values(),
+    ...newMap.values(),
+  ];
+}
+
 function parseBool(v, def = true) {
   if (v === undefined) return def;
   const s = String(v).trim().toLowerCase();
@@ -84,45 +138,92 @@ function buildProductComboKey(row = {}) {
 }
 
 function parseStockRows(raw) {
-  if (!raw) return [];
-  if (Array.isArray(raw)) {
-    if (!raw.length) return [];
-    if (raw.every((entry) => typeof entry === "object")) return raw;
-    const parsedItems = raw
-      .map((entry) => {
-        if (typeof entry !== "string") return null;
-        try {
-          return JSON.parse(entry);
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean);
-    return parsedItems.flat();
+  if (raw === undefined) {
+    return { provided: false, valid: true, explicitEmpty: false, rows: [] };
   }
+
+  if (Array.isArray(raw)) {
+    if (!raw.length) {
+      return { provided: true, valid: true, explicitEmpty: true, rows: [] };
+    }
+    if (raw.every((entry) => entry && typeof entry === "object")) {
+      return {
+        provided: true,
+        valid: true,
+        explicitEmpty: false,
+        rows: raw,
+      };
+    }
+
+    const parsedItems = [];
+    for (const entry of raw) {
+      if (typeof entry !== "string") {
+        return { provided: true, valid: false, explicitEmpty: false, rows: [] };
+      }
+      try {
+        const parsed = JSON.parse(entry);
+        if (Array.isArray(parsed)) {
+          parsedItems.push(...parsed);
+          continue;
+        }
+        if (parsed && typeof parsed === "object") {
+          parsedItems.push(parsed);
+          continue;
+        }
+        return { provided: true, valid: false, explicitEmpty: false, rows: [] };
+      } catch {
+        return { provided: true, valid: false, explicitEmpty: false, rows: [] };
+      }
+    }
+
+    return {
+      provided: true,
+      valid: true,
+      explicitEmpty: parsedItems.length === 0,
+      rows: parsedItems,
+    };
+  }
+
   if (typeof raw === "string") {
     let current = raw;
     for (let i = 0; i < 2; i += 1) {
       try {
         const parsed = JSON.parse(current);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          return {
+            provided: true,
+            valid: true,
+            explicitEmpty: parsed.length === 0,
+            rows: parsed,
+          };
+        }
         if (typeof parsed === "string") {
           current = parsed;
           continue;
         }
-        return [];
+        return { provided: true, valid: false, explicitEmpty: false, rows: [] };
       } catch {
-        return [];
+        return { provided: true, valid: false, explicitEmpty: false, rows: [] };
       }
     }
-    return [];
   }
-  return [];
+
+  return { provided: true, valid: false, explicitEmpty: false, rows: [] };
 }
 
 async function syncProductStockRows(productId, rawRows) {
-  const rows = parseStockRows(rawRows);
-  if (!rows.length) return { ok: true, count: 0 };
+  const parsed = parseStockRows(rawRows);
+  if (!parsed.provided) return { ok: true, count: 0, touched: false };
+  if (!parsed.valid) {
+    throw new Error("Stok satırları okunamadı");
+  }
+  if (parsed.explicitEmpty) {
+    await StockItem.deleteMany({ ownerModel: "Product", owner: productId });
+    return { ok: true, count: 0, touched: true };
+  }
+
+  const rows = parsed.rows;
+  if (!rows.length) return { ok: true, count: 0, touched: true };
 
   const seen = new Set();
   const docs = [];
@@ -191,7 +292,7 @@ async function annotateProductsWithSetUsage(products = []) {
   if (!idList.length) return;
 
   const objectIds = idList.map((id) => new mongoose.Types.ObjectId(id));
-  const stats = await Set.aggregate([
+  const stats = await SetModel.aggregate([
     { $match: { "products.product": { $in: objectIds } } },
     { $unwind: "$products" },
     { $match: { "products.product": { $in: objectIds } } },
@@ -222,7 +323,7 @@ async function fetchSetsForProduct(productId) {
   const idStr = productId.toString();
   if (!mongoose.Types.ObjectId.isValid(idStr)) return [];
   const objectId = new mongoose.Types.ObjectId(idStr);
-  const sets = await Set.find({ "products.product": objectId })
+  const sets = await SetModel.find({ "products.product": objectId })
     .select("_id name slug products")
     .lean();
   return sets.map((set) => ({
@@ -384,6 +485,7 @@ export async function createProduct(req, res) {
       isActive,
       listedInCatalog,
       sku,
+      imageOrder,
     } = req.body;
 
     if (!name || price == null)
@@ -403,7 +505,12 @@ export async function createProduct(req, res) {
     const uploadedImages = files.length
       ? await uploadImages(files, "products")
       : [];
-    const images = [...directImages, ...uploadedImages];
+    const uploadedAssets = [...directImages, ...uploadedImages];
+    const images = orderProductImages(
+      [],
+      uploadedAssets,
+      parseImageOrder(imageOrder)
+    );
 
     // 🔁 customAttribute’ı da normalize et
     const rawAttr =
@@ -443,18 +550,13 @@ export async function createProduct(req, res) {
     );
 
     await doc.save();
+    await syncProductStockRows(doc._id, req.body?.stockRows);
 
     const populated = await doc.populate("category");
     await hydrateProductsWithInventory([populated]);
     await annotateProductsWithSetUsage([populated]);
     const discountMap = await buildProductDiscountMap([populated]);
     const discount = discountMap.get(resolveDocId(populated)) || null;
-    try {
-      await syncProductStockRows(doc._id, req.body?.stockRows);
-      await hydrateProductsWithInventory([populated]);
-    } catch (err) {
-      console.warn("Stock sync failed (createProduct):", err?.message || err);
-    }
     res.status(201).json({
       product: presentProduct(populated, lang, discount),
     });
@@ -565,9 +667,10 @@ export async function updateProduct(req, res) {
       customAttribute,
       isActive,
       listedInCatalog,
-    sku,
-    removeImagePublicIds,
-  } = req.body;
+      sku,
+      removeImagePublicIds,
+      imageOrder,
+    } = req.body;
 
     const incomingTranslations = pickLocalizedPayload(req.body);
     const ensureLangBucket = () => {
@@ -712,13 +815,15 @@ export async function updateProduct(req, res) {
     // Yeni görseller (buffer → Cloudinary) + direct upload payload
     const files = Array.isArray(req.files) ? req.files : [];
     const directImages = extractAssetList(req.body.images);
-    if (directImages.length) {
-      product.images.push(...directImages);
-    }
-    if (files.length) {
-      const imgs = await uploadImages(files, "products");
-      product.images.push(...imgs);
-    }
+    const uploadedImages = files.length
+      ? await uploadImages(files, "products")
+      : [];
+    const newImages = [...directImages, ...uploadedImages];
+    product.images = orderProductImages(
+      product.images.filter(Boolean),
+      newImages,
+      parseImageOrder(imageOrder)
+    );
 
     syncDocTranslations(
       product,
@@ -728,17 +833,13 @@ export async function updateProduct(req, res) {
     );
 
     await product.save();
+    await syncProductStockRows(product._id, req.body?.stockRows);
+
     const populated = await product.populate("category");
     await hydrateProductsWithInventory([populated]);
     await annotateProductsWithSetUsage([populated]);
     const discountMap = await buildProductDiscountMap([populated]);
     const discount = discountMap.get(resolveDocId(populated)) || null;
-    try {
-      await syncProductStockRows(product._id, req.body?.stockRows);
-      await hydrateProductsWithInventory([populated]);
-    } catch (err) {
-      console.warn("Stock sync failed (updateProduct):", err?.message || err);
-    }
     res.json({ product: presentProduct(populated, lang, discount) });
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.sku)
@@ -787,7 +888,7 @@ export async function deleteProduct(req, res) {
       if (setAction === "delete_sets") {
         if (setObjectIds.length) {
           await Promise.all([
-            Set.deleteMany({ _id: { $in: setObjectIds } }),
+            SetModel.deleteMany({ _id: { $in: setObjectIds } }),
             StockItem.deleteMany({
               ownerModel: "Set",
               owner: { $in: setObjectIds },
@@ -797,12 +898,12 @@ export async function deleteProduct(req, res) {
         responseMeta.deletedSets = relatedSets;
       } else if (setAction === "detach") {
         if (setObjectIds.length) {
-          await Set.updateMany(
+          await SetModel.updateMany(
             { _id: { $in: setObjectIds } },
             { $pull: { products: { product: product._id } } }
           );
 
-          const emptiedSets = await Set.find({
+          const emptiedSets = await SetModel.find({
             _id: { $in: setObjectIds },
             $expr: { $eq: [{ $size: "$products" }, 0] },
           })
@@ -812,7 +913,7 @@ export async function deleteProduct(req, res) {
           if (emptiedSets.length) {
             const emptyIds = emptiedSets.map((set) => set._id);
             await Promise.all([
-              Set.deleteMany({ _id: { $in: emptyIds } }),
+              SetModel.deleteMany({ _id: { $in: emptyIds } }),
               StockItem.deleteMany({
                 ownerModel: "Set",
                 owner: { $in: emptyIds },

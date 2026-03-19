@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import User from "../models/User.js";
 import UserDetails from "../models/UserDetails.js";
 import Product from "../models/Product.js";
-import Set from "../models/Set.js";
+import SetModel from "../models/Set.js";
 import {
   uploadBufferToCloudinary,
   deleteFromCloudinary,
@@ -387,7 +387,7 @@ export async function getFavorites(req, res) {
       Product.find({ _id: { $in: details.favoriteProducts || [] } })
         .populate("category")
         .lean(),
-      Set.find({ _id: { $in: details.favoriteSets || [] } }).lean(),
+      SetModel.find({ _id: { $in: details.favoriteSets || [] } }).lean(),
     ]);
 
     const activeDiscounts = await fetchActiveDiscounts();
@@ -450,7 +450,7 @@ export async function toggleFavorite(req, res) {
       if (idx >= 0) details.favoriteProducts.splice(idx, 1);
       else details.favoriteProducts.push(id);
     } else {
-      const exists = await Set.exists({ _id: id });
+      const exists = await SetModel.exists({ _id: id });
       if (!exists) return res.status(404).json({ message: "Set bulunamadı" });
 
       const idx = details.favoriteSets.findIndex(

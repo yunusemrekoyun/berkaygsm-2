@@ -9,14 +9,25 @@ import ProductSet from "../models/Set.js";
 import Category from "../models/Category.js";
 import {
   COUPON_TEMPLATES,
-  evaluateCouponForOrderContext,
   isCouponActiveNow,
   isValidManualCouponCode,
   issueCouponAssignments,
   normalizeCouponCodeInput,
   parseIstanbulDateInput,
+  resolveCouponOrderContext,
   validateDateRange,
 } from "../utils/couponEngine.js";
+import {
+  fetchActiveDiscounts,
+  computeProductDiscountMap,
+  mapDiscountsToSets,
+} from "../utils/discountHelpers.js";
+import { getStackedDiscountConfig } from "../services/stackedDiscountService.js";
+import { calculateCartPricing } from "../../utils/pricingEngine.js";
+import {
+  buildPricingLineFromProduct,
+  buildPricingLineFromSet,
+} from "../utils/pricingLineHelpers.js";
 
 const AUDIENCE_VALUES = ["public", "personal"];
 const ASSIGNMENT_VALUES = ["everyone", "manual"];
@@ -1007,7 +1018,7 @@ function normalizePreviewItems(rawItems = [], fallbackSubtotal = 0) {
   return lines;
 }
 
-async function buildProductMapForLines(lines = []) {
+async function buildPreviewPricingLines(lines = []) {
   const productIds = Array.from(
     new Set(
       lines
@@ -1016,13 +1027,59 @@ async function buildProductMapForLines(lines = []) {
         .filter((id) => mongoose.Types.ObjectId.isValid(id))
     )
   );
-  if (!productIds.length) return new Map();
-
-  const products = await Product.find({ _id: { $in: productIds } }).populate(
-    "category",
-    "ancestors"
+  const setIds = Array.from(
+    new Set(
+      lines
+        .filter((line) => line.kind === "set")
+        .map((line) => String(line.ref || ""))
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+    )
   );
-  return new Map(products.map((product) => [String(product._id), product]));
+
+  const [products, sets, activeDiscounts, stackedDiscount] = await Promise.all([
+    productIds.length
+      ? Product.find({ _id: { $in: productIds } }).populate("category")
+      : [],
+    setIds.length ? ProductSet.find({ _id: { $in: setIds } }) : [],
+    fetchActiveDiscounts(),
+    getStackedDiscountConfig(),
+  ]);
+
+  const productMap = new Map(products.map((product) => [String(product._id), product]));
+  const setMap = new Map(sets.map((setDoc) => [String(setDoc._id), setDoc]));
+  const productDiscountMap =
+    products.length && activeDiscounts.length
+      ? computeProductDiscountMap(activeDiscounts, products)
+      : new Map();
+  const setDiscountMap =
+    sets.length && activeDiscounts.length
+      ? mapDiscountsToSets(activeDiscounts, sets.map((setDoc) => setDoc._id))
+      : new Map();
+
+  return {
+    stackedDiscount,
+    lines: lines
+      .map((line) => {
+        if (line.kind === "set") {
+          const setDoc = setMap.get(String(line.ref));
+          if (!setDoc) return null;
+          return buildPricingLineFromSet({
+            setDoc,
+            qty: line.qty,
+            discount: setDiscountMap.get(String(setDoc._id)) || null,
+          });
+        }
+
+        const product = productMap.get(String(line.ref));
+        if (!product) return null;
+        return buildPricingLineFromProduct({
+          product,
+          qty: line.qty,
+          discount: productDiscountMap.get(String(product._id)) || null,
+        });
+      })
+      .filter(Boolean),
+  };
 }
 
 export async function applyCoupon(req, res) {
@@ -1034,16 +1091,43 @@ export async function applyCoupon(req, res) {
     }
 
     const orderItems = normalizePreviewItems(items, subtotal);
-    const productMap = await buildProductMapForLines(orderItems);
-
-    const result = await evaluateCouponForOrderContext({
+    const { coupon } = await resolveCouponOrderContext({
       userId: req.userId,
       couponCode: normalizedCode,
-      orderItems,
-      productMap,
+    });
+    const { lines: pricingLines, stackedDiscount } = await buildPreviewPricingLines(
+      orderItems
+    );
+    const pricing = calculateCartPricing({
+      lines: pricingLines,
+      stackedDiscount,
+      coupon,
     });
 
-    res.json({ coupon: result.summary });
+    if (!pricing.coupon?.applicable || pricing.coupon.discountAmount <= 0) {
+      if (
+        Number(pricing.coupon?.eligibleSubtotal || 0) <
+        Number(pricing.coupon?.minSubtotal || 0)
+      ) {
+        return res.status(400).json({
+          message: `Kupon için minimum ara toplam ${pricing.coupon.minSubtotal} olmalı`,
+          details: {
+            reason: "minSubtotal",
+            minSubtotal: pricing.coupon.minSubtotal,
+            eligibleSubtotal: pricing.coupon.eligibleSubtotal || 0,
+          },
+        });
+      }
+      return res.status(400).json({
+        message: "Kupon bu sepet için uygulanamıyor",
+        details: {
+          reason: "notApplicable",
+          eligibleSubtotal: pricing.coupon?.eligibleSubtotal || 0,
+        },
+      });
+    }
+
+    res.json({ coupon: pricing.coupon });
   } catch (error) {
     const status = Number(error?.status || 0) || 400;
     const payload = { message: error.message || "Kupon uygulanamadı" };

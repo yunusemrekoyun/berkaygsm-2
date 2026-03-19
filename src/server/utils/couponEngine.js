@@ -232,12 +232,25 @@ function hasCouponTargets(coupon) {
   );
 }
 
-function calculateEligibleSubtotal(coupon, orderItems = [], productMap = new Map()) {
+export function isCouponEligibleOrderLine(line) {
+  if (!line || typeof line !== "object") return false;
+  const stacking = line.couponStacking;
+  if (!stacking || typeof stacking !== "object") return true;
+  return stacking.allowCouponStacking !== false;
+}
+
+export function calculateEligibleSubtotal(
+  coupon,
+  orderItems = [],
+  productMap = new Map()
+) {
   const lines = Array.isArray(orderItems) ? orderItems : [];
   if (!hasCouponTargets(coupon)) {
     return lines.reduce(
       (sum, line) =>
-        sum + Number(line?.unitPrice || 0) * Number(line?.qty || 0),
+        isCouponEligibleOrderLine(line)
+          ? sum + Number(line?.unitPrice || 0) * Number(line?.qty || 0)
+          : sum,
       0
     );
   }
@@ -248,6 +261,7 @@ function calculateEligibleSubtotal(coupon, orderItems = [], productMap = new Map
 
   let eligibleSubtotal = 0;
   for (const line of lines) {
+    if (!isCouponEligibleOrderLine(line)) continue;
     const kind = String(line?.kind || "product").toLowerCase();
     const refId = line?.ref?.toString?.() || String(line?.ref || "");
     const lineTotal =
@@ -355,11 +369,9 @@ async function resolveCouponByCodeForUser({
   return { coupon: null, assignment: null };
 }
 
-export async function evaluateCouponForOrderContext({
+export async function resolveCouponOrderContext({
   userId,
   couponCode,
-  orderItems = [],
-  productMap = new Map(),
   now = new Date(),
 }) {
   if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
@@ -403,6 +415,32 @@ export async function evaluateCouponForOrderContext({
     });
   }
 
+  return {
+    coupon,
+    assignment,
+    context: {
+      couponId: String(coupon._id),
+      assignmentId: assignment?._id?.toString?.() || null,
+      code,
+      audience: coupon.audience || "public",
+      maxUsesPerUser,
+    },
+  };
+}
+
+export async function evaluateCouponForOrderContext({
+  userId,
+  couponCode,
+  orderItems = [],
+  productMap = new Map(),
+  now = new Date(),
+}) {
+  const { coupon, context } = await resolveCouponOrderContext({
+    userId,
+    couponCode,
+    now,
+  });
+
   const eligibleSubtotal = Math.round(
     calculateEligibleSubtotal(coupon, orderItems, productMap) * 100
   ) / 100;
@@ -434,14 +472,13 @@ export async function evaluateCouponForOrderContext({
       discountAmount,
       template: coupon.template || "manual",
       audience: coupon.audience || "public",
+      targets: {
+        products: Array.from(normalizeIdSet(coupon.targets?.products || [])),
+        sets: Array.from(normalizeIdSet(coupon.targets?.sets || [])),
+        categories: Array.from(normalizeIdSet(coupon.targets?.categories || [])),
+      },
     },
-    context: {
-      couponId: String(coupon._id),
-      assignmentId: assignment?._id?.toString?.() || null,
-      code,
-      audience: coupon.audience || "public",
-      maxUsesPerUser,
-    },
+    context,
   };
 }
 
@@ -467,6 +504,15 @@ async function incrementCouponTotalUses(couponId, maxTotalUses, session = null) 
   if (session) query.session(session);
   await query;
   return null;
+}
+
+async function decrementCouponTotalUses(couponId, session = null) {
+  const query = Coupon.updateOne(
+    { _id: couponId, totalUses: { $gt: 0 } },
+    { $inc: { totalUses: -1 } }
+  );
+  if (session) query.session(session);
+  await query;
 }
 
 export async function consumeCouponAfterSuccess({
@@ -565,4 +611,64 @@ export async function consumeCouponAfterSuccess({
     }
     throw error;
   }
+}
+
+export async function restoreCouponAfterReversal({
+  userId,
+  couponContext = null,
+  session = null,
+}) {
+  if (!couponContext?.couponId || !mongoose.Types.ObjectId.isValid(userId)) {
+    return null;
+  }
+
+  const couponQuery = Coupon.findById(couponContext.couponId);
+  if (session) couponQuery.session(session);
+  const coupon = await couponQuery;
+  if (!coupon) return null;
+
+  const redemptionQuery = CouponRedemption.updateOne(
+    {
+      coupon: coupon._id,
+      user: userId,
+      uses: { $gt: 0 },
+    },
+    {
+      $inc: { uses: -1 },
+      $set: { lastOrder: null },
+    }
+  );
+  if (session) redemptionQuery.session(session);
+  await redemptionQuery;
+
+  const assignmentFilter = couponContext.assignmentId
+    ? {
+        _id: couponContext.assignmentId,
+        coupon: coupon._id,
+        user: userId,
+        uses: { $gt: 0 },
+      }
+    : couponContext.code && couponContext.audience === "personal"
+    ? {
+        coupon: coupon._id,
+        user: userId,
+        code: couponContext.code,
+        uses: { $gt: 0 },
+      }
+    : null;
+
+  if (assignmentFilter) {
+    const assignmentQuery = CouponAssignment.updateOne(
+      assignmentFilter,
+      {
+        $inc: { uses: -1 },
+        $set: { lastOrder: null },
+      }
+    );
+    if (session) assignmentQuery.session(session);
+    await assignmentQuery;
+  }
+
+  await decrementCouponTotalUses(coupon._id, session);
+  return { ok: true };
 }

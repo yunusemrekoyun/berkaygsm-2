@@ -179,6 +179,48 @@ export function shapeProduct(
       })
     : [];
 
+  const category = (() => {
+    if (!doc.category) return doc.category ?? null;
+    if (typeof doc.category === "string") return doc.category;
+
+    const categoryId =
+      doc.category._id?.toString?.() ||
+      doc.category.id?.toString?.() ||
+      (typeof doc.category.toString === "function" &&
+      doc.category.toString !== Object.prototype.toString
+        ? String(doc.category.toString())
+        : null);
+
+    if (!categoryId || categoryId === "[object Object]") return null;
+
+    return {
+      id: categoryId,
+      _id: categoryId,
+      name: doc.category.name || "",
+      slug: doc.category.slug || "",
+      parent: (() => {
+        const value =
+          doc.category.parent?._id?.toString?.() ||
+          doc.category.parent?.id?.toString?.() ||
+          (doc.category.parent ? String(doc.category.parent) : null);
+        return value && value !== "[object Object]" ? value : null;
+      })(),
+      level: Number(doc.category.level || 0),
+      ancestors: Array.isArray(doc.category.ancestors)
+        ? doc.category.ancestors
+            .map((entry) => {
+              const value =
+                entry?._id?.toString?.() ||
+                entry?.id?.toString?.() ||
+                (entry ? String(entry) : "");
+              return value && value !== "[object Object]" ? value : "";
+            })
+            .filter(Boolean)
+        : [],
+      image: doc.category.image || null,
+    };
+  })();
+
   return {
     id,
     name: doc.name,
@@ -203,7 +245,7 @@ export function shapeProduct(
     description: doc.description,
     careInstructions: doc.careInstructions,
     details: doc.details,
-    category: doc.category,
+    category,
     isActive: doc.isActive,
     listedInCatalog:
       doc.listedInCatalog !== undefined ? doc.listedInCatalog : true,

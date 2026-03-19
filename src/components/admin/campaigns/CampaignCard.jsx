@@ -9,6 +9,7 @@ import {
   EyeOff,
   Languages,
 } from "lucide-react";
+import AppImage from "../../ui/AppImage.jsx";
 
 export default function CampaignCard({
   campaign,
@@ -29,9 +30,11 @@ export default function CampaignCard({
     <article className="overflow-hidden rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-sm">
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-[var(--color-bg-admin)]">
         {image ? (
-          <img
+          <AppImage
             src={image.url}
             alt={name}
+            fill
+            sizes="(max-width: 768px) 100vw, 33vw"
             className="h-full w-full object-cover"
           />
         ) : (

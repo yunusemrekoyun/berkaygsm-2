@@ -550,6 +550,39 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
                         {summary?.payment}
                       </div>
                     </div>
+                    {(order?.pricing?.standardDiscountAmount > 0 ||
+                      order?.pricing?.stackedDiscountAmount > 0 ||
+                      order?.coupon?.discountAmount > 0) && (
+                      <div>
+                        <div className="text-xs uppercase tracking-[0.16em] text-secondary/70">
+                          Fiyat Kırılımı
+                        </div>
+                        <div className="mt-1 space-y-1 text-sm font-medium text-primary">
+                          {order?.pricing?.standardDiscountAmount > 0 && (
+                            <div>
+                              Normal indirim: -₺
+                              {Number(
+                                order.pricing.standardDiscountAmount || 0
+                              ).toFixed(2)}
+                            </div>
+                          )}
+                          {order?.pricing?.stackedDiscountAmount > 0 && (
+                            <div>
+                              Katlanan indirim: -₺
+                              {Number(
+                                order.pricing.stackedDiscountAmount || 0
+                              ).toFixed(2)}
+                            </div>
+                          )}
+                          {order?.coupon?.discountAmount > 0 && (
+                            <div>
+                              Kupon {order.coupon.code}: -₺
+                              {Number(order.coupon.discountAmount || 0).toFixed(2)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     {order?.note && (
                       <div>
                         <div className="text-xs uppercase tracking-[0.16em] text-secondary/70">

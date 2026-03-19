@@ -1,3 +1,5 @@
+"use client";
+
 // src/pages/HomePage.jsx
 import { useEffect, useMemo, useState } from "react";
 import Hero from "../components/Hero";
@@ -14,33 +16,37 @@ import { campaignApi } from "../api/campaigns";
 import { reviewApi } from "../api/reviews";
 import { useStorefrontLang } from "../context/LangContext.jsx";
 import { useStaticTranslation } from "../i18n/staticContent.js";
+import { DEFAULT_LANG } from "../constants/lang.js";
 
-export default function HomePage() {
-  // HERO (dinamik)
-  const [heroes, setHeroes] = useState([]);
-  const [loadingHeroes, setLoadingHeroes] = useState(true);
+function normalizeInitialData(initialData) {
+  return {
+    heroes: Array.isArray(initialData?.heroes) ? initialData.heroes : [],
+    featuredProducts: Array.isArray(initialData?.featuredProducts)
+      ? initialData.featuredProducts
+      : [],
+    sets: Array.isArray(initialData?.sets) ? initialData.sets : [],
+    campaigns: Array.isArray(initialData?.campaigns) ? initialData.campaigns : [],
+    homeReviews: Array.isArray(initialData?.homeReviews)
+      ? initialData.homeReviews
+      : [],
+    categoryItems: Array.isArray(initialData?.categoryItems)
+      ? initialData.categoryItems
+      : [],
+  };
+}
 
-  // Products
-  const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
-
-  // Sets
-  const [sets, setSets] = useState([]);
-  const [loadingSets, setLoadingSets] = useState(true);
-
-  // Campaigns
-  const [campaigns, setCampaigns] = useState([]);
-  const [loadingCampaigns, setLoadingCampaigns] = useState(true);
-
-  // Reviews
-  const [homeReviews, setHomeReviews] = useState([]);
-  // eslint-disable-next-line no-unused-vars
-  const [loadingHomeReviews, setLoadingHomeReviews] = useState(true);
-
-  // error
-  const [error, setError] = useState(null);
+export default function HomePage({
+  initialData = null,
+  initialLang = DEFAULT_LANG,
+}) {
   const { lang } = useStorefrontLang();
   const t = useStaticTranslation();
+  const normalizedInitialData = useMemo(
+    () => normalizeInitialData(initialData),
+    [initialData]
+  );
+  const hasInitialData = initialData !== null;
+  const shouldUseInitialData = hasInitialData && lang === initialLang;
   const fallbackCampaigns = useMemo(
     () => t("homePage.fallbackCampaigns") || [],
     [t]
@@ -55,10 +61,51 @@ export default function HomePage() {
   const campaignCopy = useMemo(() => t("homeCampaigns") || {}, [t]);
   const sectionUntitledSet = sectionCopy.untitledSet;
   const sectionIncludesMore = sectionCopy.includesMore;
+  const initialSetCards = useMemo(
+    () =>
+      mapSetsToCards(normalizedInitialData.sets, {
+        untitledSet: sectionUntitledSet,
+        includesMoreLabel: sectionIncludesMore,
+      }),
+    [normalizedInitialData.sets, sectionIncludesMore, sectionUntitledSet]
+  );
+
+  // HERO (dinamik)
+  const [heroes, setHeroes] = useState(normalizedInitialData.heroes);
+  const [, setLoadingHeroes] = useState(!hasInitialData);
+
+  // Products
+  const [featuredProducts, setFeaturedProducts] = useState(
+    normalizedInitialData.featuredProducts
+  );
+  const [loadingProducts, setLoadingProducts] = useState(!hasInitialData);
+
+  // Sets
+  const [sets, setSets] = useState(initialSetCards);
+  const [loadingSets, setLoadingSets] = useState(!hasInitialData);
+
+  // Campaigns
+  const [campaigns, setCampaigns] = useState(normalizedInitialData.campaigns);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(!hasInitialData);
+
+  // Reviews
+  const [homeReviews, setHomeReviews] = useState(normalizedInitialData.homeReviews);
+  // eslint-disable-next-line no-unused-vars
+  const [loadingHomeReviews, setLoadingHomeReviews] = useState(!hasInitialData);
+
+  // error
+  const [error, setError] = useState(null);
 
   // HERO fetch
   useEffect(() => {
     let mounted = true;
+    if (shouldUseInitialData) {
+      setHeroes(normalizedInitialData.heroes);
+      setLoadingHeroes(false);
+      return () => {
+        mounted = false;
+      };
+    }
     setLoadingHeroes(true);
     (async () => {
       try {
@@ -74,15 +121,22 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, [lang]);
+  }, [lang, normalizedInitialData.heroes, shouldUseInitialData]);
 
   // Products fetch
   useEffect(() => {
     let mounted = true;
+    if (shouldUseInitialData) {
+      setFeaturedProducts(normalizedInitialData.featuredProducts);
+      setLoadingProducts(false);
+      return () => {
+        mounted = false;
+      };
+    }
     setLoadingProducts(true);
     (async () => {
       try {
-        const data = await productApi.list({ limit: 12 }, lang);
+        const data = await productApi.list({ limit: 6 }, lang);
         if (!mounted) return;
         setFeaturedProducts(data.products || []);
       } catch (err) {
@@ -94,11 +148,18 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, [lang]);
+  }, [lang, normalizedInitialData.featuredProducts, shouldUseInitialData]);
 
   // Sets fetch
   useEffect(() => {
     let mounted = true;
+    if (shouldUseInitialData) {
+      setSets(initialSetCards);
+      setLoadingSets(false);
+      return () => {
+        mounted = false;
+      };
+    }
     setLoadingSets(true);
     (async () => {
       try {
@@ -120,11 +181,24 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, [lang, sectionIncludesMore, sectionUntitledSet]);
+  }, [
+    initialSetCards,
+    lang,
+    sectionIncludesMore,
+    sectionUntitledSet,
+    shouldUseInitialData,
+  ]);
 
   // Campaign fetch
   useEffect(() => {
     let mounted = true;
+    if (shouldUseInitialData) {
+      setCampaigns(normalizedInitialData.campaigns);
+      setLoadingCampaigns(false);
+      return () => {
+        mounted = false;
+      };
+    }
     setLoadingCampaigns(true);
     (async () => {
       try {
@@ -142,11 +216,18 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, [lang]);
+  }, [lang, normalizedInitialData.campaigns, shouldUseInitialData]);
 
   // Home Reviews fetch
   useEffect(() => {
     let mounted = true;
+    if (shouldUseInitialData) {
+      setHomeReviews(normalizedInitialData.homeReviews);
+      setLoadingHomeReviews(false);
+      return () => {
+        mounted = false;
+      };
+    }
     (async () => {
       try {
         const list = await reviewApi.homeFeatured(3); // 3 kart
@@ -163,7 +244,7 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [normalizedInitialData.homeReviews, shouldUseInitialData]);
 
   const commentsToRender = useMemo(() => {
     const list =
@@ -215,8 +296,11 @@ export default function HomePage() {
         </div>
       )}
       {/* Dinamik HERO */}
-      <Hero slides={heroSlides} imageAutoMs={6000} loading={loadingHeroes} />
-      <Categories />
+      <Hero slides={heroSlides} imageAutoMs={6000} />
+      <Categories
+        items={hasInitialData ? normalizedInitialData.categoryItems : undefined}
+        initialLang={initialLang}
+      />
       <section className="app-section app-section--tight">
         <div className="glass-surface rounded-xl bg-surface shadow-sm">
           <HomeProducts

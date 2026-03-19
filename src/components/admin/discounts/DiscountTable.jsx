@@ -77,6 +77,16 @@ export default function DiscountTable({
                         {discount.description}
                       </p>
                     )}
+                    <p className="text-xs text-[var(--color-text-admin-muted)]">
+                      {discount.allowCouponStacking === false
+                        ? "Kuponla birikmez"
+                        : "Kuponla birlikte uygulanır"}
+                    </p>
+                    <p className="text-xs text-[var(--color-text-admin-muted)]">
+                      {discount.allowStackedDiscountStacking === false
+                        ? "Katlananla birikmez"
+                        : "Katlananla birlikte uygulanır"}
+                    </p>
                   </div>
                 </td>
                 <td className="px-4 py-4 align-top text-sm text-[var(--color-text-admin)]" data-label="Yüzde">

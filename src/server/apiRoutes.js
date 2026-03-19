@@ -20,6 +20,7 @@ import {
   updateCategory,
   deleteCategory,
   getCategoryTree,
+  reorderCategories,
 } from "./controllers/categoryController.js";
 import {
   listActiveCampaigns,
@@ -37,6 +38,11 @@ import {
   updateDiscount,
   deleteDiscount,
 } from "./controllers/discountController.js";
+import {
+  getPublicStackedDiscount,
+  getManageStackedDiscount,
+  upsertStackedDiscount,
+} from "./controllers/stackedDiscountController.js";
 import {
   listMyCoupons,
   listCoupons,
@@ -177,6 +183,10 @@ import {
   getOrderPrintJob,
   requeueOrderPrintJob,
 } from "./controllers/printJobController.js";
+import {
+  listAdminNotifications,
+  markAdminNotificationsRead,
+} from "./controllers/adminNotificationController.js";
 
 import { requireAuth } from "./middleware/auth.js";
 import { requirePrintAgent } from "./middleware/printAgent.js";
@@ -264,6 +274,11 @@ export const routes = [
   route("GET", ["categories"], [listCategories]),
   route("GET", ["categories", "tree"], [getCategoryTree]),
   route("GET", ["categories", ":idOrSlug"], [getCategory]),
+  route(
+    "POST",
+    ["categories", "reorder"],
+    [requireAuth, requireRole("admin"), reorderCategories]
+  ),
   route(
     "POST",
     ["categories"],
@@ -459,6 +474,9 @@ export const routes = [
   route("POST", ["discounts"], [requireAuth, requireRole("admin"), createDiscount]),
   route("PATCH", ["discounts", ":id"], [requireAuth, requireRole("admin"), updateDiscount]),
   route("DELETE", ["discounts", ":id"], [requireAuth, requireRole("admin"), deleteDiscount]),
+  route("GET", ["stacked-discount"], [getPublicStackedDiscount]),
+  route("GET", ["stacked-discount", "manage"], [requireAuth, requireRole("admin"), getManageStackedDiscount]),
+  route("PUT", ["stacked-discount", "manage"], [requireAuth, requireRole("admin"), upsertStackedDiscount]),
 
   // coupons
   route("POST", ["coupons", "apply"], [strictLimiter, requireAuth, applyCoupon]),
@@ -467,6 +485,18 @@ export const routes = [
   route("POST", ["coupons"], [requireAuth, requireRole("admin"), createCoupon]),
   route("PATCH", ["coupons", ":id"], [requireAuth, requireRole("admin"), updateCoupon]),
   route("DELETE", ["coupons", ":id"], [requireAuth, requireRole("admin"), deleteCoupon]),
+
+  // admin notifications
+  route(
+    "GET",
+    ["admin-notifications"],
+    [requireAuth, requireRole("admin"), listAdminNotifications]
+  ),
+  route(
+    "POST",
+    ["admin-notifications", "mark-read"],
+    [requireAuth, requireRole("admin"), markAdminNotificationsRead]
+  ),
 
   // service records (admin)
   route("GET", ["service-records"], [requireAuth, requireRole("admin"), listServiceRecords]),

@@ -2,27 +2,41 @@ import mongoose from "mongoose";
 import Order from "../models/Order.js";
 import UserDetails from "../models/UserDetails.js";
 import Product from "../models/Product.js";
-import Set from "../models/Set.js";
+import SetModel from "../models/Set.js";
 import ShippingConfig from "../models/ShippingConfig.js";
 import StockItem from "../models/StockItem.js";
+import PrintJob from "../models/PrintJob.js";
 import {
   consumeCouponAfterSuccess,
-  evaluateCouponForOrderContext,
   normalizeCouponCodeInput,
+  restoreCouponAfterReversal,
+  resolveCouponOrderContext,
 } from "../utils/couponEngine.js";
 import {
   fetchActiveDiscounts,
   computeProductDiscountMap,
   mapDiscountsToSets,
-  applyDiscount,
 } from "../utils/discountHelpers.js";
 import { hydrateProductsWithInventory } from "../utils/stockItemHelpers.js";
+import { calculateCartPricing } from "../../utils/pricingEngine.js";
+import { getStackedDiscountConfig } from "../services/stackedDiscountService.js";
+import {
+  buildPricingLineFromProduct,
+  buildPricingLineFromSet,
+} from "../utils/pricingLineHelpers.js";
 import {
   findLatestPrintJobForOrder,
   getLatestPrintJobMap,
   shapePrintJob,
   syncPrintJobsForOrder,
 } from "../services/printJobService.js";
+import { maybeCreateLowStockNotification } from "../services/adminNotificationService.js";
+import {
+  buildOrderCouponContext,
+  buildOrderStockUsageEntries,
+  deriveOrderAccountingState,
+  shouldOrderHaveAccountingEffects,
+} from "../utils/orderAccounting.js";
 
 const PAYMENT_CURRENCY = (
   process.env.PAYMENT_CURRENCY ||
@@ -63,7 +77,7 @@ async function runInMongoTransaction(work) {
   try {
     try {
       await session.withTransaction(async () => {
-        result = await work(session);
+        result = await work(session, { atomic: true });
       });
     } catch (error) {
       const message = String(error?.message || "");
@@ -71,7 +85,7 @@ async function runInMongoTransaction(work) {
         message.includes("Transaction numbers are only allowed") ||
         message.includes("Transaction support is not available");
       if (!transactionUnsupported) throw error;
-      result = await work(null);
+      result = await work(null, { atomic: false });
     }
     return result;
   } finally {
@@ -111,8 +125,45 @@ function shapeOrder(doc, printJob = null) {
       ref: i.ref?.toString?.() || i.ref,
       name: i.name,
       unitPrice: i.unitPrice,
+      originalUnitPrice: i.originalUnitPrice ?? i.unitPrice,
       qty: i.qty,
       image: i.image || "",
+      pricing: i.pricing
+        ? {
+            baseUnitPrice: i.pricing.baseUnitPrice ?? i.originalUnitPrice ?? i.unitPrice,
+            standard: i.pricing.standard
+              ? {
+                  discountId:
+                    i.pricing.standard.discountId?.toString?.() ||
+                    i.pricing.standard.discountId ||
+                    null,
+                  name: i.pricing.standard.name || "",
+                  percentage: i.pricing.standard.percentage || 0,
+                  amount: i.pricing.standard.amount || 0,
+                  removedBy: i.pricing.standard.removedBy || null,
+                }
+              : null,
+            stacked: i.pricing.stacked
+              ? {
+                  stackedDiscountId:
+                    i.pricing.stacked.stackedDiscountId?.toString?.() ||
+                    i.pricing.stacked.stackedDiscountId ||
+                    null,
+                  percentage: i.pricing.stacked.percentage || 0,
+                  quantity: i.pricing.stacked.quantity || 0,
+                  amount: i.pricing.stacked.amount || 0,
+                  disabledByCoupon: i.pricing.stacked.disabledByCoupon === true,
+                }
+              : null,
+            coupon: i.pricing.coupon
+              ? {
+                  code: i.pricing.coupon.code || null,
+                  percentage: i.pricing.coupon.percentage || 0,
+                  amount: i.pricing.coupon.amount || 0,
+                }
+              : null,
+          }
+        : null,
       variant: i.variant
         ? {
             color: i.variant.color || null,
@@ -140,6 +191,7 @@ function shapeOrder(doc, printJob = null) {
     coupon: doc.coupon?.code
       ? {
           couponId: doc.coupon.couponId?.toString?.() || null,
+          assignmentId: doc.coupon.assignmentId?.toString?.() || null,
           code: doc.coupon.code,
           template: doc.coupon.template || null,
           audience: doc.coupon.audience || null,
@@ -147,6 +199,33 @@ function shapeOrder(doc, printJob = null) {
           eligibleSubtotal: doc.coupon.eligibleSubtotal || 0,
           discountAmount: doc.coupon.discountAmount,
           minSubtotal: doc.coupon.minSubtotal,
+        }
+      : null,
+    pricing: doc.pricing
+      ? {
+          baseSubtotal: doc.pricing.baseSubtotal || 0,
+          standardDiscountAmount: doc.pricing.standardDiscountAmount || 0,
+          stackedDiscountAmount: doc.pricing.stackedDiscountAmount || 0,
+          couponDiscountAmount: doc.pricing.couponDiscountAmount || 0,
+          stacked: doc.pricing.stacked
+            ? {
+                stackedDiscountId:
+                  doc.pricing.stacked.stackedDiscountId?.toString?.() ||
+                  doc.pricing.stacked.stackedDiscountId ||
+                  null,
+                quantity: doc.pricing.stacked.quantity || 0,
+                eligibleQuantity: doc.pricing.stacked.eligibleQuantity || 0,
+                percentage: doc.pricing.stacked.percentage || 0,
+                eligibleSubtotal: doc.pricing.stacked.eligibleSubtotal || 0,
+                discountAmount: doc.pricing.stacked.discountAmount || 0,
+                allowCouponStacking:
+                  doc.pricing.stacked.allowCouponStacking !== false,
+                allowDiscountStacking:
+                  doc.pricing.stacked.allowDiscountStacking !== false,
+                disabledByCoupon:
+                  doc.pricing.stacked.disabledByCoupon === true,
+              }
+            : null,
         }
       : null,
     status: doc.status,
@@ -299,6 +378,231 @@ function summarizeOrderItems(orderItems = []) {
   }));
 }
 
+function buildProductStockComboKey(variant = {}) {
+  return `p|${normalize(variant.color) || ""}|${normalize(variant.size) || ""}|${
+    normalize(variant.attribute) || ""
+  }`;
+}
+
+function buildStockUsageSnapshot(stockUsage = new Map()) {
+  return Array.from(stockUsage.values()).map((usage) => {
+    const variant = decodeVariantKey(usage.variantKey);
+    return {
+      productId: usage.productId,
+      color: variant.color,
+      size: variant.size,
+      attribute: variant.attribute,
+      qty: usage.qty,
+      source: usage.source || "product",
+      productName: usage.productName || "",
+      image: usage.image || "",
+    };
+  });
+}
+
+function setOrderAccounting(order, values = {}) {
+  if (!order || typeof order !== "object") return;
+  order.accounting = {
+    ...(order.accounting && typeof order.accounting === "object"
+      ? order.accounting.toObject?.() || order.accounting
+      : {}),
+    ...values,
+  };
+}
+
+async function rollbackCreatedOrderArtifacts(orderId) {
+  if (!mongoose.Types.ObjectId.isValid(orderId)) return;
+  await Promise.all([
+    PrintJob.deleteMany({ order: orderId }),
+    Order.deleteOne({ _id: orderId }),
+  ]);
+}
+
+async function syncOrderPrintJobsSafely(order, options = {}) {
+  try {
+    return await syncPrintJobsForOrder(order, options);
+  } catch (error) {
+    console.error("Failed to sync print jobs for order", {
+      orderId: order?._id?.toString?.() || "",
+      error: error?.message || error,
+    });
+    return null;
+  }
+}
+
+async function restoreStockUsageSnapshot(stockEntries = [], session = null) {
+  const normalizedEntries = Array.isArray(stockEntries) ? stockEntries : [];
+  if (!normalizedEntries.length) return;
+
+  const ops = normalizedEntries
+    .map((entry) => {
+      const productId = String(entry?.productId || "").trim();
+      if (!mongoose.Types.ObjectId.isValid(productId)) return null;
+      const variant = {
+        color: entry?.color ?? null,
+        size: entry?.size ?? null,
+        attribute: entry?.attribute ?? null,
+      };
+      const qty = Math.max(1, Math.floor(Number(entry?.qty || 0) || 0));
+      if (qty <= 0) return null;
+
+      return {
+        updateOne: {
+          filter: {
+            ownerModel: "Product",
+            owner: new mongoose.Types.ObjectId(productId),
+            comboKey: buildProductStockComboKey(variant),
+          },
+          update: {
+            $setOnInsert: {
+              ownerModel: "Product",
+              owner: new mongoose.Types.ObjectId(productId),
+              comboKey: buildProductStockComboKey(variant),
+            },
+            $set: {
+              color: variant.color,
+              size: variant.size,
+              attributeValue: variant.attribute,
+              isActive: true,
+            },
+            $inc: { qtyOnHand: qty },
+          },
+          upsert: true,
+        },
+      };
+    })
+    .filter(Boolean);
+
+  if (!ops.length) return;
+  await StockItem.bulkWrite(ops, { ordered: false, ...(session ? { session } : {}) });
+}
+
+async function applyOrderStockAccounting(order, options = {}) {
+  const session = options.session || null;
+  const stockEntries = Array.isArray(options.stockEntries)
+    ? options.stockEntries
+    : buildOrderStockUsageEntries(order);
+  if (!stockEntries.length) {
+    return { applied: false, stockEntries: [] };
+  }
+
+  const productIds = Array.from(
+    new Set(
+      stockEntries
+        .map((entry) => String(entry?.productId || "").trim())
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+    )
+  );
+
+  if (!productIds.length) {
+    return { applied: false, stockEntries: [] };
+  }
+
+  const stockRowsQuery = StockItem.find({
+    ownerModel: "Product",
+    owner: { $in: productIds },
+    isActive: true,
+  }).lean();
+  if (session) stockRowsQuery.session(session);
+  const stockRows = await stockRowsQuery;
+
+  const buckets = new Map();
+  stockRows.forEach((row) => {
+    const ownerId = String(row.owner || "");
+    if (!ownerId) return;
+    if (!buckets.has(ownerId)) {
+      buckets.set(ownerId, { rows: [], itemMap: new Map() });
+    }
+    const bucket = buckets.get(ownerId);
+    bucket.rows.push(row);
+    bucket.itemMap.set(variantKeyOf(row), row);
+  });
+
+  const appliedUsage = [];
+
+  for (const entry of stockEntries) {
+    const productId = String(entry?.productId || "").trim();
+    if (!mongoose.Types.ObjectId.isValid(productId)) continue;
+
+    const qty = Math.max(1, Math.floor(Number(entry?.qty || 0) || 0));
+    if (qty <= 0) continue;
+
+    const variant = {
+      color: entry?.color ?? null,
+      size: entry?.size ?? null,
+      attribute: entry?.attribute ?? null,
+    };
+    const variantKey = makeVariantKey(variant);
+    const bucket = buckets.get(productId);
+
+    if (!bucket || bucket.rows.length === 0) {
+      if (entry?.source === "set_selection") {
+        fail(409, "Set secimi için stok satiri bulunamadi", {
+          productId,
+          variant,
+        });
+      }
+      continue;
+    }
+
+    const previousRow = bucket.itemMap.get(variantKey) || null;
+    if (!previousRow) {
+      fail(409, "Siparis varyanti için stok satiri bulunamadi", {
+        productId,
+        variant,
+      });
+    }
+
+    const updateQuery = StockItem.findOneAndUpdate(
+      { _id: previousRow._id, qtyOnHand: { $gte: qty } },
+      { $inc: { qtyOnHand: -qty } },
+      { new: true }
+    );
+    if (session) updateQuery.session(session);
+    const nextRow = await updateQuery.lean();
+
+    if (!nextRow) {
+      fail(409, "Yetersiz stok", {
+        productId,
+        variant,
+        requested: qty,
+      });
+    }
+
+    bucket.itemMap.set(variantKey, nextRow);
+    appliedUsage.push({
+      productId,
+      color: variant.color,
+      size: variant.size,
+      attribute: variant.attribute,
+      qty,
+      source: entry?.source || "product",
+      productName: entry?.productName || "",
+      image: entry?.image || "",
+    });
+
+    await maybeCreateLowStockNotification({
+      ownerModel: "Product",
+      owner: productId,
+      stockItemId: nextRow._id,
+      comboKey: nextRow.comboKey,
+      color: nextRow.color,
+      size: nextRow.size,
+      attributeValue: nextRow.attributeValue,
+      previousQty: previousRow?.qtyOnHand,
+      qtyOnHand: nextRow.qtyOnHand,
+      productName: entry?.productName || "",
+      image: entry?.image || "",
+      session,
+    });
+  }
+
+  return {
+    applied: appliedUsage.length > 0,
+    stockEntries: appliedUsage,
+  };
+}
+
 async function hydrateMissingProductStockBuckets(
   productStockMap,
   productIds = []
@@ -399,7 +703,7 @@ async function buildOrderPreparation({
       ? Product.find({ _id: { $in: allProductIds } }).populate("category")
       : [],
     setIds.length
-      ? Set.find({ _id: { $in: setIds } }).populate("products.product")
+      ? SetModel.find({ _id: { $in: setIds } }).populate("products.product")
       : [],
   ]);
 
@@ -422,6 +726,7 @@ async function buildOrderPreparation({
       : new Map();
 
   const orderItems = [];
+  const pricingLines = [];
   const catalogNeedMap = new Map();
   const setNeedMap = new Map();
 
@@ -433,8 +738,6 @@ async function buildOrderPreparation({
         fail(404, "Ürün bulunamadı: " + raw.id, { productId: raw.id });
 
       const discount = productDiscountMap.get(String(p._id)) || null;
-      const { finalPrice } = applyDiscount(Number(p.price || 0), discount);
-      const safePrice = roundCurrency(finalPrice);
 
       const variantInfo = resolveCatalogVariant(p, raw);
       if (variantInfo.status === "missing") {
@@ -466,16 +769,28 @@ async function buildOrderPreparation({
         bucket.set(variantInfo.key, entry);
       }
 
+      const lineId = `line-${orderItems.length}`;
       orderItems.push({
+        lineId,
         kind: "product",
         ref: p._id,
         name: p.name,
-        unitPrice: safePrice,
+        unitPrice: roundCurrency(Number(p.price || 0)),
+        originalUnitPrice: roundCurrency(Number(p.price || 0)),
         qty,
         image: p.images?.[0]?.url || "",
         selections: [],
         variant: variantInfo.variant,
+        pricing: null,
       });
+      pricingLines.push(
+        buildPricingLineFromProduct({
+          product: p,
+          qty,
+          discount,
+          extra: { lineId },
+        })
+      );
     } else if (raw.kind === "set") {
       const s = sMap.get(String(raw.id));
       if (!s) fail(404, "Set bulunamadı: " + raw.id, { setId: raw.id });
@@ -488,8 +803,6 @@ async function buildOrderPreparation({
       }
 
       const discount = setDiscountMap.get(String(s._id)) || null;
-      const { finalPrice } = applyDiscount(Number(s.price || 0), discount);
-      const safePrice = roundCurrency(finalPrice);
 
       const normalizedSelections = rawSelections.map((sel) => ({
         productId: String(sel.productId),
@@ -508,15 +821,27 @@ async function buildOrderPreparation({
         setNeedMap.get(pid).set(vkey, current + sel.qtyInSet * multiplier);
       }
 
+      const lineId = `line-${orderItems.length}`;
       orderItems.push({
+        lineId,
         kind: "set",
         ref: s._id,
         name: s.name,
-        unitPrice: safePrice,
+        unitPrice: roundCurrency(Number(s.price || 0)),
+        originalUnitPrice: roundCurrency(Number(s.price || 0)),
         qty,
         image: s.images?.[0]?.url || "",
         selections: normalizedSelections,
+        pricing: null,
       });
+      pricingLines.push(
+        buildPricingLineFromSet({
+          setDoc: s,
+          qty,
+          discount,
+          extra: { lineId },
+        })
+      );
     } else {
       fail(400, "Geçersiz ürün tipi");
     }
@@ -574,56 +899,154 @@ async function buildOrderPreparation({
     }
   }
 
-  const subtotal = roundCurrency(
-    orderItems.reduce((sum, item) => sum + item.unitPrice * item.qty, 0)
+  let couponSummary = null;
+  let couponContext = null;
+  let couponDoc = null;
+  const normalizedCoupon = couponCode
+    ? normalizeCouponCodeInput(couponCode)
+    : null;
+  if (normalizedCoupon) {
+    const resolvedCoupon = await resolveCouponOrderContext({
+      userId,
+      couponCode: normalizedCoupon,
+    });
+    couponContext = resolvedCoupon.context;
+    couponDoc = resolvedCoupon.coupon;
+  }
+
+  const stackedDiscount = await getStackedDiscountConfig();
+  const pricing = calculateCartPricing({
+    lines: pricingLines,
+    stackedDiscount,
+    coupon: couponDoc,
+  });
+
+  if (normalizedCoupon && (!pricing.coupon?.applicable || pricing.coupon.discountAmount <= 0)) {
+    if (
+      Number(pricing.coupon?.eligibleSubtotal || 0) <
+      Number(pricing.coupon?.minSubtotal || 0)
+    ) {
+      fail(400, `Kupon için minimum ara toplam ${pricing.coupon.minSubtotal} olmalı`, {
+        reason: "minSubtotal",
+        minSubtotal: pricing.coupon.minSubtotal,
+        eligibleSubtotal: pricing.coupon.eligibleSubtotal || 0,
+      });
+    }
+    fail(400, "Kupon bu sepet için uygulanamıyor", {
+      reason: "notApplicable",
+      eligibleSubtotal: pricing.coupon?.eligibleSubtotal || 0,
+    });
+  }
+
+  const pricedLineMap = new Map(
+    (pricing.lines || []).map((line) => [String(line.lineId), line])
   );
+
+  orderItems.forEach((item) => {
+    const pricedLine = pricedLineMap.get(String(item.lineId || ""));
+    if (!pricedLine) return;
+    item.unitPrice = roundCurrency(pricedLine.unitPriceBeforeCoupon);
+    item.originalUnitPrice = roundCurrency(pricedLine.baseUnitPrice);
+    item.pricing = {
+      baseUnitPrice: roundCurrency(pricedLine.baseUnitPrice),
+      standard: pricedLine.standardDiscount
+        ? {
+            discountId: pricedLine.standardDiscount.id || null,
+            name: pricedLine.standardDiscount.name || "",
+            percentage: pricedLine.standardDiscount.percentage || 0,
+            amount: roundCurrency(pricedLine.standardDiscountAmount || 0),
+            removedBy: pricedLine.standardDiscountRemovedBy || null,
+          }
+        : null,
+      stacked: pricing.stacked
+        ? {
+            stackedDiscountId: pricing.stacked.id || null,
+            percentage: pricedLine.stackedDiscountApplied
+              ? pricedLine.stackedDiscountTier?.percentage || 0
+              : 0,
+            quantity: pricedLine.stackedDiscountApplied
+              ? pricedLine.stackedDiscountTier?.quantity || 0
+              : 0,
+            amount: roundCurrency(pricedLine.stackedDiscountAmount || 0),
+            disabledByCoupon: pricing.stacked.disabledByCoupon === true,
+          }
+        : null,
+      coupon: pricing.coupon?.applicable
+        ? {
+            code: pricing.coupon.code || null,
+            percentage: pricing.coupon.percentage || 0,
+            amount: roundCurrency(pricedLine.couponDiscountAmount || 0),
+          }
+        : null,
+    };
+    delete item.lineId;
+  });
+
+  const subtotal = roundCurrency(Number(pricing.subtotalBeforeCoupon || 0));
+  const couponDiscountAmount = roundCurrency(
+    Number(pricing.coupon?.discountAmount || 0)
+  );
+
+  if (pricing.coupon?.applicable) {
+    couponSummary = {
+      couponId: couponContext?.couponId || null,
+      assignmentId: couponContext?.assignmentId || null,
+      code: pricing.coupon.code,
+      percentage: pricing.coupon.percentage || 0,
+      minSubtotal: pricing.coupon.minSubtotal || 0,
+      eligibleSubtotal: pricing.coupon.eligibleSubtotal || 0,
+      template: pricing.coupon.template || null,
+      audience: pricing.coupon.audience || null,
+      discountAmount: couponDiscountAmount,
+    };
+  }
 
   const shippingConfig = await ShippingConfig.getSingleton();
   const threshold = Number(shippingConfig?.freeThreshold || 0);
   const feeRaw = Number(shippingConfig?.fee || 0);
   const shipping = subtotal >= threshold ? 0 : Math.max(0, feeRaw);
   const shippingName = shippingConfig?.name || "Standart Kargo";
+  const total = roundCurrency(
+    Math.max(0, subtotal - couponDiscountAmount) + shipping
+  );
 
-  let couponSummary = null;
-  let couponContext = null;
-  let couponDiscountAmount = 0;
-  const normalizedCoupon = couponCode
-    ? normalizeCouponCodeInput(couponCode)
-    : null;
-  if (normalizedCoupon) {
-    const evaluated = await evaluateCouponForOrderContext({
-      userId,
-      couponCode: normalizedCoupon,
-      orderItems,
-      productMap: pMap,
-    });
-    couponContext = evaluated.context;
-    couponDiscountAmount = roundCurrency(
-      Number(evaluated.summary?.discountAmount || 0)
-    );
-    couponSummary = {
-      couponId: couponContext?.couponId || null,
-      code: evaluated.summary.code,
-      percentage: evaluated.summary.percentage,
-      minSubtotal: evaluated.summary.minSubtotal || 0,
-      eligibleSubtotal: evaluated.summary.eligibleSubtotal || 0,
-      template: evaluated.summary.template || null,
-      audience: evaluated.summary.audience || null,
-      discountAmount: couponDiscountAmount,
-    };
-  }
-
-  const discountedSubtotal = Math.max(0, subtotal - couponDiscountAmount);
-  const total = roundCurrency(discountedSubtotal + shipping);
+  const pricingSummary = {
+    baseSubtotal: roundCurrency(Number(pricing.baseSubtotal || 0)),
+    standardDiscountAmount: roundCurrency(
+      Number(pricing.standardDiscountAmount || 0)
+    ),
+    stackedDiscountAmount: roundCurrency(
+      Number(pricing.stackedDiscountAmount || 0)
+    ),
+    couponDiscountAmount,
+    stacked: pricing.stacked
+      ? {
+          stackedDiscountId: pricing.stacked.id || null,
+          quantity: pricing.stacked.quantity || 0,
+          eligibleQuantity: pricing.stacked.eligibleQuantity || 0,
+          percentage: pricing.stacked.percentage || 0,
+          eligibleSubtotal: pricing.stacked.eligibleSubtotal || 0,
+          discountAmount: pricing.stacked.discountAmount || 0,
+          allowCouponStacking: pricing.stacked.allowCouponStacking !== false,
+          allowDiscountStacking:
+            pricing.stacked.allowDiscountStacking !== false,
+          disabledByCoupon: pricing.stacked.disabledByCoupon === true,
+        }
+      : null,
+  };
 
   const summary = {
     items: summarizeOrderItems(orderItems),
     subtotal,
+    baseSubtotal: pricingSummary.baseSubtotal,
+    standardDiscountAmount: pricingSummary.standardDiscountAmount,
+    stackedDiscountAmount: pricingSummary.stackedDiscountAmount,
     shipping,
     shippingName,
     discountAmount: couponDiscountAmount,
     total,
     coupon: couponSummary,
+    pricing: pricingSummary,
     currency: PAYMENT_CURRENCY,
   };
 
@@ -639,6 +1062,7 @@ async function buildOrderPreparation({
       total,
       couponSummary,
       couponContext,
+      pricingSummary,
       catalogNeedMap,
       setNeedMap,
       productMap: pMap,
@@ -659,6 +1083,7 @@ async function finalizeOrder(prepared, options = {}) {
     total,
     couponSummary,
     couponContext,
+    pricingSummary,
     catalogNeedMap,
     setNeedMap,
     productMap,
@@ -765,6 +1190,9 @@ async function finalizeOrder(prepared, options = {}) {
       productId: pid,
       variantKey: key,
       qty: 0,
+      source: "product",
+      productName: productMap?.get(pid)?.name || "",
+      image: productMap?.get(pid)?.images?.[0]?.url || "",
     };
     current.qty += qty;
     stockUsage.set(stockId, current);
@@ -789,10 +1217,16 @@ async function finalizeOrder(prepared, options = {}) {
         const qty = Number(needed || 0);
         if (qty <= 0) continue;
         await queueStockUsage(pidStr, vkey, qty);
+        const stockDoc = Array.from(stockUsage.values()).find(
+          (usage) => usage.productId === pidStr && usage.variantKey === vkey
+        );
+        if (stockDoc) stockDoc.source = "set_selection";
       }
     }
 
     for (const usage of stockUsage.values()) {
+      const previousRow =
+        productStockMap?.get(usage.productId)?.itemMap?.get(usage.variantKey) || null;
       const query = StockItem.findOneAndUpdate(
         { _id: usage.id, qtyOnHand: { $gte: usage.qty } },
         { $inc: { qtyOnHand: -usage.qty } },
@@ -813,8 +1247,27 @@ async function finalizeOrder(prepared, options = {}) {
       if (bucket) {
         bucket.itemMap.set(usage.variantKey, result);
       }
+
+      const product = productMap?.get(usage.productId) || null;
+      await maybeCreateLowStockNotification({
+        ownerModel: "Product",
+        owner: usage.productId,
+        stockItemId: result._id,
+        comboKey: result.comboKey,
+        color: result.color,
+        size: result.size,
+        attributeValue: result.attributeValue,
+        previousQty: previousRow?.qtyOnHand,
+        qtyOnHand: result.qtyOnHand,
+        productName: product?.name || "",
+        productSlug: product?.slug || "",
+        image: product?.images?.[0]?.url || "",
+        session,
+      });
     }
   }
+
+  const accountingStockUsage = buildStockUsageSnapshot(stockUsage);
 
   let payment;
   let status = options.statusOverride || "pending";
@@ -888,33 +1341,71 @@ async function finalizeOrder(prepared, options = {}) {
     status,
     payment,
     coupon: couponSummary,
+    pricing: pricingSummary,
+    accounting: {
+      stockApplied: accountingStockUsage.length > 0,
+      couponConsumed: Boolean(
+        (status === "paid" || payment?.status === "success") &&
+          couponContext?.couponId
+      ),
+      stockUsage: accountingStockUsage,
+      accountedAt:
+        accountingStockUsage.length > 0 ||
+        Boolean(
+          (status === "paid" || payment?.status === "success") &&
+            couponContext?.couponId
+        )
+          ? new Date()
+          : null,
+      revertedAt: null,
+    },
   };
-
-  const order = session
-    ? (await Order.create([orderPayload], { session }))[0]
-    : await Order.create(orderPayload);
 
   const shouldConsumeCoupon =
     status === "paid" || payment?.status === "success";
-  if (shouldConsumeCoupon && couponContext?.couponId) {
-    await consumeCouponAfterSuccess({
-      userId,
-      couponContext,
-      orderId: order._id,
-      session,
-    });
-  }
 
+  let order = null;
   try {
-    await syncPrintJobsForOrder(order, { session });
-  } catch (printError) {
-    console.error("Failed to sync print jobs for order", {
-      orderId: order._id?.toString?.() || "",
-      error: printError?.message || printError,
-    });
-  }
+    order = session
+      ? (await Order.create([orderPayload], { session }))[0]
+      : await Order.create(orderPayload);
 
-  return order;
+    if (shouldConsumeCoupon && couponContext?.couponId) {
+      await consumeCouponAfterSuccess({
+        userId,
+        couponContext,
+        orderId: order._id,
+        session,
+      });
+    }
+
+    await syncOrderPrintJobsSafely(order, { session });
+
+    return order;
+  } catch (error) {
+    if (!session) {
+      try {
+        if (order?._id) {
+          await rollbackCreatedOrderArtifacts(order._id);
+        }
+        if (shouldConsumeCoupon && couponContext?.couponId) {
+          await restoreCouponAfterReversal({
+            userId,
+            couponContext,
+          });
+        }
+        if (accountingStockUsage.length) {
+          await restoreStockUsageSnapshot(accountingStockUsage);
+        }
+      } catch (rollbackError) {
+        console.error("Failed to rollback order side effects", {
+          orderId: order?._id?.toString?.() || "",
+          error: rollbackError?.message || rollbackError,
+        });
+      }
+    }
+    throw error;
+  }
 }
 
 /**
@@ -1232,7 +1723,16 @@ export async function myOrders(req, res) {
 /** GET /api/orders/:id */
 export async function getOrder(req, res) {
   try {
-    const o = await Order.findOne({ _id: req.params.id, user: req.userId });
+    let o = null;
+    if (isObjectIdLike(req.params.id)) {
+      o = await Order.findOne({ _id: req.params.id, user: req.userId });
+    }
+    if (!o) {
+      o = await Order.findOne({
+        orderNumber: req.params.id,
+        user: req.userId,
+      });
+    }
     if (!o) return res.status(404).json({ message: "Sipariş bulunamadı" });
     const printJob = await findLatestPrintJobForOrder(o._id);
     res.json({ order: shapeOrder(o, printJob) });
@@ -1299,12 +1799,16 @@ function isObjectIdLike(value) {
   return mongoose.Types.ObjectId.isValid(value);
 }
 
-async function findOrderByIdOrNumber(idOrNumber) {
+async function findOrderByIdOrNumber(idOrNumber, session = null) {
   if (isObjectIdLike(idOrNumber)) {
-    const byId = await Order.findById(idOrNumber);
+    const byIdQuery = Order.findById(idOrNumber);
+    if (session) byIdQuery.session(session);
+    const byId = await byIdQuery;
     if (byId) return byId;
   }
-  return Order.findOne({ orderNumber: idOrNumber });
+  const byNumberQuery = Order.findOne({ orderNumber: idOrNumber });
+  if (session) byNumberQuery.session(session);
+  return byNumberQuery;
 }
 
 /** Admin: GET /api/orders/:id */
@@ -1333,46 +1837,176 @@ export async function adminGetOrder(req, res) {
 /** Admin: PATCH /api/orders/:id/status */
 export async function updateOrderStatus(req, res) {
   try {
-    const order = await findOrderByIdOrNumber(req.params.id);
-    if (!order) return res.status(404).json({ message: "Sipariş bulunamadı" });
-
     const { status, paymentMethod, paymentTxnId, markPaid } = req.body || {};
-
-    if (status !== undefined) {
-      const allowed = ["pending", "paid", "shipped", "completed", "cancelled"];
-      const nextStatus = String(status).toLowerCase();
-      if (!allowed.includes(nextStatus)) {
-        return res.status(400).json({ message: "Geçersiz durum" });
+    const updatedOrderId = await runInMongoTransaction(async (session, tx) => {
+      const order = await findOrderByIdOrNumber(req.params.id, session);
+      if (!order) {
+        fail(404, "Sipariş bulunamadı");
       }
-      order.status = nextStatus;
-    }
 
-    if (paymentMethod !== undefined) {
-      order.payment.method = String(paymentMethod) || SIMULATION_PAYMENT_METHOD;
-    }
+      const rollbackSteps = [];
+      const accountingState = deriveOrderAccountingState(order);
+      const nextStatusRaw =
+        status !== undefined ? String(status).toLowerCase() : undefined;
 
-    if (paymentTxnId !== undefined) {
-      order.payment.txnId = String(paymentTxnId);
-    }
+      if (nextStatusRaw !== undefined) {
+        const allowed = ["pending", "paid", "shipped", "completed", "cancelled"];
+        if (!allowed.includes(nextStatusRaw)) {
+          fail(400, "Geçersiz durum");
+        }
+        order.status = nextStatusRaw;
+      }
 
-    const markPaidBool = toBoolean(markPaid);
+      if (paymentMethod !== undefined) {
+        order.payment.method = String(paymentMethod) || SIMULATION_PAYMENT_METHOD;
+      }
 
-    if (markPaidBool === true || status === "paid") {
-      order.payment.paidAt = order.payment.paidAt || new Date();
-      order.payment.status = "success";
-    }
-    if (markPaidBool === false) {
-      order.payment.paidAt = null;
-      order.payment.status = "pending";
-    }
+      if (paymentTxnId !== undefined) {
+        order.payment.txnId = String(paymentTxnId);
+      }
 
-    await order.save();
-    await syncPrintJobsForOrder(order);
+      const markPaidBool = toBoolean(markPaid);
+
+      if (markPaidBool === true || nextStatusRaw === "paid") {
+        order.payment.paidAt = order.payment.paidAt || new Date();
+        order.payment.status = "success";
+      }
+      if (markPaidBool === false) {
+        order.payment.paidAt = null;
+        order.payment.status = "pending";
+      }
+
+      const nextShouldApplyAccounting = shouldOrderHaveAccountingEffects(order);
+      const stockEntries = buildOrderStockUsageEntries(order);
+      const couponContext = buildOrderCouponContext(order);
+      const orderUserId = order.user?._id?.toString?.() || order.user?.toString?.() || order.user;
+
+      let nextStockApplied = accountingState.stockApplied;
+      let nextCouponConsumed = accountingState.couponConsumed;
+
+      const registerRollback = (callback) => {
+        if (tx?.atomic === false && typeof callback === "function") {
+          rollbackSteps.push(callback);
+        }
+      };
+
+      try {
+        if (nextShouldApplyAccounting && !accountingState.stockApplied) {
+          const stockResult = await applyOrderStockAccounting(order, {
+            session,
+            stockEntries,
+          });
+          nextStockApplied = stockResult.applied;
+          registerRollback(async () => {
+            if (stockResult.stockEntries.length) {
+              await restoreStockUsageSnapshot(stockResult.stockEntries);
+            }
+          });
+        }
+
+        if (!nextShouldApplyAccounting && accountingState.stockApplied) {
+          await restoreStockUsageSnapshot(stockEntries, session);
+          nextStockApplied = false;
+          registerRollback(async () => {
+            if (stockEntries.length) {
+              await applyOrderStockAccounting(order, { stockEntries });
+            }
+          });
+        }
+
+        if (
+          nextShouldApplyAccounting &&
+          couponContext?.couponId &&
+          !accountingState.couponConsumed
+        ) {
+          await consumeCouponAfterSuccess({
+            userId: orderUserId,
+            couponContext,
+            orderId: order._id,
+            session,
+          });
+          nextCouponConsumed = true;
+          registerRollback(async () => {
+            await restoreCouponAfterReversal({
+              userId: orderUserId,
+              couponContext,
+            });
+          });
+        }
+
+        if (
+          !nextShouldApplyAccounting &&
+          couponContext?.couponId &&
+          accountingState.couponConsumed
+        ) {
+          await restoreCouponAfterReversal({
+            userId: orderUserId,
+            couponContext,
+            session,
+          });
+          nextCouponConsumed = false;
+          registerRollback(async () => {
+            await consumeCouponAfterSuccess({
+              userId: orderUserId,
+              couponContext,
+              orderId: order._id,
+            });
+          });
+        }
+
+        setOrderAccounting(order, {
+          stockApplied: nextStockApplied,
+          couponConsumed: nextCouponConsumed,
+          stockUsage: stockEntries,
+          accountedAt: nextShouldApplyAccounting
+            ? accountingState.accountedAt || order.payment?.paidAt || new Date()
+            : accountingState.accountedAt || null,
+          revertedAt:
+            !nextShouldApplyAccounting &&
+            (accountingState.stockApplied || accountingState.couponConsumed)
+              ? new Date()
+              : order.accounting?.revertedAt || null,
+        });
+
+        if (session) {
+          order.$session(session);
+        }
+        await order.save();
+      } catch (error) {
+        if (tx?.atomic === false) {
+          for (let index = rollbackSteps.length - 1; index >= 0; index -= 1) {
+            try {
+              await rollbackSteps[index]();
+            } catch (rollbackError) {
+              console.error("Failed to rollback order status side effects", {
+                orderId: order._id?.toString?.() || "",
+                error: rollbackError?.message || rollbackError,
+              });
+            }
+          }
+        }
+        throw error;
+      }
+
+      await syncOrderPrintJobsSafely(order, { session });
+      return order._id?.toString?.() || "";
+    });
+
+    const order = await Order.findById(updatedOrderId).populate(
+      "user",
+      "firstName lastName email phone"
+    );
+    if (!order) return res.status(404).json({ message: "Sipariş bulunamadı" });
     const printJob = await findLatestPrintJobForOrder(order._id);
     res.json({ order: shapeOrder(order, printJob) });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: error.message || "Sipariş güncellenemedi" });
+    if (error?.status) {
+      const payload = { message: error.message || "Sipariş güncellenemedi" };
+      if (error.extra || error.details) {
+        payload.details = error.extra || error.details;
+      }
+      return res.status(error.status).json(payload);
+    }
+    res.status(500).json({ message: error.message || "Sipariş güncellenemedi" });
   }
 }

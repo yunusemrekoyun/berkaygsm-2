@@ -19,6 +19,8 @@ const DiscountSchema = new mongoose.Schema(
       categories: [{ type: mongoose.Schema.Types.ObjectId, ref: "Category" }],
     },
     active: { type: Boolean, default: true },
+    allowCouponStacking: { type: Boolean, default: true },
+    allowStackedDiscountStacking: { type: Boolean, default: true },
     startsAt: { type: Date, default: null },
     endsAt: { type: Date, default: null },
     translations: {

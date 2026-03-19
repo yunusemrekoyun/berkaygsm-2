@@ -1,5 +1,5 @@
 // src/components/layout/Header.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
@@ -18,13 +18,25 @@ import { mapCategoryTree } from "../../utils/catalog";
 import { useCart } from "../../hooks/useCart";
 import { useStorefrontLang } from "../../context/LangContext.jsx";
 import { useStaticTranslation } from "../../i18n/staticContent.js";
+import { DEFAULT_LANG } from "../../constants/lang.js";
+import { resolveImageSrc } from "../../utils/imageSrc.js";
 
-export default function Header() {
+export default function Header({
+  initialCategoryTree = null,
+  initialLang = DEFAULT_LANG,
+}) {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [hydrated, setHydrated] = useState(false);
-  const [categoryTree, setCategoryTree] = useState([]);
-  const [loadingCategories, setLoadingCategories] = useState(true);
+  const hasInitialCategoryTree = Array.isArray(initialCategoryTree);
+  const normalizedInitialCategoryTree = useMemo(
+    () => normalizeTree(initialCategoryTree || []),
+    [initialCategoryTree]
+  );
+  const [categoryTree, setCategoryTree] = useState(normalizedInitialCategoryTree);
+  const [loadingCategories, setLoadingCategories] = useState(
+    !hasInitialCategoryTree
+  );
   const [navError, setNavError] = useState(null);
   const { lang } = useStorefrontLang();
   const t = useStaticTranslation();
@@ -32,6 +44,15 @@ export default function Header() {
 
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState(new Set());
+  const [desktopNavHasOverflow, setDesktopNavHasOverflow] = useState(false);
+  const [desktopNavDragging, setDesktopNavDragging] = useState(false);
+  const desktopNavRef = useRef(null);
+  const desktopDragStateRef = useRef({
+    active: false,
+    startX: 0,
+    startScrollLeft: 0,
+    suppressClick: false,
+  });
 
   useEffect(() => {
     setHydrated(true);
@@ -39,6 +60,14 @@ export default function Header() {
 
   useEffect(() => {
     let mounted = true;
+    if (hasInitialCategoryTree && lang === initialLang) {
+      setCategoryTree(normalizedInitialCategoryTree);
+      setNavError(null);
+      setLoadingCategories(false);
+      return () => {
+        mounted = false;
+      };
+    }
     setLoadingCategories(true);
     (async () => {
       try {
@@ -56,10 +85,30 @@ export default function Header() {
     return () => {
       mounted = false;
     };
-  }, [lang]);
+  }, [
+    hasInitialCategoryTree,
+    initialLang,
+    lang,
+    normalizedInitialCategoryTree,
+  ]);
 
   useEffect(() => {
     setExpandedNodes(new Set());
+  }, [categoryTree]);
+
+  useEffect(() => {
+    const container = desktopNavRef.current;
+    if (!container) return undefined;
+
+    const updateOverflow = () => {
+      setDesktopNavHasOverflow(
+        container.scrollWidth - container.clientWidth > 8
+      );
+    };
+
+    updateOverflow();
+    window.addEventListener("resize", updateOverflow);
+    return () => window.removeEventListener("resize", updateOverflow);
   }, [categoryTree]);
 
   const navigationItems = useMemo(() => {
@@ -99,6 +148,42 @@ export default function Header() {
   const handleSaleNavigate = () => {
     navigate("/shop?sale=true");
     setMobileCategoryOpen(false);
+  };
+
+  const handleDesktopNavPointerDown = (event) => {
+    const container = desktopNavRef.current;
+    if (!container || !desktopNavHasOverflow || event.button !== 0) return;
+    desktopDragStateRef.current = {
+      active: true,
+      startX: event.clientX,
+      startScrollLeft: container.scrollLeft,
+      suppressClick: false,
+    };
+    setDesktopNavDragging(true);
+  };
+
+  const handleDesktopNavPointerMove = (event) => {
+    const container = desktopNavRef.current;
+    const drag = desktopDragStateRef.current;
+    if (!container || !drag.active) return;
+    const delta = event.clientX - drag.startX;
+    if (Math.abs(delta) > 6) {
+      drag.suppressClick = true;
+    }
+    container.scrollLeft = drag.startScrollLeft - delta;
+  };
+
+  const handleDesktopNavPointerUp = () => {
+    if (!desktopDragStateRef.current.active) return;
+    desktopDragStateRef.current.active = false;
+    setDesktopNavDragging(false);
+  };
+
+  const handleDesktopNavClickCapture = (event) => {
+    if (!desktopDragStateRef.current.suppressClick) return;
+    event.preventDefault();
+    event.stopPropagation();
+    desktopDragStateRef.current.suppressClick = false;
   };
 
   const saleCtaTitle =
@@ -298,52 +383,68 @@ export default function Header() {
             </div>
             <div className="glass-surface glass-surface-soft border-t border-border/70">
               <div className="mx-auto max-w-7xl px-4 sm:px-6">
-                <nav
-                  className="
-                    flex h-14 items-center justify-center gap-6
-                    text-sm font-medium
-                    overflow-x-auto no-scrollbar
-                  "
+                <div
+                  ref={desktopNavRef}
+                  className={`overflow-x-auto no-scrollbar ${
+                    desktopNavHasOverflow
+                      ? desktopNavDragging
+                        ? "cursor-grabbing select-none"
+                        : "cursor-grab"
+                      : ""
+                  }`}
+                  onMouseDown={handleDesktopNavPointerDown}
+                  onMouseMove={handleDesktopNavPointerMove}
+                  onMouseUp={handleDesktopNavPointerUp}
+                  onMouseLeave={handleDesktopNavPointerUp}
+                  onClickCapture={handleDesktopNavClickCapture}
                 >
-                  {loadingCategories && (
-                    <span className="text-sm text-secondary">
-                      {t("header.loadingCategories")}
-                    </span>
-                  )}
-                  {!loadingCategories && navError && (
-                    <span className="text-sm text-secondary">
-                      {t("header.categoriesUnavailable")}
-                    </span>
-                  )}
-                  {!loadingCategories &&
-                    !navError &&
-                    navigationItems.map((item) =>
-                      item.hasChildren ? (
-                        <MegaMenu
-                          key={item.id}
-                          label={item.label}
-                          data={item.menu}
-                          onRootClick={() =>
-                            navigate(`/shop?category=${item.id}`)
-                          }
-                        />
-                      ) : (
-                        <Link
-                          key={item.id}
-                          to={`/shop?category=${item.id}`}
-                          className="shrink-0 hover:text-accent"
-                        >
-                          {item.label}
-                        </Link>
-                      )
-                    )}
-                  <Link
-                    to="/shop?sale=true"
-                    className="shrink-0 text-accent hover:text-accent-hover"
+                  <div
+                    className={`flex ${
+                      desktopNavHasOverflow ? "justify-start" : "justify-center"
+                    }`}
                   >
-                    {t("header.sale")}
-                  </Link>
-                </nav>
+                    <nav className="flex h-14 min-w-max items-center gap-6 text-sm font-medium">
+                      {loadingCategories && (
+                        <span className="text-sm text-secondary">
+                          {t("header.loadingCategories")}
+                        </span>
+                      )}
+                      {!loadingCategories && navError && (
+                        <span className="text-sm text-secondary">
+                          {t("header.categoriesUnavailable")}
+                        </span>
+                      )}
+                      {!loadingCategories &&
+                        !navError &&
+                        navigationItems.map((item) =>
+                          item.hasChildren ? (
+                            <MegaMenu
+                              key={item.id}
+                              label={item.label}
+                              data={item.menu}
+                              onRootClick={() =>
+                                navigate(`/shop?category=${item.id}`)
+                              }
+                            />
+                          ) : (
+                            <Link
+                              key={item.id}
+                              to={`/shop?category=${item.id}`}
+                              className="shrink-0 hover:text-accent"
+                            >
+                              {item.label}
+                            </Link>
+                          )
+                        )}
+                      <Link
+                        to="/shop?sale=true"
+                        className="shrink-0 text-accent hover:text-accent-hover"
+                      >
+                        {t("header.sale")}
+                      </Link>
+                    </nav>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -435,12 +536,14 @@ function buildMegaMenuData(node) {
 
   const resolveCategoryImage = (category) => {
     if (!category) return null;
-    if (category.image) return category.image;
+    const directImage = resolveImageSrc(category.image);
+    if (directImage) return directImage;
     const stack = [...(category.children || [])];
     while (stack.length) {
       const current = stack.shift();
       if (!current) continue;
-      if (current.image) return current.image;
+      const nestedImage = resolveImageSrc(current.image);
+      if (nestedImage) return nestedImage;
       if (current.children?.length) stack.push(...current.children);
     }
     return null;

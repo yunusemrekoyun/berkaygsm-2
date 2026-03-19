@@ -3,32 +3,66 @@
 import { useEffect } from "react";
 import { themeApi } from "../api/theme";
 
+const THEME_STORAGE_KEY = "activeTheme";
+
+function readStoredTheme() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function scheduleBackgroundRefresh(callback) {
+  if (typeof window === "undefined") return () => {};
+
+  if (typeof window.requestIdleCallback === "function") {
+    const id = window.requestIdleCallback(callback, { timeout: 1200 });
+    return () => window.cancelIdleCallback?.(id);
+  }
+
+  const timeoutId = window.setTimeout(callback, 250);
+  return () => window.clearTimeout(timeoutId);
+}
+
 export function useThemeInit() {
   useEffect(() => {
-    (async () => {
+    const savedTheme = readStoredTheme();
+    if (savedTheme?.storeVars || savedTheme?.adminVars) {
+      applyThemeVars({
+        store: savedTheme.storeVars || {},
+        admin: savedTheme.adminVars || {},
+      });
+    }
+
+    let disposed = false;
+    const cancel = scheduleBackgroundRefresh(async () => {
       try {
         const data = await themeApi.get(); // GET /api/theme
-        if (!data) return;
+        if (!data || disposed) return;
 
         const storeVars = data?.store || {};
         const adminVars = data?.admin || {};
         applyThemeVars({ store: storeVars, admin: adminVars });
 
         // Performans için localStorage'a da kaydet
-        localStorage.setItem(
-          "activeTheme",
+        window.localStorage.setItem(
+          THEME_STORAGE_KEY,
           JSON.stringify({ storeVars, adminVars })
         );
       } catch (err) {
-        console.error("useThemeInit error:", err);
-        // eğer offline/500 olursa son localStorage temayı uygula
-        const saved = localStorage.getItem("activeTheme");
-        if (saved) {
-          const { storeVars, adminVars } = JSON.parse(saved);
-          applyThemeVars({ store: storeVars, admin: adminVars });
+        if (!savedTheme) {
+          console.error("useThemeInit error:", err);
         }
       }
-    })();
+    });
+
+    return () => {
+      disposed = true;
+      cancel();
+    };
   }, []);
 }
 // DOM'a CSS değişkenlerini uygular

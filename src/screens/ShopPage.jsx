@@ -8,6 +8,7 @@ import { categoryApi } from "../api/categories";
 import { productApi } from "../api/products";
 import { setApi } from "../api/sets";
 import { campaignApi } from "../api/campaigns";
+import { stackedDiscountApi } from "../api/stackedDiscount";
 import { mapCategoryTree } from "../utils/catalog";
 import SetsSetItem from "../components/sets-sets/SetsSetItem";
 import { useStorefrontLang } from "../context/LangContext.jsx";
@@ -18,6 +19,49 @@ import {
 import { getColorInfo } from "../utils/colors.js";
 
 const isObjectId = (v) => typeof v === "string" && /^[0-9a-fA-F]{24}$/.test(v);
+
+function normalizeIdList(values = []) {
+  return Array.from(
+    new Set(
+      (Array.isArray(values) ? values : [])
+        .map((value) => {
+          if (!value) return "";
+          if (typeof value === "string") return value.trim();
+          if (typeof value === "object") {
+            if (typeof value.id === "string") return value.id.trim();
+            if (typeof value._id === "string") return value._id.trim();
+          }
+          return "";
+        })
+        .filter(Boolean)
+    )
+  );
+}
+
+function matchesStackedProduct(product, stackedDiscount) {
+  const targets = stackedDiscount?.targets || {};
+  const productIds = new Set(normalizeIdList(targets.products || []));
+  const categoryIds = new Set(normalizeIdList(targets.categories || []));
+  const productId = String(product?.id || product?._id || "").trim();
+  if (!productId) return false;
+  if (productIds.has(productId)) return true;
+
+  if (!categoryIds.size) return false;
+  const category = product?.category || null;
+  const relatedCategoryIds = normalizeIdList([
+    category?.id || category?._id || category || null,
+    ...(Array.isArray(category?.ancestors) ? category.ancestors : []),
+  ]);
+  return relatedCategoryIds.some((categoryId) => categoryIds.has(categoryId));
+}
+
+function matchesStackedSet(setDoc, stackedDiscount) {
+  const targets = stackedDiscount?.targets || {};
+  const setIds = new Set(normalizeIdList(targets.sets || []));
+  const setId = String(setDoc?.id || setDoc?._id || "").trim();
+  if (!setId) return false;
+  return setIds.has(setId);
+}
 
 export default function ShopPage() {
   const navigate = useNavigate();
@@ -37,6 +81,8 @@ export default function ShopPage() {
 
   const [campaignContext, setCampaignContext] = useState(null);
   const [campaignError, setCampaignError] = useState("");
+  const [stackedDiscountContext, setStackedDiscountContext] = useState(null);
+  const [stackedDiscountError, setStackedDiscountError] = useState("");
 
   const [error, setError] = useState(null);
   const { lang } = useStorefrontLang();
@@ -63,6 +109,9 @@ export default function ShopPage() {
   const searchQuery = (searchParams.get("q") || "").trim();
   const saleParam = (searchParams.get("sale") || "").toLowerCase();
   const isSaleMode = saleParam === "true" || saleParam === "1";
+  const stackedDiscountParam = (searchParams.get("stackedDiscount") || "").toLowerCase();
+  const isStackedDiscountMode =
+    stackedDiscountParam === "true" || stackedDiscountParam === "1";
   const saleBannerCopy = shopCopy.saleBanner || {};
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState(null);
@@ -110,10 +159,56 @@ export default function ShopPage() {
     };
   }, [campaignId, lang, navigate]);
 
+  useEffect(() => {
+    if (!isStackedDiscountMode) {
+      setStackedDiscountContext(null);
+      setStackedDiscountError("");
+      return;
+    }
+
+    let mounted = true;
+    (async () => {
+      try {
+        const data = await stackedDiscountApi.getPublic();
+        if (!mounted) return;
+        if (!data?.active) {
+          setStackedDiscountContext(null);
+          setStackedDiscountError("Katlanan indirim filtresi şu an aktif değil.");
+          return;
+        }
+        setStackedDiscountContext(data);
+        setStackedDiscountError("");
+      } catch (error) {
+        if (!mounted) return;
+        setStackedDiscountContext(null);
+        setStackedDiscountError(extractMessage(error));
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isStackedDiscountMode]);
+
   // Kategori ağacı
   useEffect(() => {
     let mounted = true;
     setError(null);
+    if (isStackedDiscountMode && !stackedDiscountContext && !stackedDiscountError) {
+      setLoadingProducts(true);
+      return () => {
+        mounted = false;
+      };
+    }
+    if (isStackedDiscountMode && stackedDiscountError) {
+      setProducts([]);
+      setMatchingSets([]);
+      setLoadingProducts(false);
+      setLoadingSets(false);
+      return () => {
+        mounted = false;
+      };
+    }
     (async () => {
       try {
         const treeRes = await categoryApi.tree(lang);
@@ -127,7 +222,7 @@ export default function ShopPage() {
     return () => {
       mounted = false;
     };
-  }, [lang]);
+  }, [isStackedDiscountMode, lang, stackedDiscountContext, stackedDiscountError]);
 
   // Ürünler + set arama sonuçları
   useEffect(() => {
@@ -157,7 +252,7 @@ export default function ShopPage() {
             lang
           );
           if (!mounted) return;
-          const resolvedProducts = isSaleMode
+          let resolvedProducts = isSaleMode
             ? productList.filter(
                 (item) =>
                   Boolean(item?.hasDiscount) ||
@@ -166,9 +261,41 @@ export default function ShopPage() {
                     Number(item?.price ?? 0)
               )
             : productList;
+          if (isStackedDiscountMode && stackedDiscountContext?.active) {
+            resolvedProducts = resolvedProducts.filter((item) =>
+              matchesStackedProduct(item, stackedDiscountContext)
+            );
+          }
           setProducts(resolvedProducts);
 
-          if (searchQuery && !isSaleMode) {
+          if (isStackedDiscountMode && stackedDiscountContext?.active) {
+            const targetSetCount =
+              stackedDiscountContext?.targets?.sets?.length || 0;
+            if (targetSetCount > 0) {
+              setLoadingSets(true);
+              try {
+                const setResponse = await setApi.list({ limit: 200 }, lang);
+                if (!mounted) return;
+                setMatchingSets(
+                  mapSetsToCards(setResponse, {
+                    includesMoreLabel: setsCardCopy.includesMore,
+                    untitledLabel: setsCardCopy.untitled,
+                  }).filter((setCard) =>
+                    matchesStackedSet(setCard, stackedDiscountContext)
+                  )
+                );
+              } catch (setErr) {
+                if (!mounted) return;
+                console.error("stacked set filter failed", setErr);
+                setMatchingSets([]);
+              } finally {
+                if (mounted) setLoadingSets(false);
+              }
+            } else {
+              setMatchingSets([]);
+              setLoadingSets(false);
+            }
+          } else if (searchQuery && !isSaleMode) {
             setLoadingSets(true);
             try {
               const setResponse = await setApi.list(
@@ -210,7 +337,15 @@ export default function ShopPage() {
     return () => {
       mounted = false;
     };
-  }, [campaignContext, isSaleMode, lang, searchQuery, setsCardCopy]);
+  }, [
+    campaignContext,
+    isSaleMode,
+    isStackedDiscountMode,
+    lang,
+    searchQuery,
+    setsCardCopy,
+    stackedDiscountContext,
+  ]);
 
   // Fiyat aralığı (ürünlere göre)
   const priceRange = useMemo(() => {
@@ -487,6 +622,12 @@ export default function ShopPage() {
     setSearchParams(params);
   };
 
+  const handleClearStackedDiscount = () => {
+    const params = new URLSearchParams(searchParams);
+    params.delete("stackedDiscount");
+    setSearchParams(params);
+  };
+
   const activeFilterBadges = [];
   if (selectedCategoryLabel) {
     activeFilterBadges.push({
@@ -516,6 +657,13 @@ export default function ShopPage() {
         selectedPrice
       )}`,
       onClear: () => handlePriceChange(priceRange.max),
+    });
+  }
+  if (isStackedDiscountMode) {
+    activeFilterBadges.push({
+      key: "stackedDiscount",
+      label: "Katlanan indirim grubu",
+      onClear: handleClearStackedDiscount,
     });
   }
 
@@ -552,6 +700,34 @@ export default function ShopPage() {
             className="text-accent underline underline-offset-4 hover:text-accent/80"
           >
             {saleBannerCopy.clear || "Tüm ürünleri göster"}
+          </button>
+        </div>
+      )}
+
+      {isStackedDiscountMode && !stackedDiscountError && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700">
+          <div>
+            Katlanan indirim grubundaki ürün ve setleri görüntülüyorsunuz.
+          </div>
+          <button
+            type="button"
+            onClick={handleClearStackedDiscount}
+            className="text-sky-700 underline underline-offset-4 hover:text-sky-600"
+          >
+            Tüm ürünleri göster
+          </button>
+        </div>
+      )}
+
+      {stackedDiscountError && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <span>{stackedDiscountError}</span>
+          <button
+            type="button"
+            onClick={handleClearStackedDiscount}
+            className="underline underline-offset-4 hover:text-rose-800"
+          >
+            Filtreyi kapat
           </button>
         </div>
       )}
@@ -794,17 +970,21 @@ export default function ShopPage() {
             loading={loadingProducts}
             emptyLabel={shopProductsEmpty}
           />
-          {searchQuery && !isSaleMode && (
+          {(searchQuery && !isSaleMode) || isStackedDiscountMode ? (
             <div className="mt-12">
               <h2 className="text-2xl font-semibold text-primary">
-                {matchingCopy.title || "Eşleşen Paketler"}
+                {isStackedDiscountMode
+                  ? "Katılan Setler"
+                  : matchingCopy.title || "Eşleşen Paketler"}
               </h2>
               <p className="mt-1 text-sm text-secondary">
-                {formatStaticText(
-                  matchingCopy.subtitle ||
-                    "“{query}” için aksesuar paketleri.",
-                  { query: searchQuery }
-                )}
+                {isStackedDiscountMode
+                  ? "Katlanan indirim kuralına dahil olan setler."
+                  : formatStaticText(
+                      matchingCopy.subtitle ||
+                        "“{query}” için aksesuar paketleri.",
+                      { query: searchQuery }
+                    )}
               </p>
 
               {loadingSets ? (
@@ -832,7 +1012,7 @@ export default function ShopPage() {
                 </div>
               )}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 

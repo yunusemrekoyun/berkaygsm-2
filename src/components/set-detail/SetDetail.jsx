@@ -9,11 +9,13 @@ import { userDetailsApi } from "../../api/userDetails";
 import { useNavigate } from "react-router-dom";
 import ReviewSectionCard from "../reviews/ReviewSectionCard.jsx";
 import { useStaticTranslation } from "../../i18n/staticContent.js";
+import { useCart } from "../../hooks/useCart";
 
 export default function SetDetail({ setDoc }) {
   // Hook'lar her zaman çağrılıyor (ESLint hatası çözümü)
   const [qty, setQty] = useState(1);
   const [isFav, setIsFav] = useState(false);
+  const { items: cartItems = [] } = useCart() || {};
   const navigate = useNavigate();
   const t = useStaticTranslation();
   const favoritesCopy = t("favorites") || {};
@@ -28,18 +30,33 @@ export default function SetDetail({ setDoc }) {
     return Math.max(0, s);
   }, [setDoc?.stock]);
 
+  const cartQtyForSet = useMemo(() => {
+    if (!setDoc?.id) return 0;
+    return cartItems.reduce((sum, item) => {
+      const sameSet =
+        item?.kind === "set" &&
+        String(item?.setId || item?.id || "") === String(setDoc.id);
+      return sameSet ? sum + (Number(item?.qty) || 0) : sum;
+    }, 0);
+  }, [cartItems, setDoc?.id]);
+
+  const availableStock = useMemo(() => {
+    if (!Number.isFinite(maxStock)) return Infinity;
+    return Math.max(0, maxStock - cartQtyForSet);
+  }, [cartQtyForSet, maxStock]);
+
   useEffect(() => {
-    if (!Number.isFinite(maxStock)) return;
-    if (maxStock <= 0) {
+    if (!Number.isFinite(availableStock)) return;
+    if (availableStock <= 0) {
       if (qty !== 0) setQty(0);
       return;
     }
     if (qty === 0) {
       setQty(1);
-    } else if (qty > maxStock) {
-      setQty(maxStock);
+    } else if (qty > availableStock) {
+      setQty(availableStock);
     }
-  }, [maxStock, qty]);
+  }, [availableStock, qty]);
 
   // Favori durumu yükle
   useEffect(() => {
@@ -120,7 +137,7 @@ export default function SetDetail({ setDoc }) {
             price={setDoc.price}
             finalPrice={setDoc.finalPrice}
             discount={setDoc.discount?.percentage}
-            stock={setDoc.stock}
+            stock={Number.isFinite(availableStock) ? availableStock : setDoc.stock}
             description={setDoc.description}
           />
 
@@ -130,9 +147,9 @@ export default function SetDetail({ setDoc }) {
             setDoc={setDoc}
             price={setDoc.price}
             finalPrice={setDoc.finalPrice}
-            stock={setDoc.stock}
+            stock={Number.isFinite(availableStock) ? availableStock : setDoc.stock}
             quantity={qty}
-            maxStock={maxStock}
+            maxStock={availableStock}
             onChangeQuantity={setQty}
           />
         </div>

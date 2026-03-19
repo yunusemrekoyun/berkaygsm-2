@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ImagePlus, Trash2, Upload } from "lucide-react";
+import AppImage from "../../ui/AppImage.jsx";
 export default function CategoryForm({
   category,
   parentOptions = [],
@@ -175,9 +176,12 @@ export default function CategoryForm({
                 {(previewUrl || category?.image) && (
                   <div className="relative overflow-hidden rounded-xl border border-[var(--color-border-admin)]">
                     {previewUrl ? (
-                      <img
+                      <AppImage
                         src={previewUrl}
                         alt="Önizleme"
+                        width={96}
+                        height={96}
+                        sizes="96px"
                         className="h-24 w-24 object-cover"
                       />
                     ) : (
@@ -199,9 +203,12 @@ export default function CategoryForm({
                   !previewUrl &&
                   !removeImage && (
                     <div className="overflow-hidden rounded-xl border border-[var(--color-border-admin)]">
-                      <img
+                      <AppImage
                         src={category.image.url}
                         alt={category.name}
+                        width={96}
+                        height={96}
+                        sizes="96px"
                         className="h-24 w-24 object-cover"
                       />
                     </div>

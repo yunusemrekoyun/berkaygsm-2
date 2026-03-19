@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import AdminModal from "../common/AdminModal";
 import { Plus, Trash2 } from "lucide-react";
 import { DEFAULT_LANG } from "../../../constants/lang.js";
+import AppImage from "../../ui/AppImage.jsx";
 
 const currency = new Intl.NumberFormat("tr-TR", {
   style: "currency",
@@ -337,9 +338,12 @@ export default function SetForm({
                 key={img.publicId}
                 className="relative overflow-hidden rounded-xl border border-[var(--color-border-admin)]"
               >
-                <img
+                <AppImage
                   src={img.url}
                   alt={img.publicId}
+                  width={96}
+                  height={96}
+                  sizes="96px"
                   className="h-24 w-24 object-cover"
                 />
                 <button
@@ -357,9 +361,12 @@ export default function SetForm({
                 key={img.preview}
                 className="relative overflow-hidden rounded-xl border border-[var(--color-border-admin)]"
               >
-                <img
+                <AppImage
                   src={img.preview}
                   alt="Yeni yükleme"
+                  width={96}
+                  height={96}
+                  sizes="96px"
                   className="h-24 w-24 object-cover"
                 />
                 <button

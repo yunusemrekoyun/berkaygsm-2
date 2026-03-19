@@ -21,6 +21,12 @@ function normalizeDiscountPayload(payload = {}) {
   if (has("description")) body.description = payload.description ?? "";
   if (has("percentage")) body.percentage = payload.percentage;
   if (has("active")) body.active = payload.active;
+  if (has("allowCouponStacking")) {
+    body.allowCouponStacking = payload.allowCouponStacking;
+  }
+  if (has("allowStackedDiscountStacking")) {
+    body.allowStackedDiscountStacking = payload.allowStackedDiscountStacking;
+  }
   if (has("startsAt")) body.startsAt = payload.startsAt || null;
   if (has("endsAt")) body.endsAt = payload.endsAt || null;
   if (has("products")) body.products = toIdArray(payload.products);

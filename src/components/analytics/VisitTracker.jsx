@@ -40,6 +40,18 @@ function shouldTrackPath(pathname) {
   return true;
 }
 
+function scheduleVisitTrack(callback) {
+  if (typeof window === "undefined") return () => {};
+
+  if (typeof window.requestIdleCallback === "function") {
+    const id = window.requestIdleCallback(callback, { timeout: 1500 });
+    return () => window.cancelIdleCallback?.(id);
+  }
+
+  const timeoutId = window.setTimeout(callback, 900);
+  return () => window.clearTimeout(timeoutId);
+}
+
 export default function VisitTracker() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -74,14 +86,19 @@ export default function VisitTracker() {
       // ignore storage parse errors
     }
 
-    analyticsApi
-      .trackVisit({
-        sessionId,
-        path: pathname,
-        query,
-        referrer: typeof document !== "undefined" ? document.referrer || "" : "",
-      })
-      .catch(() => {});
+    const cancel = scheduleVisitTrack(() => {
+      analyticsApi
+        .trackVisit({
+          sessionId,
+          path: pathname,
+          query,
+          referrer:
+            typeof document !== "undefined" ? document.referrer || "" : "",
+        })
+        .catch(() => {});
+    });
+
+    return cancel;
   }, [pathname, query]);
 
   return null;

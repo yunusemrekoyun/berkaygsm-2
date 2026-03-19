@@ -4,6 +4,7 @@ import { heroApi } from "../../api/heroes";
 import { campaignApi } from "../../api/campaigns";
 import ShippingSettingsCard from "./settings/ShippingSettingsCard.jsx";
 import ReviewSettingsCard from "./settings/ReviewSettingsCard.jsx";
+import AppImage from "../ui/AppImage.jsx";
 import {
   Wand2,
   ArrowRight,
@@ -55,9 +56,11 @@ function SettingsCard({
   ) : media ? (
     media
   ) : mediaImage ? (
-    <img
+    <AppImage
       src={mediaImage}
       alt={mediaAlt || title}
+      fill
+      sizes="(max-width: 768px) 100vw, 50vw"
       className="h-full w-full object-cover"
     />
   ) : MediaIcon ? (

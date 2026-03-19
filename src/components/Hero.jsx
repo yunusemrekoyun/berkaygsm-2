@@ -29,6 +29,9 @@ export default function Hero({
 
   const [index, setIndex] = useState(0);
   const active = slides[index] || null;
+  const previousIndex =
+    slides.length > 1 ? (index - 1 + slides.length) % slides.length : index;
+  const nextIndex = slides.length > 1 ? (index + 1) % slides.length : index;
 
   // Her slayt için video referansı (sadece aktif olanı oynatacağız)
   const videoRefs = useRef({});
@@ -109,6 +112,8 @@ export default function Hero({
       {/* SLAYTLAR */}
       {slides.map((s, i) => {
         const isActive = i === index;
+        const shouldLoadMedia =
+          i === index || i === previousIndex || i === nextIndex;
         return (
           <div
             key={s.id || i}
@@ -119,25 +124,35 @@ export default function Hero({
             aria-hidden={!isActive}
           >
             {s.image?.url ? (
-              <AppImage
-                src={s.image.url}
-                alt={s.title || ""}
-                fill
-                sizes="100vw"
-                priority={i === 0}
-                className="absolute inset-0 h-full w-full object-cover"
-                draggable="false"
-              />
+              shouldLoadMedia ? (
+                <AppImage
+                  src={s.image.url}
+                  alt={s.title || ""}
+                  fill
+                  sizes="100vw"
+                  priority={i === 0}
+                  quality={86}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  draggable="false"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-slate-900/40" />
+              )
             ) : s.video?.url ? (
-              <video
-                ref={(el) => (videoRefs.current[s.id] = el)}
-                className="absolute inset-0 h-full w-full object-cover"
-                src={s.video.url}
-                playsInline
-                muted
-                // loop YOK → bittiğinde sonraki slayta geçiyoruz
-                // controls={false}
-              />
+              shouldLoadMedia ? (
+                <video
+                  ref={(el) => (videoRefs.current[s.id] = el)}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  src={s.video.url}
+                  playsInline
+                  muted
+                  preload={isActive ? "auto" : "metadata"}
+                  // loop YOK → bittiğinde sonraki slayta geçiyoruz
+                  // controls={false}
+                />
+              ) : (
+                <div className="absolute inset-0 bg-slate-900/40" />
+              )
             ) : (
               <div className="absolute inset-0 grid place-items-center bg-black/5 text-white/80">
                 {noMediaLabel}

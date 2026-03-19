@@ -3,6 +3,7 @@ import {
   ChevronDown,
   ChevronRight,
   FolderTree,
+  GripVertical,
   Image as ImageIcon,
   PlusCircle,
 } from "lucide-react";
@@ -12,8 +13,10 @@ export default function CategoryTree({
   selectedId,
   onSelect,
   onCreateRoot,
+  onReorder,
 }) {
   const [expanded, setExpanded] = useState(() => new Set());
+  const [dragged, setDragged] = useState(null);
 
   useEffect(() => {
     setExpanded((prev) => {
@@ -73,11 +76,15 @@ export default function CategoryTree({
             <TreeNode
               key={item.id}
               node={item}
+              parentId={null}
               depth={0}
               expanded={expanded}
               onToggle={toggle}
               onSelect={onSelect}
               selectedId={selectedId}
+              onReorder={onReorder}
+              dragged={dragged}
+              setDragged={setDragged}
             />
           ))}
         </ul>
@@ -86,10 +93,25 @@ export default function CategoryTree({
   );
 }
 
-function TreeNode({ node, depth, expanded, onToggle, selectedId, onSelect }) {
+function TreeNode({
+  node,
+  parentId,
+  depth,
+  expanded,
+  onToggle,
+  selectedId,
+  onSelect,
+  onReorder,
+  dragged,
+  setDragged,
+}) {
   const hasChildren = node.children && node.children.length > 0;
   const isExpanded = expanded.has(node.id);
   const isSelected = selectedId === node.id;
+  const isDragTarget =
+    dragged &&
+    dragged.id !== node.id &&
+    String(dragged.parentId ?? "") === String(parentId ?? "");
 
   const handleToggle = () => {
     if (hasChildren) onToggle(node.id);
@@ -102,9 +124,34 @@ function TreeNode({ node, depth, expanded, onToggle, selectedId, onSelect }) {
           isSelected
             ? "bg-[var(--color-bg-hover)] text-[var(--color-text-admin)]"
             : "text-[var(--color-text-admin)]/80 hover:bg-[var(--color-bg-hover)]/70"
-        }`}
+        } ${isDragTarget ? "ring-2 ring-[var(--color-accent)]/30" : ""}`}
         style={{ paddingLeft: 12 + depth * 14 }}
+        onDragOver={(event) => {
+          if (!isDragTarget) return;
+          event.preventDefault();
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          if (!isDragTarget) return;
+          onReorder?.({
+            parentId,
+            draggedId: dragged.id,
+            targetId: node.id,
+          });
+          setDragged(null);
+        }}
       >
+        <button
+          type="button"
+          draggable
+          onDragStart={() => setDragged?.({ id: node.id, parentId })}
+          onDragEnd={() => setDragged?.(null)}
+          className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-[var(--color-border-admin)] text-[var(--color-text-admin-muted)] hover:border-[var(--color-text-admin)]"
+          aria-label="Kategoriyi tasimak icin surukleyin"
+          title="Siralamak icin surukleyin"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
         <button
           type="button"
           onClick={handleToggle}
@@ -152,11 +199,15 @@ function TreeNode({ node, depth, expanded, onToggle, selectedId, onSelect }) {
             <TreeNode
               key={child.id}
               node={child}
+              parentId={node.id}
               depth={depth + 1}
               expanded={expanded}
               onToggle={onToggle}
               onSelect={onSelect}
               selectedId={selectedId}
+              onReorder={onReorder}
+              dragged={dragged}
+              setDragged={setDragged}
             />
           ))}
         </ul>

@@ -2,6 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { CartContext } from "./CartContext";
 import { shippingApi } from "../api/shipping";
 import { couponApi } from "../api/coupons";
+import {
+  stackedDiscountApi,
+  STACKED_DISCOUNT_UPDATED_EVENT,
+} from "../api/stackedDiscount";
+import {
+  buildNextStackedTierMessage,
+  calculateCartPricing,
+} from "../utils/pricingEngine.js";
 
 // Varyantları ayırt eden benzersiz satır anahtarı
 function makeLineId(
@@ -59,29 +67,174 @@ function normalizeItem(raw) {
   return base;
 }
 
-export default function CartProvider({ children }) {
-  const [items, setItems] = useState(() => {
-    try {
-      if (typeof window === "undefined") return [];
-      const stored = window.localStorage.getItem("cart");
-      const parsed = stored ? JSON.parse(stored) : [];
-      if (!Array.isArray(parsed)) return [];
-      return parsed
-        .map((item) => {
-          const normalized = normalizeItem(item);
-          if (!normalized) return null;
-          const original = Number(
-            normalized.originalPrice || normalized.price || 0
-          );
-          normalized.originalPrice = original;
-          normalized.price = Number(normalized.price || original);
-          return normalized;
+function normalizeValue(value) {
+  if (value === undefined || value === null) return null;
+  const trimmed = String(value).trim();
+  return trimmed ? trimmed.toLowerCase() : null;
+}
+
+function normalizeQty(value, fallback = 1) {
+  const qty = Number(value);
+  if (!Number.isFinite(qty)) return fallback;
+  return Math.max(1, Math.floor(qty));
+}
+
+function normalizeStockLimit(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return null;
+  return Math.max(0, Math.floor(amount));
+}
+
+function resolveProductStockLimit(product, options = {}) {
+  const inventory = Array.isArray(product?.inventory) ? product.inventory : [];
+  if (inventory.length > 0) {
+    const match = inventory.find((item) => {
+      return (
+        normalizeValue(item?.color) === normalizeValue(options.color) &&
+        normalizeValue(item?.size) === normalizeValue(options.size) &&
+        normalizeValue(item?.attributeValue) === normalizeValue(options.attribute)
+      );
+    });
+
+    if (!match) return 0;
+    return normalizeStockLimit(match.stock);
+  }
+
+  const directStock = normalizeStockLimit(
+    options.stockLimit ?? product?.stock ?? product?.qtyOnHand
+  );
+  if (directStock !== null) return directStock;
+  if (product?.inStock === false) return 0;
+  return null;
+}
+
+function resolveSetStockLimit(setDoc, options = {}) {
+  return normalizeStockLimit(options.stockLimit ?? setDoc?.stock);
+}
+
+function normalizeIdList(values = []) {
+  return Array.from(
+    new Set(
+      (Array.isArray(values) ? values : [])
+        .map((value) => {
+          if (!value) return "";
+          if (typeof value === "string") return value.trim();
+          if (typeof value === "number") return String(value);
+          if (typeof value === "object") {
+            if (typeof value.id === "string") return value.id.trim();
+            if (typeof value._id === "string") return value._id.trim();
+          }
+          return "";
         })
-        .filter(Boolean);
-    } catch {
-      return [];
-    }
-  });
+        .filter(Boolean)
+    )
+  );
+}
+
+function normalizeStoredDiscount(discount) {
+  if (!discount || typeof discount !== "object") return null;
+  const percentage = Number(discount.percentage || 0);
+  if (!Number.isFinite(percentage) || percentage <= 0) return null;
+  return {
+    id: discount.id || discount._id || null,
+    name: discount.name || "",
+    percentage,
+    allowCouponStacking: discount.allowCouponStacking !== false,
+    allowStackedDiscountStacking:
+      discount.allowStackedDiscountStacking !== false,
+  };
+}
+
+function collectProductCategoryIds(product) {
+  if (!product) return [];
+  const category = product.category;
+  const values = [];
+  const mainId =
+    category?.id ||
+    category?._id ||
+    (typeof category === "string" ? category : null);
+  if (mainId) values.push(mainId);
+  if (Array.isArray(category?.ancestors)) {
+    category.ancestors.forEach((ancestor) => {
+      const ancestorId =
+        ancestor?.id ||
+        ancestor?._id ||
+        (typeof ancestor === "string" ? ancestor : null);
+      if (ancestorId) values.push(ancestorId);
+    });
+  }
+  return normalizeIdList(values);
+}
+
+function sumScopedQty(items, candidate) {
+  if (candidate.kind === "set") {
+    const setId = String(candidate.setId || candidate.id || "");
+    return items.reduce((sum, item) => {
+      const sameSet =
+        item?.kind === "set" && String(item?.setId || item?.id || "") === setId;
+      return sameSet ? sum + (Number(item?.qty) || 0) : sum;
+    }, 0);
+  }
+
+  return items.reduce((sum, item) => {
+    return item?.lineId === candidate.lineId ? sum + (Number(item?.qty) || 0) : sum;
+  }, 0);
+}
+
+function readStoredCart() {
+  try {
+    if (typeof window === "undefined") return [];
+    const stored = window.localStorage.getItem("cart");
+    const parsed = stored ? JSON.parse(stored) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => {
+        const normalized = normalizeItem(item);
+        if (!normalized) return null;
+        const original = Number(
+          normalized.basePrice ??
+            normalized.originalPrice ??
+            normalized.price ??
+            0
+        );
+        normalized.basePrice = original;
+        normalized.originalPrice = original;
+        normalized.price = Number(normalized.price || original);
+        normalized.discountMeta = normalizeStoredDiscount(
+          normalized.discountMeta || normalized.standardDiscount || null
+        );
+        normalized.categoryIds = normalizeIdList(
+          normalized.categoryIds?.length
+            ? normalized.categoryIds
+            : [
+                normalized.categoryId,
+                ...(normalized.categoryAncestorIds || []),
+                normalized.category,
+                ...(Array.isArray(normalized.category?.ancestors)
+                  ? normalized.category.ancestors
+                  : []),
+              ]
+        );
+        normalized.maxQty = normalizeStockLimit(normalized.maxQty);
+        if (normalized.maxQty !== null) {
+          normalized.qty = Math.min(
+            normalizeQty(normalized.qty),
+            Math.max(1, normalized.maxQty)
+          );
+        } else {
+          normalized.qty = normalizeQty(normalized.qty);
+        }
+        return normalized;
+      })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+export default function CartProvider({ children }) {
+  const [items, setItems] = useState([]);
+  const [cartHydrated, setCartHydrated] = useState(false);
   const [shippingConfig, setShippingConfig] = useState({
     name: "Standart Kargo",
     fee: 0,
@@ -90,11 +243,67 @@ export default function CartProvider({ children }) {
   const [shippingLoading, setShippingLoading] = useState(true);
   const [coupon, setCoupon] = useState(null);
   const [couponMessage, setCouponMessage] = useState(null);
+  const [stackedDiscountConfig, setStackedDiscountConfig] = useState(null);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") return undefined;
+    setItems(readStoredCart());
+    setCartHydrated(true);
+    return undefined;
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !cartHydrated) return;
     window.localStorage.setItem("cart", JSON.stringify(items));
-  }, [items]);
+  }, [cartHydrated, items]);
+
+  useEffect(() => {
+    if (!items.length) {
+      setStackedDiscountConfig(null);
+      return undefined;
+    }
+
+    let mounted = true;
+
+    const syncStackedDiscount = async () => {
+      try {
+        const config = await stackedDiscountApi.getPublic();
+        if (mounted) setStackedDiscountConfig(config);
+      } catch {
+        if (mounted) setStackedDiscountConfig(null);
+      }
+    };
+
+    const handleFocus = () => {
+      void syncStackedDiscount();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void syncStackedDiscount();
+      }
+    };
+    const handleStackedDiscountUpdated = () => {
+      void syncStackedDiscount();
+    };
+
+    void syncStackedDiscount();
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener(
+      STACKED_DISCOUNT_UPDATED_EVENT,
+      handleStackedDiscountUpdated
+    );
+
+    return () => {
+      mounted = false;
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener(
+        STACKED_DISCOUNT_UPDATED_EVENT,
+        handleStackedDiscountUpdated
+      );
+    };
+  }, [items.length]);
 
   useEffect(() => {
     let mounted = true;
@@ -122,53 +331,86 @@ export default function CartProvider({ children }) {
   // Ekle
   const addToCart = (product, options = {}) => {
     setItems((prev) => {
-      const lineId = makeLineId(product.id, options);
+      const kind = (options.kind || product.kind || "product").toLowerCase();
+      const rawId =
+        product.id ||
+        product._id ||
+        product.slug ||
+        options.productId ||
+        options.setId ||
+        null;
+      const baseId = rawId ? String(rawId) : null;
+      if (!baseId) return prev;
+
+      const lineId = makeLineId(baseId, options);
       const existing = prev.find((it) => it.lineId === lineId);
+      const stockLimit =
+        kind === "set"
+          ? resolveSetStockLimit(product, options)
+          : resolveProductStockLimit(product, options);
+      const requestedQty = normalizeQty(options.qty || 1);
+      const scopedQty = sumScopedQty(prev, {
+        kind,
+        id: baseId,
+        setId: options.setId || baseId,
+        lineId,
+      });
+      const allowedAdditional =
+        stockLimit === null ? requestedQty : Math.max(0, stockLimit - scopedQty);
+
+      if (allowedAdditional <= 0) return prev;
+
+      const qtyToAdd = Math.min(requestedQty, allowedAdditional);
 
       if (existing) {
         return prev.map((it) =>
           it.lineId === lineId
             ? {
                 ...it,
-                qty: Math.min(999, (it.qty || 0) + (options.qty || 1)),
+                qty: Math.min(999, (it.qty || 0) + qtyToAdd),
+                maxQty: stockLimit ?? it.maxQty ?? null,
               }
             : it
         );
       }
-
-      const kind = (options.kind || product.kind || "product").toLowerCase();
-      const rawId =
-        product.id || product._id || product.slug || options.productId;
-      const baseId = rawId ? String(rawId) : null;
-      if (!baseId) return prev;
 
       const newItem = {
         lineId,
         id: baseId,
         title: product.name || product.title,
         image: product.images?.[0]?.url || "/pd-1.jpg",
+        slug: product.slug || null,
+        basePrice: Number(product.price ?? product.finalPrice) || 0,
         price: Number(product.finalPrice ?? product.price) || 0,
         originalPrice: Number(product.price ?? product.finalPrice ?? 0) || 0,
-        qty: options.qty || 1,
+        discountMeta: normalizeStoredDiscount(product.discount),
+        categoryIds: kind === "set" ? [] : collectProductCategoryIds(product),
+        qty: qtyToAdd,
         color: options.color || null,
         colorHex: options.colorHex || null,
         size: options.size || null,
         attribute: options.attribute || null,
+        maxQty: stockLimit,
         kind,
         productId: null,
         setId: null,
+        detailPath: null,
       };
 
       if (kind === "set") {
         newItem.kind = "set";
         newItem.setId = String(options.setId || baseId);
         newItem.productId = null;
+        newItem.detailPath = `/set/${product.slug || options.setId || baseId}`;
         // set seçimleri
         newItem.items = Array.isArray(options.items) ? options.items : [];
       } else {
         newItem.kind = "product";
         newItem.productId = String(options.productId || baseId);
         newItem.setId = null;
+        newItem.detailPath = `/product/${
+          product.slug || options.productId || baseId
+        }`;
       }
 
       return [...prev, newItem];
@@ -184,7 +426,29 @@ export default function CartProvider({ children }) {
     setItems((prev) =>
       prev.map((it) =>
         it.lineId === lineId
-          ? { ...it, qty: Math.max(1, Number(qty) || 1) }
+          ? {
+              ...it,
+              qty: (() => {
+                const requestedQty = normalizeQty(qty);
+                const stockLimit = normalizeStockLimit(it.maxQty);
+                if (stockLimit === null) return requestedQty;
+                if (it.kind === "set") {
+                  const siblingQty = prev.reduce((sum, sibling) => {
+                    const sameSet =
+                      sibling.lineId !== lineId &&
+                      sibling.kind === "set" &&
+                      String(sibling.setId || sibling.id || "") ===
+                        String(it.setId || it.id || "");
+                    return sameSet ? sum + (Number(sibling.qty) || 0) : sum;
+                  }, 0);
+                  return Math.min(
+                    requestedQty,
+                    Math.max(1, stockLimit - siblingQty)
+                  );
+                }
+                return Math.min(requestedQty, Math.max(1, stockLimit));
+              })(),
+            }
           : it
       )
     );
@@ -195,13 +459,94 @@ export default function CartProvider({ children }) {
     () => items.reduce((sum, it) => sum + (Number(it.qty) || 0), 0),
     [items]
   );
-  const subTotal = useMemo(
+  const pricingInputLines = useMemo(
     () =>
-      items.reduce(
-        (sum, it) => sum + (Number(it.price) || 0) * (Number(it.qty) || 0),
-        0
-      ),
+      items.map((item) => ({
+        lineId: item.lineId,
+        kind: item.kind === "set" ? "set" : "product",
+        ref:
+          item.id ||
+          item.ref ||
+          (item.kind === "set" ? item.setId : item.productId),
+        qty: Number(item.qty || 1) || 1,
+        baseUnitPrice:
+          Number(item.basePrice ?? item.originalPrice ?? item.price ?? 0) || 0,
+        standardDiscount: item.discountMeta || null,
+        categoryIds: item.categoryIds || [],
+      })),
     [items]
+  );
+
+  const pricing = useMemo(
+    () =>
+      calculateCartPricing({
+        lines: pricingInputLines,
+        stackedDiscount: stackedDiscountConfig,
+        coupon,
+      }),
+    [coupon, pricingInputLines, stackedDiscountConfig]
+  );
+
+  const pricedItems = useMemo(() => {
+    const lineMap = new Map(
+      (pricing.lines || []).map((line) => [String(line.lineId), line])
+    );
+
+    return items.map((item) => {
+      const pricedLine = lineMap.get(String(item.lineId || ""));
+      if (!pricedLine) return item;
+      return {
+        ...item,
+        price: pricedLine.unitPriceBeforeCoupon,
+        originalPrice: pricedLine.baseUnitPrice,
+        pricing: {
+          standard: pricedLine.standardDiscount
+            ? {
+                ...pricedLine.standardDiscount,
+                applied: pricedLine.standardDiscountApplied,
+                removedBy: pricedLine.standardDiscountRemovedBy || null,
+                amount: pricedLine.standardDiscountAmount || 0,
+              }
+            : null,
+          stacked: pricing.stacked
+            ? {
+                quantity: pricedLine.stackedDiscountTier?.quantity || 0,
+                percentage: pricedLine.stackedDiscountTier?.percentage || 0,
+                amount: pricedLine.stackedDiscountAmount || 0,
+                applied: pricedLine.stackedDiscountApplied,
+                disabledByCoupon: pricing.stacked.disabledByCoupon === true,
+              }
+            : null,
+          coupon: pricing.coupon?.applicable
+            ? {
+                code: pricing.coupon.code || null,
+                percentage: pricing.coupon.percentage || 0,
+                amount: pricedLine.couponDiscountAmount || 0,
+              }
+            : null,
+          lineTotalBeforeCoupon: pricedLine.lineTotalBeforeCoupon,
+          finalLineTotal: pricedLine.finalLineTotal,
+        },
+        categoryIds: pricedLine.categoryIds || item.categoryIds || [],
+      };
+    });
+  }, [items, pricing]);
+
+  const baseSubtotal = useMemo(
+    () => Number(pricing.baseSubtotal || 0) || 0,
+    [pricing.baseSubtotal]
+  );
+  const standardDiscountAmount = useMemo(
+    () => Number(pricing.standardDiscountAmount || 0) || 0,
+    [pricing.standardDiscountAmount]
+  );
+  const stackedDiscountAmount = useMemo(
+    () => Number(pricing.stackedDiscountAmount || 0) || 0,
+    [pricing.stackedDiscountAmount]
+  );
+  const subTotal = useMemo(
+    () => Number(pricing.subtotalBeforeCoupon || 0) || 0,
+    [pricing.subtotalBeforeCoupon]
   );
 
   const freeThreshold = Number(shippingConfig?.freeThreshold || 0);
@@ -216,15 +561,12 @@ export default function CartProvider({ children }) {
   const total = useMemo(() => subTotal + shippingFee, [subTotal, shippingFee]);
 
   const couponApplicable = useMemo(() => {
-    if (!coupon) return false;
-    const minRequired = Number(coupon.minSubtotal || 0);
-    return subTotal >= minRequired;
-  }, [coupon, subTotal]);
+    return Boolean(pricing.coupon?.applicable);
+  }, [pricing.coupon]);
 
   const couponDiscount = useMemo(() => {
-    if (!coupon || !couponApplicable) return 0;
-    return Math.round(((subTotal * coupon.percentage) / 100) * 100) / 100;
-  }, [coupon, couponApplicable, subTotal]);
+    return Number(pricing.coupon?.applicable ? pricing.coupon.discountAmount : 0) || 0;
+  }, [pricing.coupon]);
 
   const grandTotal = useMemo(
     () => Math.max(0, total - couponDiscount),
@@ -233,16 +575,21 @@ export default function CartProvider({ children }) {
 
   useEffect(() => {
     if (coupon) {
-      const minRequired = Number(coupon.minSubtotal || 0);
+      const minRequired = Number(pricing.coupon?.minSubtotal || coupon.minSubtotal || 0);
+      const eligibleSubtotal = Number(
+        pricing.coupon?.eligibleSubtotal || 0
+      );
       if (!couponApplicable) {
         setCouponMessage(
-          `${coupon.code} kuponu için minimum ara toplam ₺${minRequired.toFixed(2)} olmalı`
+          eligibleSubtotal < minRequired
+            ? `${coupon.code} kuponu için minimum ara toplam ₺${minRequired.toFixed(2)} olmalı`
+            : "Kupon bu sepet için uygulanamıyor"
         );
       } else {
         setCouponMessage(null);
       }
     }
-  }, [coupon, couponApplicable]);
+  }, [coupon, couponApplicable, pricing.coupon]);
 
   const refreshShipping = async () => {
     try {
@@ -277,12 +624,7 @@ export default function CartProvider({ children }) {
                 1
             ) || 1
           );
-          const unitPrice = Math.max(
-            0,
-            Number(item?.price ?? item?.unitPrice ?? item?.finalPrice ?? 0) || 0
-          );
-
-          return { kind, ref: String(ref), qty, unitPrice };
+          return { kind, ref: String(ref), qty };
         })
         .filter(Boolean),
     [items]
@@ -326,12 +668,13 @@ export default function CartProvider({ children }) {
   return (
     <CartContext.Provider
       value={{
-        items,
+        items: pricedItems,
         addToCart,
         removeFromCart,
         updateQty,
         clearCart,
         totalItems,
+        baseSubtotal,
         subTotal,
         total,
         coupon,
@@ -339,6 +682,20 @@ export default function CartProvider({ children }) {
         couponMessage,
         couponDiscount,
         grandTotal,
+        hydrated: cartHydrated,
+        pricing: {
+          baseSubtotal,
+          standardDiscountAmount,
+          stackedDiscountAmount,
+          couponDiscountAmount: couponDiscount,
+          stacked: pricing.stacked || null,
+          coupon: pricing.coupon || null,
+          nextStackedTierMessage: buildNextStackedTierMessage(pricing.stacked),
+          stackedDiscountShopHref:
+            pricing.stacked?.nextTier?.missingQuantity > 0
+              ? "/shop?stackedDiscount=1"
+              : null,
+        },
         applyCoupon,
         clearCoupon,
         shipping: {

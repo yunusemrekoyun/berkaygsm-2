@@ -79,13 +79,14 @@ const emitUiLoading = (type, detail) => {
 
 async function request(
   path,
-  { method = "GET", body, headers, auth = false, ui = "auto" } = {}
+  { method = "GET", body, headers, auth = false, ui = "auto", cache } = {}
 ) {
   const resolvedHeaders = buildHeaders({ body, headers, auth });
   const methodUpper = String(method || "GET").toUpperCase();
   const isMutating = !["GET", "HEAD", "OPTIONS"].includes(methodUpper);
+  const adminActionEnabled = auth && isMutating && ui !== false;
   const actionId =
-    auth && isMutating
+    adminActionEnabled
       ? `${Date.now()}-${Math.random().toString(36).slice(2)}`
       : null;
   const uiEnabled = ui === true || (ui !== false && isMutating);
@@ -110,6 +111,7 @@ async function request(
           : JSON.stringify(body)
         : undefined,
       credentials: "include",
+      ...(cache ? { cache } : {}),
     });
     return response;
   } finally {
@@ -158,14 +160,30 @@ export async function http(
     auth = false,
     retry = true,
     ui = "auto",
+    cache,
   } = {}
 ) {
-  const response = await request(path, { method, body, headers, auth, ui });
+  const response = await request(path, {
+    method,
+    body,
+    headers,
+    auth,
+    ui,
+    cache,
+  });
 
   if (auth && response.status === 401 && retry) {
     const ok = await refreshAccessToken();
     if (ok) {
-      return http(path, { method, body, headers, auth, retry: false, ui });
+      return http(path, {
+        method,
+        body,
+        headers,
+        auth,
+        retry: false,
+        ui,
+        cache,
+      });
     }
   }
 

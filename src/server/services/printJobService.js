@@ -61,6 +61,30 @@ export function buildPrintJobSnapshot(order) {
         }))
       : [],
     subtotal: Number(order.subtotal || 0) || 0,
+    coupon: order?.coupon?.code
+      ? {
+          code: order.coupon.code || null,
+          percentage: Number(order.coupon.percentage || 0) || 0,
+          discountAmount: Number(order.coupon.discountAmount || 0) || 0,
+        }
+      : null,
+    pricing: order?.pricing
+      ? {
+          baseSubtotal: Number(order.pricing.baseSubtotal || 0) || 0,
+          standardDiscountAmount:
+            Number(order.pricing.standardDiscountAmount || 0) || 0,
+          stackedDiscountAmount:
+            Number(order.pricing.stackedDiscountAmount || 0) || 0,
+          couponDiscountAmount:
+            Number(order.pricing.couponDiscountAmount || 0) || 0,
+          stacked: order.pricing.stacked
+            ? {
+                percentage: Number(order.pricing.stacked.percentage || 0) || 0,
+                quantity: Number(order.pricing.stacked.quantity || 0) || 0,
+              }
+            : null,
+        }
+      : null,
     shipping: Number(order.shipping || 0) || 0,
     shippingName: order.shippingName || "Standart Kargo",
     total: Number(order.total || 0) || 0,

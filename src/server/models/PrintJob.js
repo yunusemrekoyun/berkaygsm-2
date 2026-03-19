@@ -67,6 +67,21 @@ const SnapshotSchema = new mongoose.Schema(
     address: { type: AddressSnapshotSchema, required: true },
     items: { type: [ItemSnapshotSchema], default: [] },
     subtotal: { type: Number, default: 0 },
+    coupon: {
+      code: { type: String, default: null },
+      percentage: { type: Number, default: 0 },
+      discountAmount: { type: Number, default: 0 },
+    },
+    pricing: {
+      baseSubtotal: { type: Number, default: 0 },
+      standardDiscountAmount: { type: Number, default: 0 },
+      stackedDiscountAmount: { type: Number, default: 0 },
+      couponDiscountAmount: { type: Number, default: 0 },
+      stacked: {
+        percentage: { type: Number, default: 0 },
+        quantity: { type: Number, default: 0 },
+      },
+    },
     shipping: { type: Number, default: 0 },
     shippingName: { type: String, default: "Standart Kargo" },
     total: { type: Number, default: 0 },

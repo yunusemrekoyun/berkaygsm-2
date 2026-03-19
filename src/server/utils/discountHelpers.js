@@ -37,6 +37,9 @@ export function mapDiscountsToProducts(discounts, productContexts) {
           name: discount.name,
           percentage: discount.percentage,
           description: discount.description || "",
+          allowCouponStacking: discount.allowCouponStacking !== false,
+          allowStackedDiscountStacking:
+            discount.allowStackedDiscountStacking !== false,
         });
       }
     });
@@ -110,6 +113,9 @@ export function mapDiscountsToSets(discounts, setIds) {
           name: discount.name,
           percentage: discount.percentage,
           description: discount.description || "",
+          allowCouponStacking: discount.allowCouponStacking !== false,
+          allowStackedDiscountStacking:
+            discount.allowStackedDiscountStacking !== false,
         });
       }
     });

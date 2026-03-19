@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import StockItem from "../models/StockItem.js";
 import Product from "../models/Product.js";
 import SetModel from "../models/Set.js";
+import { maybeCreateLowStockNotification } from "../services/adminNotificationService.js";
 
 const isId = (s) => typeof s === "string" && /^[0-9a-fA-F]{24}$/.test(s);
 
@@ -184,6 +185,7 @@ export async function upsertStock(req, res) {
       return res.status(201).json({ stock: populated });
     }
 
+    const previousQty = Number(found.qtyOnHand || 0) || 0;
     if (mode === "inc") {
       const d = Math.floor(Number(delta) || 0);
       found.qtyOnHand = Math.max(0, (found.qtyOnHand || 0) + d);
@@ -196,6 +198,17 @@ export async function upsertStock(req, res) {
     if (note !== undefined) found.note = String(note);
 
     await found.save();
+    await maybeCreateLowStockNotification({
+      ownerModel: found.ownerModel,
+      owner: found.owner,
+      stockItemId: found._id,
+      comboKey: found.comboKey,
+      color: found.color,
+      size: found.size,
+      attributeValue: found.attributeValue,
+      previousQty,
+      qtyOnHand: found.qtyOnHand,
+    });
     const populated = await found.populate([
       { path: "owner", model: found.ownerModel },
       { path: "components.product", model: "Product" },
@@ -215,6 +228,7 @@ export async function updateStock(req, res) {
     const stock = await StockItem.findById(id);
     if (!stock) return res.status(404).json({ message: "Stok bulunamadı" });
 
+    const previousQty = Number(stock.qtyOnHand || 0) || 0;
     const { qtyOnHand, delta, sku, isActive, note } = req.body;
     if (delta !== undefined) {
       const d = Math.floor(Number(delta) || 0);
@@ -230,6 +244,17 @@ export async function updateStock(req, res) {
     if (note !== undefined) stock.note = String(note);
 
     await stock.save();
+    await maybeCreateLowStockNotification({
+      ownerModel: stock.ownerModel,
+      owner: stock.owner,
+      stockItemId: stock._id,
+      comboKey: stock.comboKey,
+      color: stock.color,
+      size: stock.size,
+      attributeValue: stock.attributeValue,
+      previousQty,
+      qtyOnHand: stock.qtyOnHand,
+    });
     const populated = await stock.populate([
       { path: "owner", model: stock.ownerModel },
       { path: "components.product", model: "Product" },
@@ -260,6 +285,17 @@ export async function syncOwnerStocks(req, res) {
   try {
     const { ownerModel, owner, rows = [] } = req.body || {};
     await assertOwner(ownerModel, owner);
+    if (Array.isArray(rows) && rows.length === 0) {
+      await StockItem.deleteMany({ ownerModel, owner });
+      return res.json({ ok: true, count: 0 });
+    }
+
+    const previousRows = await StockItem.find({ ownerModel, owner })
+      .select("_id owner ownerModel comboKey qtyOnHand color size attributeValue")
+      .lean();
+    const previousQtyByComboKey = new Map(
+      previousRows.map((row) => [String(row.comboKey || ""), Number(row.qtyOnHand || 0) || 0])
+    );
 
     const seen = new Set();
     const docs = [];
@@ -303,6 +339,21 @@ export async function syncOwnerStocks(req, res) {
         ordered: false,
         session,
       });
+      for (const row of inserted) {
+        const comboKey = String(row.comboKey || "");
+        await maybeCreateLowStockNotification({
+          ownerModel: row.ownerModel,
+          owner: row.owner,
+          stockItemId: row._id,
+          comboKey,
+          color: row.color,
+          size: row.size,
+          attributeValue: row.attributeValue,
+          previousQty: previousQtyByComboKey.get(comboKey),
+          qtyOnHand: row.qtyOnHand,
+          session,
+        });
+      }
       await session.commitTransaction();
       res.json({
         ok: true,
@@ -349,6 +400,27 @@ export async function syncOwnerStocks(req, res) {
         owner,
         comboKey: { $nin: comboKeys },
       });
+      const latestRows = await StockItem.find({
+        ownerModel,
+        owner,
+        comboKey: { $in: comboKeys },
+      })
+        .select("_id owner ownerModel comboKey qtyOnHand color size attributeValue")
+        .lean();
+      for (const row of latestRows) {
+        const comboKey = String(row.comboKey || "");
+        await maybeCreateLowStockNotification({
+          ownerModel: row.ownerModel,
+          owner: row.owner,
+          stockItemId: row._id,
+          comboKey,
+          color: row.color,
+          size: row.size,
+          attributeValue: row.attributeValue,
+          previousQty: previousQtyByComboKey.get(comboKey),
+          qtyOnHand: row.qtyOnHand,
+        });
+      }
       res.json({ ok: true, count: docs.length });
     } catch (err) {
       if (err?.code === 11000 && err?.keyPattern?.sku)

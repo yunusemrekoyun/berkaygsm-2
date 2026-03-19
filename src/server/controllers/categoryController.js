@@ -94,6 +94,7 @@ const shapeCategory = (
       ? plain.ancestors.map((a) => String(a))
       : [],
     image: toPlainImage(sourceDoc?.image ?? plain.image),
+    sortOrder: Number(sourceDoc?.sortOrder ?? plain.sortOrder ?? 0),
     createdAt: sourceDoc?.createdAt ?? plain.createdAt,
     updatedAt: sourceDoc?.updatedAt ?? plain.updatedAt,
   };
@@ -112,6 +113,15 @@ const parseBoolean = (value) => {
   }
   return false;
 };
+
+async function resolveNextCategorySortOrder(parentId = null) {
+  const filter = parentId ? { parent: parentId } : { parent: null };
+  const lastSibling = await Category.findOne(filter)
+    .sort({ sortOrder: -1, createdAt: -1 })
+    .select("sortOrder")
+    .lean();
+  return Number(lastSibling?.sortOrder || 0) + 1;
+}
 
 const resolveCategoryFolder = () => {
   const instance = configureCloudinary();
@@ -192,6 +202,7 @@ export async function createCategory(req, res) {
     const data = {
       name,
       parent: parentDoc?._id ?? null,
+      sortOrder: await resolveNextCategorySortOrder(parentDoc?._id ?? null),
     };
     if (imagePayload) data.image = imagePayload;
 
@@ -243,7 +254,11 @@ export async function listCategories(req, res) {
       filter.parent = parentDoc._id;
     }
 
-    const categories = await Category.find(filter).sort({ level: 1, name: 1 });
+    const categories = await Category.find(filter).sort({
+      level: 1,
+      sortOrder: 1,
+      name: 1,
+    });
 
     res.json({
       categories: categories.map((categoryDoc) => {
@@ -300,7 +315,12 @@ export async function updateCategory(req, res) {
   try {
     const lang = normalizeLang(req.query.lang || DEFAULT_LANG);
     const { idOrSlug } = req.params;
-    const { name, parent = undefined, removeImage = undefined } = req.body;
+    const {
+      name,
+      parent = undefined,
+      removeImage = undefined,
+      sortOrder = undefined,
+    } = req.body;
 
     const category = isValidObjectId(idOrSlug)
       ? await Category.findById(idOrSlug)
@@ -325,8 +345,12 @@ export async function updateCategory(req, res) {
     }
 
     if (parent !== undefined) {
+      const previousParentId = category.parent ? String(category.parent) : null;
       if (!parent) {
         category.parent = null;
+        if (previousParentId !== null) {
+          category.sortOrder = await resolveNextCategorySortOrder(null);
+        }
       } else {
         const parentDoc = isValidObjectId(parent)
           ? await Category.findById(parent)
@@ -345,6 +369,16 @@ export async function updateCategory(req, res) {
             .json({ message: "Alt kategori üst olarak seçilemez" });
         }
         category.parent = parentDoc._id;
+        if (previousParentId !== String(parentDoc._id)) {
+          category.sortOrder = await resolveNextCategorySortOrder(parentDoc._id);
+        }
+      }
+    }
+
+    if (sortOrder !== undefined) {
+      const normalizedSortOrder = Number(sortOrder);
+      if (Number.isFinite(normalizedSortOrder)) {
+        category.sortOrder = normalizedSortOrder;
       }
     }
 
@@ -444,10 +478,61 @@ export async function deleteCategory(req, res) {
   }
 }
 
+export async function reorderCategories(req, res) {
+  try {
+    const parent =
+      req.body?.parent === undefined || req.body?.parent === null || req.body?.parent === ""
+        ? null
+        : String(req.body.parent);
+    const orderedIds = Array.isArray(req.body?.orderedIds)
+      ? req.body.orderedIds.map((id) => String(id)).filter(isValidObjectId)
+      : [];
+
+    if (!orderedIds.length) {
+      return res.status(400).json({ message: "Siralama listesi gerekli" });
+    }
+
+    const categories = await Category.find({ _id: { $in: orderedIds } })
+      .select("_id parent")
+      .lean();
+
+    if (categories.length !== orderedIds.length) {
+      return res.status(400).json({ message: "Bazi kategoriler bulunamadi" });
+    }
+
+    const parentKey = parent && isValidObjectId(parent) ? parent : null;
+    const hasInvalidParent = categories.some((category) => {
+      const categoryParent = category.parent ? String(category.parent) : null;
+      return categoryParent !== parentKey;
+    });
+
+    if (hasInvalidParent) {
+      return res
+        .status(400)
+        .json({ message: "Sadece ayni ust kategori altindaki kayitlar siralanabilir" });
+    }
+
+    await Category.bulkWrite(
+      orderedIds.map((id, index) => ({
+        updateOne: {
+          filter: { _id: id },
+          update: { $set: { sortOrder: index } },
+        },
+      }))
+    );
+
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+}
+
 export async function getCategoryTree(req, res) {
   try {
     const lang = normalizeLang(req.query.lang || DEFAULT_LANG);
-    const categories = await Category.find().sort({ level: 1, name: 1 }).lean();
+    const categories = await Category.find()
+      .sort({ level: 1, sortOrder: 1, name: 1 })
+      .lean();
 
     const byId = new Map();
     categories.forEach((cat) => {
@@ -475,8 +560,10 @@ export async function getCategoryTree(req, res) {
       id: node._id,
       name: node.name,
       slug: node.slug,
+      parent: node.parent,
       level: node.level,
       image: toPlainImage(node.image),
+      sortOrder: Number(node.sortOrder || 0),
       children: node.children.map(format),
     });
 

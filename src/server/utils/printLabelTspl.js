@@ -101,7 +101,7 @@ function variantSummary(variant = null) {
   if (!variant || typeof variant !== "object") return "";
   const parts = [];
   if (variant.color) parts.push(`Renk ${variant.color}`);
-  if (variant.size) parts.push(`Beden ${variant.size}`);
+  if (variant.size) parts.push(`Model ${variant.size}`);
   if (variant.attribute) parts.push(`Ozellik ${variant.attribute}`);
   return parts.join(" / ");
 }
@@ -113,6 +113,41 @@ function selectionSummary(selection, index) {
   if (variant) parts.push(variant);
   else parts.push(`Set Secimi ${index + 1}`);
   return parts.join(" ");
+}
+
+function buildAdjustmentRows(snapshot = {}) {
+  const pricing =
+    snapshot?.pricing && typeof snapshot.pricing === "object"
+      ? snapshot.pricing
+      : {};
+  const coupon =
+    snapshot?.coupon && typeof snapshot.coupon === "object"
+      ? snapshot.coupon
+      : {};
+
+  return [
+    Number(pricing.standardDiscountAmount || 0) > 0
+      ? {
+          label: "Normal Ind.",
+          value: -Math.abs(Number(pricing.standardDiscountAmount || 0) || 0),
+        }
+      : null,
+    Number(pricing.stackedDiscountAmount || 0) > 0
+      ? {
+          label:
+            Number(pricing?.stacked?.percentage || 0) > 0
+              ? `Katlanan %${Number(pricing.stacked.percentage || 0)}`
+              : "Katlanan Ind.",
+          value: -Math.abs(Number(pricing.stackedDiscountAmount || 0) || 0),
+        }
+      : null,
+    Number(coupon.discountAmount || 0) > 0
+      ? {
+          label: coupon.code ? `Kupon ${coupon.code}` : "Kupon",
+          value: -Math.abs(Number(coupon.discountAmount || 0) || 0),
+        }
+      : null,
+  ].filter(Boolean);
 }
 
 function pushText(commands, x, y, xMul, yMul, text) {
@@ -267,29 +302,30 @@ export function buildOrderLabelTspl(snapshot = {}, options = {}) {
   cursorY = itemsTop + itemsHeight + 14;
 
   const totalsTop = cursorY;
-  const totalsHeight = 116;
+  const adjustmentRows = buildAdjustmentRows(snapshot);
+  const summaryRows = [
+    {
+      label: "Ara Toplam",
+      value: Number(snapshot?.pricing?.baseSubtotal || snapshot?.subtotal || 0) || 0,
+    },
+    ...adjustmentRows,
+    {
+      label: snapshot.shippingName || "Kargo",
+      value: Number(snapshot.shipping || 0) || 0,
+    },
+    {
+      label: "Genel Toplam",
+      value: Number(snapshot.total || 0) || 0,
+    },
+  ];
+  const totalsHeight = 44 + summaryRows.length * 24;
   pushBox(commands, left, totalsTop, right, totalsTop + totalsHeight, 1);
   pushText(commands, left + 12, totalsTop + 10, 1, 1, "TOPLAMLAR");
-  pushText(commands, left + 12, totalsTop + 38, 1, 1, "Ara Toplam");
-  pushText(commands, right - 180, totalsTop + 38, 1, 1, formatMoney(snapshot.subtotal));
-  pushText(
-    commands,
-    left + 12,
-    totalsTop + 62,
-    1,
-    1,
-    snapshot.shippingName || "Kargo"
-  );
-  pushText(
-    commands,
-    right - 180,
-    totalsTop + 62,
-    1,
-    1,
-    formatMoney(snapshot.shipping)
-  );
-  pushText(commands, left + 12, totalsTop + 88, 1, 1, "Genel Toplam");
-  pushText(commands, right - 180, totalsTop + 88, 1, 1, formatMoney(snapshot.total));
+  summaryRows.forEach((row, index) => {
+    const rowY = totalsTop + 38 + index * 24;
+    pushText(commands, left + 12, rowY, 1, 1, row.label);
+    pushText(commands, right - 180, rowY, 1, 1, formatMoney(row.value));
+  });
   cursorY = totalsTop + totalsHeight + 14;
 
   const note = sanitizeLine(snapshot.note || "");

@@ -66,12 +66,14 @@ export default function CheckoutPage() {
   const cart = useCart() || {};
   const {
     items: itemsRaw = [],
+    baseSubtotal = 0,
     subTotal = 0,
     total = 0,
     grandTotal = 0,
     coupon = null,
     couponApplicable: couponApplicableRaw,
     couponDiscount = 0,
+    pricing = {},
     shipping: shippingInfo = {},
     clearCart = () => {},
     clearCoupon = () => {},
@@ -171,19 +173,27 @@ export default function CheckoutPage() {
         const name =
           it.name ?? it.title ?? it.product?.name ?? it.set?.name ?? "Ürün";
 
-        return { name, qty, unitPrice };
+        return {
+          name,
+          qty,
+          unitPrice,
+          lineTotal:
+            Number(it?.pricing?.lineTotalBeforeCoupon) || unitPrice * qty,
+        };
       }),
     [itemsRaw]
   );
 
   const computedSubtotal = useMemo(
-    () => lines.reduce((s, l) => s + l.qty * l.unitPrice, 0),
+    () => lines.reduce((s, l) => s + Number(l.lineTotal || 0), 0),
     [lines]
   );
   const subtotal = Number(subTotal ?? computedSubtotal) || 0;
   const shippingFee = Number(shippingInfo?.fee ?? 0) || 0;
   const shippingName = shippingInfo?.name || "Kargo";
   const normalizedCouponDiscount = Number(couponDiscount) || 0;
+  const standardDiscountAmount = Number(pricing?.standardDiscountAmount || 0) || 0;
+  const stackedDiscountAmount = Number(pricing?.stackedDiscountAmount || 0) || 0;
   const couponApplicable = coupon
     ? couponApplicableRaw ?? subtotal >= Number(coupon.minSubtotal || 0)
     : false;
@@ -205,6 +215,13 @@ export default function CheckoutPage() {
     PAYMENT_OPTIONS.SIMULATE_SUCCESS
   );
   const [orderNote, setOrderNote] = useState("");
+  const placeOrderLabel = placing
+    ? "Sipariş işleniyor..."
+    : paymentOption === PAYMENT_OPTIONS.SIMULATE_FAILURE
+      ? "Başarısız sipariş simülasyonunu kaydet"
+      : paymentOption === PAYMENT_OPTIONS.PAYTR
+        ? "PayTR ile devam et"
+        : "Başarılı sipariş simülasyonunu kaydet";
 
   const hasItems = checkoutItems.length > 0;
   const hasAddress = Boolean(addressId);
@@ -384,9 +401,9 @@ export default function CheckoutPage() {
         </div>
       )}
 
-      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 pb-16 grid gap-6 md:grid-cols-12">
-        <div className="md:col-span-7 lg:col-span-8">
-          <div className="glass-surface rounded-2xl border border-border bg-white p-6">
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 pb-32 md:pb-16 grid gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-7 xl:col-span-8">
+          <div className="glass-surface rounded-2xl border border-border bg-white p-4 sm:p-6">
             <h2 className="text-xl font-semibold text-primary">Teslimat adresi</h2>
 
             {addresses.length === 0 ? (
@@ -402,15 +419,16 @@ export default function CheckoutPage() {
                 {addresses.map((a) => (
                   <label
                     key={a.id}
-                    className="glass-surface-soft flex gap-3 rounded-xl border border-border bg-contact-bg p-3"
+                    className="glass-surface-soft flex items-start gap-3 rounded-xl border border-border bg-contact-bg p-3 sm:p-4"
                   >
                     <input
                       type="radio"
                       name="address"
                       checked={addressId === a.id}
                       onChange={() => setAddressId(a.id)}
+                      className="mt-1"
                     />
-                    <div>
+                    <div className="min-w-0 break-words">
                       <div className="font-medium text-primary">{a.fullName}</div>
                       <div className="text-sm text-secondary whitespace-pre-line">
                         {a.addressLine ||
@@ -436,18 +454,18 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <div className="md:col-span-5 lg:col-span-4">
-          <div className="glass-surface rounded-2xl border border-border bg-white p-6">
+        <div className="lg:col-span-5 xl:col-span-4">
+          <div className="glass-surface rounded-2xl border border-border bg-white p-4 sm:p-6 lg:sticky lg:top-[calc(var(--header-height)+1rem)]">
             <h2 className="text-xl font-semibold text-primary">Sipariş özeti</h2>
 
-            <ul className="mt-4 space-y-3 max-h-56 overflow-auto pr-1">
+            <ul className="mt-4 max-h-48 space-y-3 overflow-auto pr-1 sm:max-h-56">
               {lines.map((it, idx) => (
-                <li key={idx} className="flex justify-between text-sm">
-                  <span className="text-primary truncate">
+                <li key={idx} className="flex items-start justify-between gap-3 text-sm">
+                  <span className="min-w-0 flex-1 text-primary truncate">
                     {it.name} × {it.qty}
                   </span>
-                  <span className="text-secondary">
-                    ₺{Number(it.unitPrice * it.qty).toFixed(2)}
+                  <span className="shrink-0 text-secondary">
+                    ₺{Number(it.lineTotal || 0).toFixed(2)}
                   </span>
                 </li>
               ))}
@@ -456,8 +474,20 @@ export default function CheckoutPage() {
             <div className="mt-4 border-t border-border pt-4 space-y-1 text-sm">
               <div className="flex justify-between">
                 <span className="text-secondary">Ara toplam</span>
-                <span className="text-primary">₺{subtotal.toFixed(2)}</span>
+                <span className="text-primary">₺{Number(baseSubtotal || subtotal).toFixed(2)}</span>
               </div>
+              {standardDiscountAmount > 0 && (
+                <div className="flex justify-between text-emerald-700">
+                  <span className="text-sm">Normal indirim</span>
+                  <span>– ₺{standardDiscountAmount.toFixed(2)}</span>
+                </div>
+              )}
+              {stackedDiscountAmount > 0 && (
+                <div className="flex justify-between text-sky-700">
+                  <span className="text-sm">Katlanan indirim</span>
+                  <span>– ₺{stackedDiscountAmount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-secondary">
                   {shippingName ? `Kargo (${shippingName})` : "Kargo"}
@@ -497,33 +527,54 @@ export default function CheckoutPage() {
                   PayTR seçeneği ise altyapı netleşene kadar hazır bekler.
                 </p>
                 <div className="mt-3 space-y-2">
-                  <label className="flex items-center gap-2 text-secondary">
+                  <label
+                    className={`flex items-start gap-3 rounded-xl border px-3 py-3 transition ${
+                      paymentOption === PAYMENT_OPTIONS.SIMULATE_SUCCESS
+                        ? "border-accent bg-sky-50/80 text-primary"
+                        : "border-border bg-white/70 text-secondary"
+                    }`}
+                  >
                     <input
                       type="radio"
                       name="payment-option"
                       value={PAYMENT_OPTIONS.SIMULATE_SUCCESS}
                       checked={paymentOption === PAYMENT_OPTIONS.SIMULATE_SUCCESS}
                       onChange={() => setPaymentOption(PAYMENT_OPTIONS.SIMULATE_SUCCESS)}
+                      className="mt-1"
                     />
                     <span>Siparişi başarılı simüle et</span>
                   </label>
-                  <label className="flex items-center gap-2 text-secondary">
+                  <label
+                    className={`flex items-start gap-3 rounded-xl border px-3 py-3 transition ${
+                      paymentOption === PAYMENT_OPTIONS.SIMULATE_FAILURE
+                        ? "border-accent bg-sky-50/80 text-primary"
+                        : "border-border bg-white/70 text-secondary"
+                    }`}
+                  >
                     <input
                       type="radio"
                       name="payment-option"
                       value={PAYMENT_OPTIONS.SIMULATE_FAILURE}
                       checked={paymentOption === PAYMENT_OPTIONS.SIMULATE_FAILURE}
                       onChange={() => setPaymentOption(PAYMENT_OPTIONS.SIMULATE_FAILURE)}
+                      className="mt-1"
                     />
                     <span>Siparişi başarısız simüle et</span>
                   </label>
-                  <label className="flex items-center gap-2 text-secondary">
+                  <label
+                    className={`flex items-start gap-3 rounded-xl border px-3 py-3 transition ${
+                      paymentOption === PAYMENT_OPTIONS.PAYTR
+                        ? "border-accent bg-sky-50/80 text-primary"
+                        : "border-border bg-white/70 text-secondary"
+                    }`}
+                  >
                     <input
                       type="radio"
                       name="payment-option"
                       value={PAYMENT_OPTIONS.PAYTR}
                       checked={paymentOption === PAYMENT_OPTIONS.PAYTR}
                       onChange={() => setPaymentOption(PAYMENT_OPTIONS.PAYTR)}
+                      className="mt-1"
                     />
                     <span>PayTR ile öde</span>
                   </label>
@@ -555,13 +606,7 @@ export default function CheckoutPage() {
                   className="mt-5 w-full rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
                   onClick={placeOrder}
                 >
-                  {placing
-                    ? "Sipariş işleniyor..."
-                    : paymentOption === PAYMENT_OPTIONS.SIMULATE_FAILURE
-                      ? "Başarısız sipariş simülasyonunu kaydet"
-                      : paymentOption === PAYMENT_OPTIONS.PAYTR
-                        ? "PayTR ile devam et"
-                        : "Başarılı sipariş simülasyonunu kaydet"}
+                  {placeOrderLabel}
                 </button>
               </div>
 
@@ -572,6 +617,33 @@ export default function CheckoutPage() {
               </p>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="fixed inset-x-4 bottom-4 z-40 lg:hidden">
+        <div className="glass-surface rounded-2xl border border-border bg-white/95 p-3 shadow-xl backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-secondary/70">
+                Toplam
+              </p>
+              <p className="truncate text-base font-semibold text-primary">
+                ₺{totalDue.toFixed(2)}
+              </p>
+            </div>
+            <button
+              disabled={!canPlaceOrder || placing}
+              className="shrink-0 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
+              onClick={placeOrder}
+            >
+              {placing ? "İşleniyor..." : "Siparişi tamamla"}
+            </button>
+          </div>
+          {!hasAddress && (
+            <p className="mt-2 text-xs text-amber-700">
+              Sipariş işlemi için önce adres ekleyin.
+            </p>
+          )}
         </div>
       </div>
     </section>

@@ -40,6 +40,37 @@ function normalizeCategory(category) {
   };
 }
 
+function reorderTreeSiblings(nodes, parentId, draggedId, targetId) {
+  const normalizedParentId = normalizeId(parentId);
+  const applyReorder = (list) => {
+    const sourceIndex = list.findIndex((item) => item.id === draggedId);
+    const targetIndex = list.findIndex((item) => item.id === targetId);
+    if (sourceIndex === -1 || targetIndex === -1) return list;
+    const next = [...list];
+    const [moved] = next.splice(sourceIndex, 1);
+    next.splice(targetIndex, 0, moved);
+    return next.map((item, index) => ({
+      ...item,
+      sortOrder: index,
+    }));
+  };
+
+  const walk = (list, currentParentId = null) => {
+    if (normalizeId(currentParentId) === normalizedParentId) {
+      return applyReorder(list);
+    }
+
+    return list.map((item) => ({
+      ...item,
+      children: Array.isArray(item.children)
+        ? walk(item.children, item.id)
+        : item.children,
+    }));
+  };
+
+  return walk(nodes, null);
+}
+
 export default function AdminCategories() {
   const confirm = useConfirm();
   const [tree, setTree] = useState([]);
@@ -248,6 +279,30 @@ export default function AdminCategories() {
     }
   };
 
+  const handleReorder = async ({ parentId = null, draggedId, targetId }) => {
+    if (!draggedId || !targetId || draggedId === targetId) return;
+    const nextTree = reorderTreeSiblings(tree, parentId, draggedId, targetId);
+    setTree(nextTree);
+
+    try {
+      const siblingSource = parentId
+        ? flattenCategoryTree(nextTree)
+            .find((item) => item.id === parentId)
+            ?.node?.children || []
+        : nextTree;
+      const orderedIds = siblingSource.map((item) => item.id).filter(Boolean);
+
+      await categoryApi.reorder({
+        parent: parentId,
+        orderedIds,
+      });
+      setBanner({ variant: "success", message: "Kategori sirasi guncellendi" });
+    } catch (error) {
+      setBanner({ variant: "danger", message: extractMessage(error) });
+      await refreshTree(selectedId || undefined, BASE_LANG);
+    }
+  };
+
   return (
     <section className="space-y-6">
       <header>
@@ -274,6 +329,7 @@ export default function AdminCategories() {
             items={tree}
             selectedId={selectedId}
             onSelect={handleSelect}
+            onReorder={handleReorder}
             onCreateRoot={() => {
               setSelectedCategory(null);
               setSelectedId(null);

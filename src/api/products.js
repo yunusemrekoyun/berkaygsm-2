@@ -97,6 +97,9 @@ const extractProduct = (data) => {
   return null;
 };
 
+const hasOwn = (value, key) =>
+  Boolean(value) && Object.prototype.hasOwnProperty.call(value, key);
+
 export const productApi = {
   async list(params = {}, lang = DEFAULT_LANG) {
     const qs = toQueryString({ ...params, lang: lang ?? DEFAULT_LANG });
@@ -142,8 +145,8 @@ export const productApi = {
       );
     if (payload.customAttribute)
       form.append("customAttribute", JSON.stringify(payload.customAttribute));
-    if (payload.stockRows) {
-      form.append("stockRows", JSON.stringify(payload.stockRows));
+    if (hasOwn(payload, "stockRows")) {
+      form.append("stockRows", JSON.stringify(payload.stockRows || []));
     }
 
     // 🚫 Artık INVENTORY GÖNDERMEYİZ (stoklar ayrı endpoint ile yazılıyor)
@@ -151,6 +154,8 @@ export const productApi = {
       scope: "products",
     });
     appendAssetList(form, "images", uploadedImages);
+    if (payload.imageOrder?.length)
+      form.append("imageOrder", toJsonArray(payload.imageOrder));
 
     const qs = toQueryString({ lang: lang ?? DEFAULT_LANG });
     const data = await http(`/products${qs}`, {
@@ -197,14 +202,16 @@ export const productApi = {
       );
     if (payload.customAttribute !== undefined)
       form.append("customAttribute", JSON.stringify(payload.customAttribute));
-    if (payload.stockRows) {
-      form.append("stockRows", JSON.stringify(payload.stockRows));
+    if (hasOwn(payload, "stockRows")) {
+      form.append("stockRows", JSON.stringify(payload.stockRows || []));
     }
 
     const uploadedImages = await uploadAssets(payload.images || [], {
       scope: "products",
     });
     appendAssetList(form, "images", uploadedImages);
+    if (payload.imageOrder?.length)
+      form.append("imageOrder", toJsonArray(payload.imageOrder));
     if (payload.removeImagePublicIds?.length)
       form.append(
         "removeImagePublicIds",
