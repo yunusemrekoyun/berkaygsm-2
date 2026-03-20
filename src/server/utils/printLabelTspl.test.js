@@ -36,4 +36,36 @@ describe("buildOrderLabelTspl", () => {
     expect(tspl).toContain("Kupon WELCOME10");
     expect(tspl).toContain("Genel Toplam");
   });
+
+  it("summarizes overflowing items instead of exceeding the label height", () => {
+    const tspl = buildOrderLabelTspl({
+      orderNumber: "AYY-20260320-LONG",
+      createdAt: "2026-03-20T10:00:00.000Z",
+      address: {
+        fullName: "Cok Uzun Test Kullanici Adi Soyadi",
+        phone: "05550000000",
+        addressLine:
+          "Oldukca uzun bir adres satiri ve ekstra sokak apartman mahalle bilgisi",
+        city: "Istanbul",
+        district: "Kadikoy",
+        postalCode: "34000",
+        country: "Turkiye",
+      },
+      items: Array.from({ length: 9 }, (_, index) => ({
+        ref: `item-${index}`,
+        name: `Cok uzun isimli urun ${index + 1} modeli ve aksesuar paketi`,
+        qty: 1,
+        unitPrice: 100,
+        variant: {
+          color: "Siyah",
+          size: "iPhone 15 Pro Max",
+        },
+      })),
+      subtotal: 900,
+      shipping: 0,
+      total: 900,
+    });
+
+    expect(tspl).toContain("diger urun");
+  });
 });

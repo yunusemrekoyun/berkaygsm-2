@@ -84,4 +84,39 @@ describe("buildOrderPrintModel", () => {
     expect(model.subtotalLabel).toBe("₺200,00");
     expect(model.adjustments).toHaveLength(3);
   });
+
+  it("switches to a denser layout and summarizes overflow items for large orders", () => {
+    const model = buildOrderPrintModel({
+      orderNumber: "ORD-2",
+      createdAt: "2026-03-19T12:00:00.000Z",
+      address: {
+        fullName: "Cok Uzun Test Kullanici Adi Soyadi",
+        phone: "05550000000",
+        addressLine:
+          "Oldukca uzun bir adres satiri ve buna eklenen ekstra mahalle ve sokak bilgileri",
+        city: "Istanbul",
+        district: "Kadikoy",
+        postalCode: "34000",
+        country: "Turkiye",
+      },
+      items: Array.from({ length: 8 }, (_, index) => ({
+        ref: `item-${index}`,
+        name: `Cok uzun isimli urun ${index + 1} modeli ve aksesuar paketi`,
+        qty: 1,
+        unitPrice: 100 + index,
+        variant: {
+          color: "Siyah",
+          size: "iPhone 15 Pro Max",
+        },
+      })),
+      subtotal: 800,
+      shipping: 0,
+      total: 800,
+      note:
+        "Bu siparis yogun icerik testi icindir ve fisin icerisine kontrollu sekilde sigmalidir.",
+    });
+
+    expect(model.layout.key).not.toBe("regular");
+    expect(model.items.some((item) => item.isOverflowSummary)).toBe(true);
+  });
 });
