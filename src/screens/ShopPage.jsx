@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import BreadCrumb from "../components/shop/BreadCrumb";
 import ShopPageFilter from "../components/shop/ShopPageFilter";
 import ShopPageProducts from "../components/shop/ShopPageProducts";
+import ShopPageSortBar from "../components/shop/ShopPageSortBar.jsx";
 import { categoryApi } from "../api/categories";
 import { productApi } from "../api/products";
 import { setApi } from "../api/sets";
@@ -19,6 +20,13 @@ import {
 import { getColorInfo } from "../utils/colors.js";
 
 const isObjectId = (v) => typeof v === "string" && /^[0-9a-fA-F]{24}$/.test(v);
+const DEFAULT_SORT = "newest";
+const VALID_SORT_VALUES = new Set([
+  "newest",
+  "oldest",
+  "price_low",
+  "price_high",
+]);
 
 function normalizeIdList(values = []) {
   return Array.from(
@@ -61,6 +69,15 @@ function matchesStackedSet(setDoc, stackedDiscount) {
   const setId = String(setDoc?.id || setDoc?._id || "").trim();
   if (!setId) return false;
   return setIds.has(setId);
+}
+
+function getComparableDate(item) {
+  const timestamp = new Date(item?.createdAt || item?.updatedAt || 0).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function getComparablePrice(item) {
+  return Number(item?.finalPrice ?? item?.price ?? 0) || 0;
 }
 
 export default function ShopPage() {
@@ -112,6 +129,10 @@ export default function ShopPage() {
   const stackedDiscountParam = (searchParams.get("stackedDiscount") || "").toLowerCase();
   const isStackedDiscountMode =
     stackedDiscountParam === "true" || stackedDiscountParam === "1";
+  const sortParam = (searchParams.get("sort") || "").toLowerCase();
+  const selectedSort = VALID_SORT_VALUES.has(sortParam)
+    ? sortParam
+    : DEFAULT_SORT;
   const saleBannerCopy = shopCopy.saleBanner || {};
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState(null);
@@ -503,8 +524,57 @@ export default function ShopPage() {
     selectedPrice,
     searchQuery,
   ]);
+  const sortedProducts = useMemo(() => {
+    const list = [...filteredProducts];
+
+    list.sort((left, right) => {
+      const leftDate = getComparableDate(left);
+      const rightDate = getComparableDate(right);
+      const leftPrice = getComparablePrice(left);
+      const rightPrice = getComparablePrice(right);
+
+      switch (selectedSort) {
+        case "oldest":
+          if (leftDate !== rightDate) return leftDate - rightDate;
+          return leftPrice - rightPrice;
+        case "price_low":
+          if (leftPrice !== rightPrice) return leftPrice - rightPrice;
+          return rightDate - leftDate;
+        case "price_high":
+          if (leftPrice !== rightPrice) return rightPrice - leftPrice;
+          return rightDate - leftDate;
+        case "newest":
+        default:
+          if (leftDate !== rightDate) return rightDate - leftDate;
+          return leftPrice - rightPrice;
+      }
+    });
+
+    return list;
+  }, [filteredProducts, selectedSort]);
 
   const activeCampaign = campaignContext?.campaign || null;
+  const sortOptions = useMemo(
+    () => [
+      {
+        value: "newest",
+        label: filtersCopy.sortNewest || "En yeni",
+      },
+      {
+        value: "oldest",
+        label: filtersCopy.sortOldest || "En eski",
+      },
+      {
+        value: "price_low",
+        label: filtersCopy.sortPriceLowToHigh || "En ucuz",
+      },
+      {
+        value: "price_high",
+        label: filtersCopy.sortPriceHighToLow || "En pahalı",
+      },
+    ],
+    [filtersCopy]
+  );
   const priceFormatter = useMemo(
     () =>
       new Intl.NumberFormat("tr-TR", {
@@ -591,6 +661,13 @@ export default function ShopPage() {
     const params = new URLSearchParams(searchParams);
     params.delete("category");
     params.delete("price");
+    setSearchParams(params);
+  };
+
+  const handleSortChange = (value) => {
+    const params = new URLSearchParams(searchParams);
+    if (!value || value === DEFAULT_SORT) params.delete("sort");
+    else params.set("sort", value);
     setSearchParams(params);
   };
 
@@ -849,21 +926,6 @@ export default function ShopPage() {
         )}
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3 md:hidden">
-        <button
-          type="button"
-          onClick={handleOpenFilters}
-          className="inline-flex flex-1 items-center justify-center rounded-full border border-border px-4 py-2 text-sm font-semibold text-primary shadow-sm"
-        >
-          {filtersCopy.title || "Filtreler"}
-        </button>
-        {searchQuery && (
-          <span className="text-xs uppercase tracking-wide text-secondary">
-            “{searchQuery}”
-          </span>
-        )}
-      </div>
-
       {activeFilterBadges.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2 text-xs text-primary/80">
           {activeFilterBadges.map((chip) => (
@@ -903,6 +965,16 @@ export default function ShopPage() {
 
         {/* SAĞDA: ÜRÜNLER + DESKTOP SEARCH BAR */}
         <div className="flex-1 min-w-0">
+          <div className="mb-6">
+            <ShopPageSortBar
+              sortValue={selectedSort}
+              onSortChange={handleSortChange}
+              sortOptions={sortOptions}
+              labels={filtersCopy}
+              onOpenFilters={handleOpenFilters}
+            />
+          </div>
+
           {/* <div className="hidden md:block rounded-2xl border border-border/70 bg-white/95 p-4 shadow-sm">
             <form
               onSubmit={handleSearchSubmit}
@@ -966,7 +1038,7 @@ export default function ShopPage() {
           </div> */}
 
           <ShopPageProducts
-            products={filteredProducts}
+            products={sortedProducts}
             loading={loadingProducts}
             emptyLabel={shopProductsEmpty}
           />

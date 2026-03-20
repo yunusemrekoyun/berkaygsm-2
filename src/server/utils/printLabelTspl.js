@@ -1,3 +1,8 @@
+import {
+  buildAdaptiveOrderPrintLayout,
+  getOrderPrintLayoutProfile,
+} from "../../utils/orderPrintLayout.js";
+
 const DOTS_PER_MM = 8;
 const LABEL_WIDTH_MM = 100;
 const LABEL_HEIGHT_MM = 150;
@@ -86,17 +91,6 @@ function wrapText(value, maxChars) {
   return lines;
 }
 
-function wrapBlock(lines, maxChars, maxLines) {
-  const wrapped = [];
-  for (const line of lines) {
-    for (const row of wrapText(line, maxChars)) {
-      wrapped.push(row);
-      if (wrapped.length >= maxLines) return wrapped;
-    }
-  }
-  return wrapped;
-}
-
 function variantSummary(variant = null) {
   if (!variant || typeof variant !== "object") return "";
   const parts = [];
@@ -164,6 +158,41 @@ export function buildOrderLabelTspl(snapshot = {}, options = {}) {
   const width = mm(LABEL_WIDTH_MM);
   const height = mm(LABEL_HEIGHT_MM);
   const gapMm = Math.max(1, Number(options.gapMm || DEFAULT_GAP_MM));
+  const rawItems = Array.isArray(snapshot.items)
+    ? snapshot.items.map((item, index) => ({
+        id: item?.ref || `${index}`,
+        name: item?.name || `Urun ${index + 1}`,
+        qty: Number(item?.qty || 1) || 1,
+        qtyLabel: `${Number(item?.qty || 1) || 1} adet`,
+        unitPriceLabel: formatMoney(item?.unitPrice || 0),
+        lineTotalLabel: formatMoney(
+          (Number(item?.unitPrice || 0) || 0) * (Number(item?.qty || 0) || 1)
+        ),
+        variantSummary: variantSummary(item?.variant),
+        selectionLines: Array.isArray(item?.selections)
+          ? item.selections.map((selection, selectionIndex) =>
+              selectionSummary(selection, selectionIndex)
+            )
+          : [],
+      }))
+    : [];
+  const adaptiveLayout = buildAdaptiveOrderPrintLayout({
+    customerName:
+      snapshot.address?.fullName || snapshot.user?.firstName || "-",
+    addressLines: [
+      snapshot.address?.addressLine || "-",
+      [snapshot.address?.district, snapshot.address?.city]
+        .filter(Boolean)
+        .join(" / "),
+      [snapshot.address?.postalCode, snapshot.address?.country]
+        .filter(Boolean)
+        .join(" "),
+    ].filter(Boolean),
+    note: snapshot.note || "",
+    items: rawItems,
+  });
+  const profile = getOrderPrintLayoutProfile(adaptiveLayout.key);
+  const tspl = profile.tspl || {};
 
   commands.push(`SIZE ${LABEL_WIDTH_MM} mm,${LABEL_HEIGHT_MM} mm`);
   commands.push(`GAP ${gapMm} mm,0 mm`);
@@ -179,7 +208,14 @@ export function buildOrderLabelTspl(snapshot = {}, options = {}) {
   const left = 26;
   const right = width - 26;
 
-  pushText(commands, left, cursorY, 2, 2, "BERKAY GSM");
+  pushText(
+    commands,
+    left,
+    cursorY,
+    Number(tspl.headerTitleMul || 2) || 2,
+    Number(tspl.headerTitleMul || 2) || 2,
+    "BERKAY GSM"
+  );
   cursorY += 40;
   pushText(
     commands,
@@ -196,18 +232,16 @@ export function buildOrderLabelTspl(snapshot = {}, options = {}) {
   cursorY += 18;
 
   const receiverTop = cursorY;
-  const receiverHeight = 118;
+  const receiverHeight = Number(tspl.receiverHeight || 118) || 118;
   pushBox(commands, left, receiverTop, right, receiverTop + receiverHeight, 1);
   pushText(commands, left + 12, receiverTop + 10, 1, 1, "ALICI");
-  const nameLines = wrapBlock(
-    [snapshot.address?.fullName || snapshot.user?.firstName || "-"],
-    28,
-    2
-  );
+  const nameLines = Array.isArray(adaptiveLayout.customerNameLines)
+    ? adaptiveLayout.customerNameLines
+    : [snapshot.address?.fullName || snapshot.user?.firstName || "-"];
   let lineY = receiverTop + 38;
   nameLines.forEach((line) => {
     pushText(commands, left + 12, lineY, 1, 1, line);
-    lineY += 24;
+    lineY += Number(tspl.receiverNameLineHeight || 24) || 24;
   });
   pushText(
     commands,
@@ -220,33 +254,23 @@ export function buildOrderLabelTspl(snapshot = {}, options = {}) {
   cursorY = receiverTop + receiverHeight + 14;
 
   const addressTop = cursorY;
-  const addressHeight = 164;
+  const addressHeight = Number(tspl.addressHeight || 164) || 164;
   pushBox(commands, left, addressTop, right, addressTop + addressHeight, 1);
   pushText(commands, left + 12, addressTop + 10, 1, 1, "ADRES");
-  const addressLines = wrapBlock(
-    [
-      snapshot.address?.addressLine || "-",
-      [snapshot.address?.district, snapshot.address?.city]
-        .filter(Boolean)
-        .join(" / "),
-      [snapshot.address?.postalCode, snapshot.address?.country]
-        .filter(Boolean)
-        .join(" "),
-    ],
-    34,
-    6
-  );
+  const addressLines = Array.isArray(adaptiveLayout.addressLines)
+    ? adaptiveLayout.addressLines
+    : [];
   lineY = addressTop + 38;
   addressLines.forEach((line) => {
     pushText(commands, left + 12, lineY, 1, 1, line);
-    lineY += 22;
+    lineY += Number(tspl.addressLineHeight || 22) || 22;
   });
   cursorY = addressTop + addressHeight + 14;
 
   const itemsTop = cursorY;
-  const itemsHeight = 300;
+  const itemsHeight = Number(tspl.itemsHeight || 300) || 300;
   pushBox(commands, left, itemsTop, right, itemsTop + itemsHeight, 1);
-  const itemCount = (snapshot.items || []).reduce(
+  const itemCount = rawItems.reduce(
     (sum, item) => sum + Number(item?.qty || 0),
     0
   );
@@ -254,49 +278,41 @@ export function buildOrderLabelTspl(snapshot = {}, options = {}) {
   lineY = itemsTop + 38;
   const maxItemsBottom = itemsTop + itemsHeight - 18;
 
-  const items = Array.isArray(snapshot.items) ? snapshot.items : [];
+  const items = Array.isArray(adaptiveLayout.items) ? adaptiveLayout.items : [];
   for (let index = 0; index < items.length; index += 1) {
     const item = items[index];
-    const priceText = formatMoney(
-      (Number(item?.unitPrice || 0) || 0) * (Number(item?.qty || 0) || 1)
-    );
-    const itemLines = wrapText(item?.name || `Urun ${index + 1}`, 30);
-    const variantLine = variantSummary(item?.variant);
-    const selectionLines = Array.isArray(item?.selections)
-      ? item.selections
-          .slice(0, 2)
-          .map((selection, selectionIndex) =>
-            selectionSummary(selection, selectionIndex)
-          )
-      : [];
-    const metaLines = [
-      `${Number(item?.qty || 0) || 1} adet ${formatMoney(item?.unitPrice || 0)}`,
-      variantLine,
-      ...selectionLines,
-    ].filter(Boolean);
+    const priceText = item?.lineTotalLabel || "";
+    const itemLines = Array.isArray(item?.nameLines)
+      ? item.nameLines
+      : wrapText(item?.name || `Urun ${index + 1}`, 30);
+    const metaLines = Array.isArray(item?.metaLines) ? item.metaLines : [];
     const totalNeededLines = itemLines.length + metaLines.length;
-    const nextBlockHeight = totalNeededLines * 22 + 10;
+    const nextBlockHeight =
+      itemLines.length * (Number(tspl.itemNameLineHeight || 22) || 22) +
+      metaLines.length * (Number(tspl.itemMetaLineHeight || 20) || 20) +
+      (Number(tspl.itemGap || 4) || 4) +
+      6;
 
     if (lineY + nextBlockHeight > maxItemsBottom) {
-      pushText(commands, left + 12, lineY, 1, 1, "...");
+      pushText(commands, left + 12, lineY, 1, 1, "+ Siparis ozeti kisaltildi");
       lineY += 22;
       break;
     }
 
     itemLines.forEach((line, lineIndex) => {
       pushText(commands, left + 12, lineY, lineIndex === 0 ? 1 : 1, 1, line);
-      if (lineIndex === 0) {
+      if (lineIndex === 0 && priceText) {
         pushText(commands, right - 160, lineY, 1, 1, priceText);
       }
-      lineY += 22;
+      lineY += Number(tspl.itemNameLineHeight || 22) || 22;
     });
 
     metaLines.forEach((line) => {
       pushText(commands, left + 12, lineY, 1, 1, line);
-      lineY += 20;
+      lineY += Number(tspl.itemMetaLineHeight || 20) || 20;
     });
 
-    lineY += 4;
+    lineY += Number(tspl.itemGap || 4) || 4;
   }
 
   cursorY = itemsTop + itemsHeight + 14;
@@ -318,27 +334,33 @@ export function buildOrderLabelTspl(snapshot = {}, options = {}) {
       value: Number(snapshot.total || 0) || 0,
     },
   ];
-  const totalsHeight = 44 + summaryRows.length * 24;
+  const totalsHeight =
+    44 +
+    summaryRows.length * (Number(tspl.totalsRowHeight || 24) || 24);
   pushBox(commands, left, totalsTop, right, totalsTop + totalsHeight, 1);
   pushText(commands, left + 12, totalsTop + 10, 1, 1, "TOPLAMLAR");
   summaryRows.forEach((row, index) => {
-    const rowY = totalsTop + 38 + index * 24;
+    const rowY =
+      totalsTop +
+      38 +
+      index * (Number(tspl.totalsRowHeight || 24) || 24);
     pushText(commands, left + 12, rowY, 1, 1, row.label);
     pushText(commands, right - 180, rowY, 1, 1, formatMoney(row.value));
   });
   cursorY = totalsTop + totalsHeight + 14;
 
-  const note = sanitizeLine(snapshot.note || "");
-  if (note) {
+  const noteLines = Array.isArray(adaptiveLayout.noteLines)
+    ? adaptiveLayout.noteLines
+    : [];
+  if (noteLines.length) {
     const noteTop = cursorY;
     const noteBottom = height - 20;
     pushBox(commands, left, noteTop, right, noteBottom, 1);
     pushText(commands, left + 12, noteTop + 10, 1, 1, "SIPARIS NOTU");
-    const noteLines = wrapBlock([note], 36, 4);
     lineY = noteTop + 38;
     noteLines.forEach((line) => {
       pushText(commands, left + 12, lineY, 1, 1, line);
-      lineY += 20;
+      lineY += Number(tspl.noteLineHeight || 20) || 20;
     });
   }
 

@@ -1,6 +1,9 @@
+import {
+  buildAdaptiveOrderPrintLayout,
+  ORDER_PRINT_LAYOUT_PROFILES,
+  wrapPrintableTextLines,
+} from "../../utils/orderPrintLayout.js";
 const LOGO_SRC = "/logo.png";
-const PRINT_NOTE_MAX_CHARS = 36;
-const PRINT_NOTE_MAX_LINES = 4;
 
 export function formatOrderMoney(value) {
   const amount = Number(value || 0);
@@ -57,100 +60,47 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-function normalizePrintableText(value) {
-  return String(value ?? "").replace(/\s+/g, " ").trim();
-}
-
-function clampLineWithEllipsis(line, maxChars) {
-  const normalized = normalizePrintableText(line);
-  if (!normalized) return "";
-  if (normalized.endsWith("...")) return normalized;
-  if (normalized.length <= Math.max(0, maxChars - 3)) return `${normalized}...`;
-  const safeMax = Math.max(1, maxChars - 3);
-  return `${normalized.slice(0, safeMax).trimEnd()}...`;
-}
-
-function wrapPrintableText(value, maxChars, maxLines) {
-  const sourceLines = String(value ?? "")
-    .split(/\r?\n/)
-    .map(normalizePrintableText)
-    .filter(Boolean);
-
-  if (!sourceLines.length) return [];
-
-  const wrapped = [];
-  let truncated = false;
-
-  outer: for (const sourceLine of sourceLines) {
-    const words = sourceLine.split(" ");
-    let current = "";
-
-    for (const word of words) {
-      const candidate = current ? `${current} ${word}` : word;
-      if (candidate.length <= maxChars) {
-        current = candidate;
-        continue;
+function buildDensityCssRules() {
+  return ORDER_PRINT_LAYOUT_PROFILES.map((profile) => {
+    const html = profile.html || {};
+    return `
+      .sheet[data-density="${profile.key}"] {
+        --sheet-padding: ${html.sheetPadding};
+        --sheet-gap: ${html.sheetGap};
+        --section-padding-y: ${html.sectionPaddingY};
+        --section-padding-x: ${html.sectionPaddingX};
+        --section-title-font-size: ${html.sectionTitleFontSize};
+        --section-title-margin-bottom: ${html.sectionTitleMarginBottom};
+        --customer-name-font-size: ${html.customerNameFontSize};
+        --customer-name-gap: ${html.customerNameGap};
+        --customer-phone-font-size: ${html.customerPhoneFontSize};
+        --address-font-size: ${html.addressFontSize};
+        --address-line-height: ${html.addressLineHeight};
+        --items-gap: ${html.itemsGap};
+        --item-row-gap: ${html.itemRowGap};
+        --item-row-padding-bottom: ${html.itemRowPaddingBottom};
+        --item-name-font-size: ${html.itemNameFontSize};
+        --item-name-line-height: ${html.itemNameLineHeight};
+        --item-meta-gap: ${html.itemMetaGap};
+        --item-meta-font-size: ${html.itemMetaFontSize};
+        --item-sub-font-size: ${html.itemSubFontSize};
+        --item-sub-line-height: ${html.itemSubLineHeight};
+        --item-total-font-size: ${html.itemTotalFontSize};
+        --totals-gap: ${html.totalsGap};
+        --total-font-size: ${html.totalFontSize};
+        --total-strong-font-size: ${html.totalStrongFontSize};
+        --note-font-size: ${html.noteFontSize};
+        --note-line-height: ${html.noteLineHeight};
+        --note-max-height: ${html.noteMaxHeight};
       }
-
-      if (current) {
-        if (wrapped.length >= maxLines) {
-          truncated = true;
-          break outer;
-        }
-        wrapped.push(current);
-      }
-
-      if (word.length <= maxChars) {
-        current = word;
-        continue;
-      }
-
-      let remaining = word;
-      while (remaining.length > maxChars) {
-        if (wrapped.length >= maxLines) {
-          truncated = true;
-          break outer;
-        }
-        wrapped.push(remaining.slice(0, maxChars));
-        remaining = remaining.slice(maxChars);
-      }
-      current = remaining;
-    }
-
-    if (current) {
-      if (wrapped.length >= maxLines) {
-        truncated = true;
-        break;
-      }
-      wrapped.push(current);
-    }
-  }
-
-  if (wrapped.length > maxLines) {
-    wrapped.length = maxLines;
-    truncated = true;
-  }
-
-  if (truncated && wrapped.length) {
-    wrapped[wrapped.length - 1] = clampLineWithEllipsis(
-      wrapped[wrapped.length - 1],
-      maxChars
-    );
-  }
-
-  return wrapped.filter(Boolean);
+    `;
+  }).join("\n");
 }
 
 export function formatPrintableOrderNote(value, options = {}) {
-  const maxChars = Math.max(
-    8,
-    Number(options.maxChars || PRINT_NOTE_MAX_CHARS) || PRINT_NOTE_MAX_CHARS
-  );
-  const maxLines = Math.max(
-    1,
-    Number(options.maxLines || PRINT_NOTE_MAX_LINES) || PRINT_NOTE_MAX_LINES
-  );
-  return wrapPrintableText(value, maxChars, maxLines).join("\n");
+  const maxChars = Math.max(8, Number(options.maxChars || 36) || 36);
+  const maxLines = Math.max(1, Number(options.maxLines || 4) || 4);
+  return wrapPrintableTextLines(value, maxChars, maxLines).join("\n");
 }
 
 export function buildOrderPrintModel(order, options = {}) {
@@ -163,6 +113,7 @@ export function buildOrderPrintModel(order, options = {}) {
         id: item.ref || `${index}`,
         name: item.name || `Ürün ${index + 1}`,
         qty: Number(item.qty || 0) || 1,
+        qtyLabel: `${Number(item.qty || 0) || 1} adet`,
         unitPriceLabel: formatOrderMoney(item.unitPrice),
         lineTotalLabel: formatOrderMoney(
           (Number(item.unitPrice || 0) || 0) * (Number(item.qty || 0) || 1)
@@ -182,18 +133,27 @@ export function buildOrderPrintModel(order, options = {}) {
   const baseSubtotal = Number(order?.pricing?.baseSubtotal || 0);
   const subtotalForPrint =
     baseSubtotal > 0 ? baseSubtotal : Number(order?.subtotal || 0);
+  const customerName =
+    address.fullName ||
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+    "-";
+  const layout = buildAdaptiveOrderPrintLayout({
+    customerName,
+    addressLines: addressLineParts,
+    note: order.note || "",
+    items,
+  });
+  const printableItems = Array.isArray(layout.items) ? layout.items : items;
 
   return {
     logoSrc: options.logoSrc || LOGO_SRC,
     orderNumber: order.orderNumber || order.id || "-",
     createdAtLabel: formatOrderDateTime(order.createdAt),
-    customerName:
-      address.fullName ||
-      [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-      "-",
+    customerName,
+    customerNameLines: layout.customerNameLines,
     phone: address.phone || user?.phone || "-",
-    addressLineParts,
-    items,
+    addressLineParts: layout.addressLines,
+    items: printableItems,
     itemCount: items.reduce((sum, item) => sum + item.qty, 0),
     subtotalLabel: formatOrderMoney(subtotalForPrint),
     adjustments: [
@@ -226,7 +186,15 @@ export function buildOrderPrintModel(order, options = {}) {
     shippingLabel: formatOrderMoney(order.shipping),
     shippingName: order.shippingName || "Kargo",
     totalLabel: formatOrderMoney(order.total),
-    note: formatPrintableOrderNote(order.note),
+    note: layout.note || formatPrintableOrderNote(order.note),
+    noteLines: layout.noteLines || [],
+    layout: {
+      key: layout.key,
+      profile: layout.profile || null,
+      hiddenItemCount: layout.hiddenItemCount || 0,
+      hiddenQty: layout.hiddenQty || 0,
+      metrics: layout.metrics || {},
+    },
   };
 }
 
@@ -237,32 +205,45 @@ export function buildOrderPrintHtml(model, options = {}) {
 
   const itemsHtml = model.items
     .map((item) => {
-      const selectionHtml = item.selectionLines.length
+      const itemMetaLines = Array.isArray(item.metaLines)
+        ? item.metaLines
+        : [
+            [String(item.qty || 0), "adet", item.unitPriceLabel]
+              .filter(Boolean)
+              .join(" "),
+            item.variantSummary,
+            ...(Array.isArray(item.selectionLines) ? item.selectionLines : []),
+          ].filter(Boolean);
+      const selectionHtml = itemMetaLines.length
         ? `
           <div class="item-selections">
-            ${item.selectionLines
+            ${itemMetaLines
               .map((line) => `<div class="item-subline">${escapeHtml(line)}</div>`)
               .join("")}
           </div>
         `
         : "";
+      const itemNameLines = Array.isArray(item.nameLines)
+        ? item.nameLines
+        : [item.name].filter(Boolean);
+      const totalHtml = item.lineTotalLabel
+        ? `<div class="item-total">${escapeHtml(item.lineTotalLabel)}</div>`
+        : "";
+      const rowClass = item.isOverflowSummary
+        ? "item-row item-row-overflow"
+        : "item-row";
 
       return `
-        <div class="item-row">
+        <div class="${rowClass}">
           <div class="item-main">
-            <div class="item-name">${escapeHtml(item.name)}</div>
-            <div class="item-meta">
-              <span>${escapeHtml(String(item.qty))} adet</span>
-              <span>${escapeHtml(item.unitPriceLabel)}</span>
+            <div class="item-name">
+              ${itemNameLines
+                .map((line) => `<div>${escapeHtml(line)}</div>`)
+                .join("")}
             </div>
-            ${
-              item.variantSummary
-                ? `<div class="item-subline">${escapeHtml(item.variantSummary)}</div>`
-                : ""
-            }
             ${selectionHtml}
           </div>
-          <div class="item-total">${escapeHtml(item.lineTotalLabel)}</div>
+          ${totalHtml}
         </div>
       `;
     })
@@ -321,11 +302,17 @@ export function buildOrderPrintHtml(model, options = {}) {
           width: 100mm;
           height: 150mm;
           background: #ffffff;
-          padding: 4.5mm;
+          padding: var(--sheet-padding);
           display: flex;
           flex-direction: column;
-          gap: 2.4mm;
+          gap: var(--sheet-gap);
           overflow: hidden;
+        }
+        .sheet-content {
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          gap: inherit;
         }
         .header {
           display: flex;
@@ -362,92 +349,99 @@ export function buildOrderPrintHtml(model, options = {}) {
         .section {
           border: 0.3mm solid #d6d3d1;
           border-radius: 2mm;
-          padding: 2.2mm 2.5mm;
+          padding: var(--section-padding-y) var(--section-padding-x);
+          min-height: 0;
         }
         .section-title {
-          font-size: 2.3mm;
+          font-size: var(--section-title-font-size);
           text-transform: uppercase;
           letter-spacing: 0.18mm;
           color: #6b7280;
-          margin-bottom: 1.2mm;
+          margin-bottom: var(--section-title-margin-bottom);
         }
         .customer-name {
-          font-size: 3.45mm;
+          font-size: var(--customer-name-font-size);
           font-weight: 700;
+          display: grid;
+          gap: var(--customer-name-gap);
           margin-bottom: 0.7mm;
         }
         .customer-phone {
-          font-size: 2.95mm;
+          font-size: var(--customer-phone-font-size);
         }
         .address-line {
-          font-size: 2.82mm;
-          line-height: 1.28;
+          font-size: var(--address-font-size);
+          line-height: var(--address-line-height);
         }
         .items {
           display: flex;
           flex-direction: column;
-          gap: 1.7mm;
+          gap: var(--items-gap);
+          min-height: 0;
         }
         .item-row {
           display: grid;
           grid-template-columns: 1fr auto;
-          gap: 2mm;
+          gap: var(--item-row-gap);
           align-items: start;
           border-bottom: 0.25mm dashed #d6d3d1;
-          padding-bottom: 1.5mm;
+          padding-bottom: var(--item-row-padding-bottom);
         }
         .item-row:last-child {
           border-bottom: 0;
           padding-bottom: 0;
         }
-        .item-name {
-          font-size: 2.9mm;
-          font-weight: 700;
-          line-height: 1.22;
+        .item-row-overflow {
+          background: #fafaf9;
+          border-radius: 1.4mm;
+          padding: 1.2mm 1.4mm;
+          border-bottom: 0;
         }
-        .item-meta {
-          margin-top: 0.5mm;
-          display: flex;
-          gap: 1.3mm;
-          flex-wrap: wrap;
-          font-size: 2.45mm;
-          color: #4b5563;
+        .item-name {
+          font-size: var(--item-name-font-size);
+          font-weight: 700;
+          line-height: var(--item-name-line-height);
+        }
+        .item-selections {
+          margin-top: var(--item-meta-gap);
+          display: grid;
+          gap: var(--item-meta-gap);
         }
         .item-subline {
-          margin-top: 0.45mm;
-          font-size: 2.35mm;
+          font-size: var(--item-sub-font-size);
           color: #6b7280;
-          line-height: 1.2;
+          line-height: var(--item-sub-line-height);
         }
         .item-total {
-          font-size: 2.7mm;
+          font-size: var(--item-total-font-size);
           font-weight: 700;
           white-space: nowrap;
         }
         .totals {
           display: grid;
-          gap: 0.85mm;
+          gap: var(--totals-gap);
         }
         .total-row {
           display: flex;
           justify-content: space-between;
           gap: 2mm;
-          font-size: 2.7mm;
+          font-size: var(--total-font-size);
         }
         .total-row-discount {
           color: #b45309;
         }
         .total-row strong {
-          font-size: 3.15mm;
+          font-size: var(--total-strong-font-size);
         }
         .note-box {
-          font-size: 2.55mm;
-          line-height: 1.24;
+          font-size: var(--note-font-size);
+          line-height: var(--note-line-height);
           white-space: pre-wrap;
           word-break: break-word;
-          max-height: 12.8mm;
+          max-height: var(--note-max-height);
           overflow: hidden;
         }
+        ${buildDensityCssRules()}
         @media print {
           html, body {
             width: 100mm;
@@ -468,7 +462,10 @@ export function buildOrderPrintHtml(model, options = {}) {
       </style>
     </head>
     <body>
-      <main class="sheet">
+      <main class="sheet" data-density="${escapeHtml(
+        model?.layout?.key || "regular"
+      )}">
+        <div class="sheet-content">
         <header class="header">
           <div class="brand">
             <div class="eyebrow">Kutu Etiketi</div>
@@ -482,7 +479,14 @@ export function buildOrderPrintHtml(model, options = {}) {
 
         <section class="section">
           <div class="section-title">Alıcı</div>
-          <div class="customer-name">${escapeHtml(model.customerName)}</div>
+          <div class="customer-name">
+            ${(Array.isArray(model.customerNameLines)
+              ? model.customerNameLines
+              : [model.customerName]
+            )
+              .map((line) => `<div>${escapeHtml(line)}</div>`)
+              .join("")}
+          </div>
           <div class="customer-phone">${escapeHtml(model.phone)}</div>
         </section>
 
@@ -522,12 +526,14 @@ export function buildOrderPrintHtml(model, options = {}) {
         </section>
 
         ${noteHtml}
+        </div>
       </main>
 
       ${
         autoPrint
           ? `
       <script>
+        const densityOrder = ["regular", "compact", "tight", "micro"];
         const waitForImages = async () => {
           const images = Array.from(document.images);
           if (!images.length) return;
@@ -543,7 +549,25 @@ export function buildOrderPrintHtml(model, options = {}) {
           );
         };
 
+        const fitSheet = () => {
+          const sheet = document.querySelector(".sheet");
+          const content = document.querySelector(".sheet-content");
+          if (!sheet || !content) return;
+          let index = Math.max(
+            0,
+            densityOrder.indexOf(sheet.dataset.density || "regular")
+          );
+          while (
+            index < densityOrder.length - 1 &&
+            content.scrollHeight > sheet.clientHeight + 2
+          ) {
+            index += 1;
+            sheet.dataset.density = densityOrder[index];
+          }
+        };
+
         waitForImages().then(() => {
+          fitSheet();
           setTimeout(() => {
             window.focus();
             window.print();
