@@ -12,6 +12,7 @@ import {
   PackageCheck,
 } from "lucide-react";
 import OrderDetailsModal from "../../orders/OrderDetailsModal";
+import OrderInvoiceModal from "../../orders/OrderInvoiceModal";
 
 const STATUS_OPTIONS = [
   { value: "", label: "Tümü" },
@@ -67,6 +68,7 @@ export default function AdminOrdersPage() {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, pages: 1 });
   const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [selectedInvoiceOrderId, setSelectedInvoiceOrderId] = useState(null);
   const [busyOrderId, setBusyOrderId] = useState(null);
   const [banner, setBanner] = useState(null);
 
@@ -337,11 +339,9 @@ export default function AdminOrdersPage() {
                             <Truck className="h-3.5 w-3.5" /> Görüntüle
                           </button>
                           <button
-                            onClick={() =>
-                              setSelectedOrderId(order.orderNumber)
-                            }
+                            onClick={() => setSelectedInvoiceOrderId(order.id)}
                             className="inline-flex w-full items-center justify-center gap-1 rounded-full border border-[var(--color-border-admin)] px-3 py-1.5 text-xs text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] md:w-auto"
-                            title="Sipariş numarasıyla aç"
+                            title="Fatura özeti"
                           >
                             <ArrowLeftRight className="h-3.5 w-3.5" />
                           </button>
@@ -386,6 +386,14 @@ export default function AdminOrdersPage() {
         <OrderDetailsModal
           orderId={selectedOrderId}
           onClose={() => setSelectedOrderId(null)}
+          admin
+        />
+      )}
+
+      {selectedInvoiceOrderId && (
+        <OrderInvoiceModal
+          orderId={selectedInvoiceOrderId}
+          onClose={() => setSelectedInvoiceOrderId(null)}
           admin
         />
       )}
