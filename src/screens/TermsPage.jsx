@@ -39,7 +39,7 @@ export default function TermsPage() {
   );
   const intro =
     data?.heroIntro?.trim() ||
-    "Lütfen sipariş vermeden önce bu koşulları okuyun. Berkay GSM’den alışveriş yaparken hak ve yükümlülüklerinizi açıklar.";
+    "Lütfen sipariş vermeden önce bu koşulları okuyun. CepLife’tan alışveriş yaparken hak ve yükümlülüklerinizi açıklar.";
   const sections = Array.isArray(data?.sections) ? data.sections : [];
   const footerNote =
     typeof data?.footerNote === "string" && data.footerNote.trim()

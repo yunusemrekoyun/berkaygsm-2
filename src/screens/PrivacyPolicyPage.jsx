@@ -149,7 +149,7 @@ export default function PrivacyPolicyPage() {
               >
                 privacy@berkaygsm.com
               </a>{" "}
-              adresine e‑posta gönderebilir ya da Berkay GSM GmbH,
+              adresine e‑posta gönderebilir ya da CepLife ekibine,
               Kurfürstendamm 45, 10719 Berlin, Almanya adresine yazabilirsiniz.
             </footer>
           )}

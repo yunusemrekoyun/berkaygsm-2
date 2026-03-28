@@ -21,6 +21,9 @@ import { useStaticTranslation } from "../../i18n/staticContent.js";
 import { DEFAULT_LANG } from "../../constants/lang.js";
 import { resolveImageSrc } from "../../utils/imageSrc.js";
 
+const BRAND_NAME = "CepLife";
+const BRAND_LOGO_SRC = "/ceplife-logo-cropped.png";
+
 export default function Header({
   initialCategoryTree = null,
   initialLang = DEFAULT_LANG,
@@ -267,20 +270,18 @@ export default function Header({
               <Link
                 to="/"
                 className="inline-flex flex-1 items-center justify-center gap-2"
-                aria-label="Berkay GSM"
+                aria-label={BRAND_NAME}
               >
                 <AppImage
-                  src="/logo.png"
-                  alt=""
-                  width={64}
-                  height={64}
-                  sizes="64px"
-                  className="h-8 w-8 object-contain"
+                  src={BRAND_LOGO_SRC}
+                  alt={BRAND_NAME}
+                  width={520}
+                  height={250}
+                  sizes="176px"
+                  className="h-10 w-auto max-w-[176px] object-contain"
                   draggable="false"
                 />
-                <span className="font-serif text-2xl font-bold text-primary">
-                  Berkay GSM
-                </span>
+                <span className="sr-only">{BRAND_NAME}</span>
               </Link>
               <div className="flex items-center gap-2">
                 <Link
@@ -326,17 +327,15 @@ export default function Header({
                 <div className="flex items-center">
                   <Link to="/" className="group inline-flex items-center gap-3">
                     <AppImage
-                      src="/logo.png"
-                      alt="Berkay GSM"
-                      width={96}
-                      height={96}
-                      sizes="96px"
-                      className="h-16 w-16 object-contain"
+                      src={BRAND_LOGO_SRC}
+                      alt={BRAND_NAME}
+                      width={520}
+                      height={250}
+                      sizes="240px"
+                      className="h-12 w-auto max-w-[220px] object-contain lg:h-14 lg:max-w-[250px]"
                       draggable="false"
                     />
-                    <span className="font-serif text-3xl font-extrabold tracking-tight text-primary">
-                      Berkay GSM
-                    </span>
+                    <span className="sr-only">{BRAND_NAME}</span>
                   </Link>
                 </div>
                 <div className="flex justify-center">

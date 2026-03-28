@@ -82,7 +82,7 @@ const AboutTranslationSchema = new mongoose.Schema(
 const AboutSchema = new mongoose.Schema(
   {
     key: { type: String, unique: true, default: "about", index: true },
-    heroTitle: { type: String, default: "Berkay GSM Hakkında" },
+    heroTitle: { type: String, default: "CepLife Hakkında" },
     heroSubtitle: {
       type: String,
       default:
@@ -95,7 +95,7 @@ const AboutSchema = new mongoose.Schema(
       default: [
         {
           title: "Hikayemiz",
-          text: "Berkay GSM, güvenilir ve şık telefon aksesuarlarını ulaşılabilir hale getirme fikriyle yola çıktı. İlk günden beri ürün kalitesi, uyumluluk ve müşteri memnuniyetine odaklanıyoruz.",
+          text: "CepLife, güvenilir ve şık telefon aksesuarlarını ulaşılabilir hale getirme fikriyle yola çıktı. İlk günden beri ürün kalitesi, uyumluluk ve müşteri memnuniyetine odaklanıyoruz.",
         },
         {
           title: "Vizyonumuz",

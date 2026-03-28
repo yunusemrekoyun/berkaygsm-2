@@ -35,8 +35,8 @@ const DEFAULT_THEME_VARS = {
 };
 
 export const metadata = {
-  title: "Berkay GSM",
-  description: "Berkay GSM mağaza ve yönetim paneli",
+  title: "CepLife",
+  description: "CepLife telefon aksesuar mağazası",
 };
 
 export default function RootLayout({ children }) {

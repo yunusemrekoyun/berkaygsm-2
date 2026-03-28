@@ -55,7 +55,7 @@ const STATIC_CONTENT = {
         privacy: "Privacy Policy",
         terms: "Terms of Service",
       },
-      copyright: "© {year} Berkay GSM. All rights reserved.",
+      copyright: "© {year} CepLife. All rights reserved.",
     },
     homePage: {
       heroFallback: [
@@ -155,7 +155,7 @@ const STATIC_CONTENT = {
       title: "Visit Our Store",
       description:
         "Visit our store to try cases, grips, and chargers in person. We will help you find the right fit for your device.",
-      storeName: "Berkay GSM",
+      storeName: "CepLife",
       address: "Kurfürstendamm 123, 10711 Berlin, Germany",
       hoursLabel: "Opening Hours:",
       hours: [
@@ -626,7 +626,7 @@ const STATIC_CONTENT = {
         privacy: "Gizlilik Politikası",
         terms: "Kullanım Koşulları",
       },
-      copyright: "© {year} Berkay GSM. Tüm hakları saklıdır.",
+      copyright: "© {year} CepLife. Tüm hakları saklıdır.",
     },
     homePage: {
       heroFallback: [
@@ -726,7 +726,7 @@ const STATIC_CONTENT = {
       title: "Mağazamızı Ziyaret Edin",
       description:
         "Mağazamızda kılıf, şarj ve aksesuarları deneyin. Ekibimiz cihazınıza en uygun modeli bulmanızda yardımcı olur.",
-      storeName: "Berkay GSM",
+      storeName: "CepLife",
       address: "Bağdat Caddesi 123, Kadıköy / İstanbul",
       hoursLabel: "Çalışma Saatleri:",
       hours: [
@@ -1194,7 +1194,7 @@ const STATIC_CONTENT = {
         privacy: "Datenschutz",
         terms: "AGB",
       },
-      copyright: "© {year} Berkay GSM. Alle Rechte vorbehalten.",
+      copyright: "© {year} CepLife. Alle Rechte vorbehalten.",
     },
     homePage: {
       heroFallback: [
@@ -1295,7 +1295,7 @@ const STATIC_CONTENT = {
       title: "Besuchen Sie unser Geschäft",
       description:
         "Erleben Sie unsere Kollektionen persönlich in unserem Flagship-Store in Berlin. Unser Team hilft Ihnen gerne dabei, die perfekten Stücke für Ihre Aussteuer zu finden.",
-      storeName: "Evim & Stil Berlin",
+      storeName: "CepLife",
       address: "Kurfürstendamm 123, 10711 Berlin, Deutschland",
       hoursLabel: "Öffnungszeiten:",
       hours: [
