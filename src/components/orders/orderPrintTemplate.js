@@ -3,7 +3,7 @@ import {
   ORDER_PRINT_LAYOUT_PROFILES,
   wrapPrintableTextLines,
 } from "../../utils/orderPrintLayout.js";
-const LOGO_SRC = "/logo.png";
+const LOGO_SRC = "/cep%20life-white.png";
 
 export function formatOrderMoney(value) {
   const amount = Number(value || 0);
