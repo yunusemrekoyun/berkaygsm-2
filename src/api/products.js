@@ -103,17 +103,26 @@ const hasOwn = (value, key) =>
 export const productApi = {
   async list(params = {}, lang = DEFAULT_LANG) {
     const qs = toQueryString({ ...params, lang: lang ?? DEFAULT_LANG });
-    const data = await http(`/products${qs}`, { auth: true });
+    const data = await http(`/products${qs}`, {
+      auth: Boolean(params?.includeHidden),
+    });
     return data; // { products, pagination, ... }
   },
 
-  async get(idOrSlug, lang = DEFAULT_LANG) {
+  async get(
+    idOrSlug,
+    lang = DEFAULT_LANG,
+    { auth = false, includeHidden = false } = {}
+  ) {
     const identifier = normalizeIdOrSlug(idOrSlug);
     if (!identifier) {
       throw new Error(JSON.stringify({ message: "Ürün kimliği bulunamadı" }));
     }
-    const qs = toQueryString({ lang: lang ?? DEFAULT_LANG });
-    const data = await http(`/products/${identifier}${qs}`, { auth: true });
+    const qs = toQueryString({
+      lang: lang ?? DEFAULT_LANG,
+      includeHidden: includeHidden ? "true" : undefined,
+    });
+    const data = await http(`/products/${identifier}${qs}`, { auth });
     return extractProduct(data);
   },
 

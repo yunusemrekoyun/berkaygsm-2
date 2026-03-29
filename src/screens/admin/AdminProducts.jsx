@@ -345,7 +345,9 @@ export default function AdminProducts() {
         });
         return;
       }
-      const full = await productApi.get(identifier, BASE_LANG);
+      const full = await productApi.get(identifier, BASE_LANG, {
+        auth: true,
+      });
 
       // ✅ stokları StockItem tablosundan çek
       const ownerId =
@@ -468,7 +470,9 @@ export default function AdminProducts() {
       error: null,
     });
     try {
-      const detail = await productApi.get(identifier, BASE_LANG);
+      const detail = await productApi.get(identifier, BASE_LANG, {
+        auth: true,
+      });
       const normalized = buildProductState(detail, detail?.inventory || []);
       setTranslationState({
         open: true,
@@ -588,7 +592,9 @@ export default function AdminProducts() {
           resolvedCreated?.data?.slug ||
           null;
         if (slug) {
-          const full = await productApi.get(slug, BASE_LANG);
+          const full = await productApi.get(slug, BASE_LANG, {
+            auth: true,
+          });
           ownerId = resolveProductObjectId(full);
         }
       }

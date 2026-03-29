@@ -136,7 +136,7 @@ export default function HomePage({
     setLoadingProducts(true);
     (async () => {
       try {
-        const data = await productApi.list({ limit: 6 }, lang);
+        const data = await productApi.list({ limit: 6, view: "card" }, lang);
         if (!mounted) return;
         setFeaturedProducts(data.products || []);
       } catch (err) {
@@ -163,7 +163,7 @@ export default function HomePage({
     setLoadingSets(true);
     (async () => {
       try {
-        const data = await setApi.list({}, lang);
+        const data = await setApi.list({ view: "card" }, lang);
         const rawSets = Array.isArray(data) ? data : data?.sets || [];
         if (!mounted) return;
         setSets(

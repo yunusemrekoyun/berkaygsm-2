@@ -126,7 +126,9 @@ export default function SetTranslationModal({
         description: draft.description ?? "",
       };
       await setApi.update(currentSet, payload, lang);
-      const refreshed = await setApi.get(currentSet, baseLang);
+      const refreshed = await setApi.get(currentSet, baseLang, {
+        auth: true,
+      });
       setCurrentSet(refreshed);
       setDrafts(createTranslationDrafts(refreshed, langs));
       setAlert({

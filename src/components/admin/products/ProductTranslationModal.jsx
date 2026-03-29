@@ -123,7 +123,9 @@ export default function ProductTranslationModal({
       };
 
       await productApi.update(identifier, payload, lang);
-      const refreshed = await productApi.get(identifier, baseLang);
+      const refreshed = await productApi.get(identifier, baseLang, {
+        auth: true,
+      });
       const normalized = buildProductState(
         refreshed,
         refreshed?.inventory || currentProduct?.inventory || []

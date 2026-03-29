@@ -5,19 +5,19 @@ import { DEFAULT_LANG } from "../constants/lang.js";
 export const categoryApi = {
   async list(params = {}, lang = DEFAULT_LANG) {
     const qs = toQueryString({ ...params, lang: lang ?? DEFAULT_LANG });
-    const data = await http(`/categories${qs}`, { auth: true });
+    const data = await http(`/categories${qs}`);
     return data.categories || [];
   },
 
   async tree(lang = DEFAULT_LANG) {
     const qs = toQueryString({ lang: lang ?? DEFAULT_LANG });
-    const data = await http(`/categories/tree${qs}`, { auth: true });
+    const data = await http(`/categories/tree${qs}`);
     return data.categories || [];
   },
 
   async get(idOrSlug, lang = DEFAULT_LANG) {
     const qs = toQueryString({ lang: lang ?? DEFAULT_LANG });
-    const data = await http(`/categories/${idOrSlug}${qs}`, { auth: true });
+    const data = await http(`/categories/${idOrSlug}${qs}`);
     return data?.category || data?.data?.category || data || null;
   },
 

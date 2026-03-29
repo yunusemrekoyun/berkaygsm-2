@@ -1,4 +1,5 @@
 // src/components/home-contact/HomeContact.jsx
+import { useEffect, useRef, useState } from "react";
 import { useStaticTranslation } from "../../i18n/staticContent.js";
 
 export default function HomeContact({
@@ -11,12 +12,38 @@ export default function HomeContact({
 }) {
   const t = useStaticTranslation();
   const copy = t("homeContact") || {};
+  const sectionRef = useRef(null);
+  const [mapReady, setMapReady] = useState(false);
   const resolvedTitle = title ?? copy.title;
   const resolvedDescription = description ?? copy.description;
   const resolvedStore = storeName ?? copy.storeName;
   const resolvedAddress = address ?? copy.address;
   const resolvedHours = Array.isArray(hours) && hours.length ? hours : copy.hours || [];
   const hoursLabel = copy.hoursLabel || "Çalışma Saatleri:";
+  const loadMapLabel = copy.loadMap || "Haritayi yukle";
+  const mapHint =
+    copy.mapHint || "Harita performans icin istege bagli yuklenir.";
+
+  useEffect(() => {
+    if (mapReady || typeof window === "undefined") return undefined;
+    const node = sectionRef.current;
+    if (!node || typeof IntersectionObserver !== "function") {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (!entry?.isIntersecting) return;
+        setMapReady(true);
+        observer.disconnect();
+      },
+      { rootMargin: "200px 0px" }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [mapReady]);
 
   return (
     <section className="app-section">
@@ -31,14 +58,38 @@ export default function HomeContact({
           data-animate-children="> *"
         >
           {/* Map */}
-          <div className="glass-surface-soft rounded-xl bg-white p-1 shadow-md ring-1 ring-black/5">
-            <iframe
-              title="store-location"
-              src={mapSrc}
-              className="h-[260px] w-full rounded-lg sm:h-[320px] lg:h-[360px]"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
+          <div
+            ref={sectionRef}
+            className="glass-surface-soft rounded-xl bg-white p-1 shadow-md ring-1 ring-black/5"
+          >
+            {mapReady ? (
+              <iframe
+                title="store-location"
+                src={mapSrc}
+                className="h-[260px] w-full rounded-lg sm:h-[320px] lg:h-[360px]"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            ) : (
+              <div className="flex h-[260px] w-full flex-col items-center justify-center rounded-lg bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.95),rgba(232,242,246,0.92)_48%,rgba(208,224,231,0.92))] px-6 text-center sm:h-[320px] lg:h-[360px]">
+                <div className="max-w-sm">
+                  <p className="text-base font-semibold text-primary">
+                    {resolvedStore}
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-secondary">
+                    {resolvedAddress}
+                  </p>
+                  <p className="mt-4 text-sm text-secondary/80">{mapHint}</p>
+                  <button
+                    type="button"
+                    onClick={() => setMapReady(true)}
+                    className="mt-5 inline-flex items-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-hover"
+                  >
+                    {loadMapLabel}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Text block */}

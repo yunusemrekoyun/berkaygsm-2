@@ -43,20 +43,23 @@ export default function SetsPage() {
         setCampaignContext(null);
         setCampaignError("");
 
-        let res = await setApi.list({}, lang);
+        let res = await setApi.list({ view: "card" }, lang);
         let sets = normalizeSetsResponse(res);
 
         if (!sets.length) {
-          const res2 = await setApi.list({ includeHidden: true }, lang);
+          const res2 = await setApi.list(
+            { includeHidden: true, view: "card" },
+            lang
+          );
           sets = normalizeSetsResponse(res2);
         }
 
         if (!sets.length && lang !== DEFAULT_LANG) {
-          let fallback = await setApi.list({}, DEFAULT_LANG);
+          let fallback = await setApi.list({ view: "card" }, DEFAULT_LANG);
           sets = normalizeSetsResponse(fallback);
           if (!sets.length) {
             const fallbackHidden = await setApi.list(
-              { includeHidden: true },
+              { includeHidden: true, view: "card" },
               DEFAULT_LANG
             );
             sets = normalizeSetsResponse(fallbackHidden);

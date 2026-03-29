@@ -37,6 +37,7 @@ export default function ProductDetailPage() {
           const related = await productApi.list({
             category: detail.category?.id || detail.category?._id || detail.category,
             limit: 8,
+            view: "card",
           }, lang);
           if (mounted && related?.products) {
             setSimilar(

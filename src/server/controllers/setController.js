@@ -154,6 +154,21 @@ function presentSet(
       typeof entry.toObject === "function" ? entry.toObject() : { ...entry };
     if (entry?.product && typeof entry.product === "object") {
       plainEntry.product = resolveTranslation(entry.product, lang);
+      if (
+        plainEntry.product?.category &&
+        typeof plainEntry.product.category === "object"
+      ) {
+        plainEntry.product.category = resolveTranslation(
+          plainEntry.product.category,
+          lang
+        );
+        if (!includeTranslations && plainEntry.product.category?.translations) {
+          delete plainEntry.product.category.translations;
+        }
+      }
+      if (!includeTranslations && plainEntry.product?.translations) {
+        delete plainEntry.product.translations;
+      }
     }
     return plainEntry;
   });
@@ -238,6 +253,8 @@ export async function listSets(req, res) {
     const lang = normalizeLang(req.query.lang || DEFAULT_LANG);
     const search = String(req.query.search || "").trim();
     const includeHidden = parseBool(req.query.includeHidden, false);
+    const view = String(req.query.view || "").trim().toLowerCase();
+    const isCardView = view === "card";
     const limit = Math.min(
       500,
       Math.max(1, Number(req.query.limit || (search ? 60 : 200)))
@@ -252,7 +269,14 @@ export async function listSets(req, res) {
     const sets = await Set.find(filter)
       .sort({ createdAt: -1 })
       .limit(limit)
-      .populate({ path: "products.product" })
+      .populate({
+        path: "products.product",
+        select: "name slug category translations",
+        populate: {
+          path: "category",
+          select: "name slug translations",
+        },
+      })
       .lean();
 
     const products = [];
@@ -262,11 +286,14 @@ export async function listSets(req, res) {
       });
       set.stock = null;
     });
-    await hydrateProductsWithInventory(products);
+    if (!isCardView) {
+      await hydrateProductsWithInventory(products);
+    }
     const setDiscountMap = await buildSetDiscountMap(sets);
     res.json({
       sets: sets.map((set) =>
         presentSet(set, lang, {
+          includeTranslations: !isCardView,
           discount: setDiscountMap.get(resolveSetId(set)) || null,
         })
       ),

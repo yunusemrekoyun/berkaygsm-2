@@ -59,7 +59,7 @@ export default function StockManagerPanel({
         }));
         setRows(nextRows);
       } else if (ownerModel === "Set") {
-        const setDoc = await setApi.get(ownerId);
+        const setDoc = await setApi.get(ownerId, undefined, { auth: true });
         const nextRows = [];
         (setDoc?.products || []).forEach((entry) => {
           const product = entry?.product || {};

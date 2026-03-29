@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
 import BreadCrumb from "../components/shop/BreadCrumb";
@@ -21,6 +21,8 @@ import { getColorInfo } from "../utils/colors.js";
 
 const isObjectId = (v) => typeof v === "string" && /^[0-9a-fA-F]{24}$/.test(v);
 const DEFAULT_SORT = "newest";
+const INITIAL_PRODUCT_BATCH = 24;
+const PRODUCT_BATCH_STEP = 24;
 const VALID_SORT_VALUES = new Set([
   "newest",
   "oldest",
@@ -100,6 +102,9 @@ export default function ShopPage() {
   const [campaignError, setCampaignError] = useState("");
   const [stackedDiscountContext, setStackedDiscountContext] = useState(null);
   const [stackedDiscountError, setStackedDiscountError] = useState("");
+  const [visibleProductCount, setVisibleProductCount] = useState(
+    INITIAL_PRODUCT_BATCH
+  );
 
   const [error, setError] = useState(null);
   const { lang } = useStorefrontLang();
@@ -266,7 +271,7 @@ export default function ShopPage() {
           setMatchingSets([]);
           setLoadingSets(false);
         } else {
-          const params = { limit: 200 };
+          const params = { limit: 200, view: "card" };
           if (searchQuery) params.search = searchQuery;
           const { products: productList = [] } = await productApi.list(
             params,
@@ -295,7 +300,10 @@ export default function ShopPage() {
             if (targetSetCount > 0) {
               setLoadingSets(true);
               try {
-                const setResponse = await setApi.list({ limit: 200 }, lang);
+                const setResponse = await setApi.list(
+                  { limit: 200, view: "card" },
+                  lang
+                );
                 if (!mounted) return;
                 setMatchingSets(
                   mapSetsToCards(setResponse, {
@@ -323,6 +331,7 @@ export default function ShopPage() {
                 {
                   search: searchQuery,
                   limit: 60,
+                  view: "card",
                 },
                 lang
               );
@@ -552,6 +561,32 @@ export default function ShopPage() {
 
     return list;
   }, [filteredProducts, selectedSort]);
+  const deferredSortedProducts = useDeferredValue(sortedProducts);
+
+  useEffect(() => {
+    setVisibleProductCount(INITIAL_PRODUCT_BATCH);
+  }, [
+    deferredSortedProducts.length,
+    isSaleMode,
+    isStackedDiscountMode,
+    searchQuery,
+    selectedCategory,
+    selectedColor,
+    selectedPrice,
+    selectedSize,
+    selectedSort,
+  ]);
+
+  const displayedProducts = useMemo(
+    () => deferredSortedProducts.slice(0, visibleProductCount),
+    [deferredSortedProducts, visibleProductCount]
+  );
+
+  const handleLoadMoreProducts = () => {
+    setVisibleProductCount((prev) =>
+      Math.min(prev + PRODUCT_BATCH_STEP, deferredSortedProducts.length)
+    );
+  };
 
   const activeCampaign = campaignContext?.campaign || null;
   const sortOptions = useMemo(
@@ -1038,9 +1073,12 @@ export default function ShopPage() {
           </div> */}
 
           <ShopPageProducts
-            products={sortedProducts}
+            products={displayedProducts}
+            totalCount={deferredSortedProducts.length}
             loading={loadingProducts}
             emptyLabel={shopProductsEmpty}
+            loadMoreLabel={shopCopy.loadMore || "Daha fazla ürün göster"}
+            onLoadMore={handleLoadMoreProducts}
           />
           {(searchQuery && !isSaleMode) || isStackedDiscountMode ? (
             <div className="mt-12">
