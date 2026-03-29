@@ -8,6 +8,8 @@ import { authApi } from "../../api/auth";
 import {
   clearAuthState,
   getAccessToken,
+  hasAttemptedSessionRestore,
+  markSessionRestoreAttempted,
   refreshAccessToken,
   getUser,
 } from "../../api/client";
@@ -46,6 +48,12 @@ export default function AuthSelector() {
       if (cachedToken || getUser()) setLogged(true);
       try {
         if (!cachedToken) {
+          if (!getUser() && hasAttemptedSessionRestore()) {
+            clearAuthState();
+            setLogged(false);
+            return;
+          }
+          markSessionRestoreAttempted();
           const ok = await refreshAccessToken();
           if (!ok) {
             clearAuthState();

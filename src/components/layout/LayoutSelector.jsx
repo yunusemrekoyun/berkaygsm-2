@@ -14,6 +14,8 @@ import {
   getUser as getUserCache,
   setUser as setUserCache,
   getAccessToken,
+  hasAttemptedSessionRestore,
+  markSessionRestoreAttempted,
   refreshAccessToken,
 } from "../../api/client";
 
@@ -40,8 +42,18 @@ export default function LayoutSelector() {
       let token = getAccessToken();
 
       if (!token && !cachedUser) {
-        finish(null);
-        return;
+        if (hasAttemptedSessionRestore()) {
+          finish(null);
+          return;
+        }
+        markSessionRestoreAttempted();
+        const refreshed = await refreshAccessToken();
+        token = refreshed ? getAccessToken() : null;
+        if (!token) {
+          clearAuthState();
+          finish(null);
+          return;
+        }
       }
 
       if (!token) {
@@ -64,12 +76,6 @@ export default function LayoutSelector() {
         setUserCache(me);
         finish(me);
       } else {
-        const nextCachedUser = getUserCache();
-        const nextToken = getAccessToken();
-        if (nextToken && nextCachedUser) {
-          finish(nextCachedUser);
-          return;
-        }
         clearAuthState();
         finish(null);
       }

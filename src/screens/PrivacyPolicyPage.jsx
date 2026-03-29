@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import BreadCrumb from "../components/shop/BreadCrumb";
 import { privacyApi } from "../api/privacy";
 import { useStorefrontLang } from "../context/LangContext.jsx";
+import { sanitizeRichHtml } from "../utils/sanitizeHtml.js";
 
 export default function PrivacyPolicyPage() {
   const [data, setData] = useState(null); // { heroTitle, heroIntro, sections, footerHtml, seo, isActive }
@@ -212,10 +213,5 @@ function slugify(s = "") {
  * Eğer daha sıkı güvenlik istiyorsan sunucuda sanitize et.
  */
 function safeHtml(html) {
-  if (!html) return "";
-  // target blank linkler güvenli olsun:
-  return String(html).replaceAll(
-    /<a\s/gi,
-    '<a rel="noopener noreferrer nofollow" target="_blank" '
-  );
+  return sanitizeRichHtml(html || "");
 }

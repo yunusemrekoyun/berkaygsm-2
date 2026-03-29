@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "../../hooks/useCart";
 import { Heart } from "lucide-react";
-import { getAccessToken } from "../../api/client";
+import { hasAuthSession } from "../../api/client";
 import { userDetailsApi } from "../../api/userDetails";
 import { useNavigate } from "react-router-dom";
 import DiscountBadge from "../ui/DiscountBadge.jsx";
@@ -141,7 +141,7 @@ export default function ProductDetail({ product = {} }) {
     let mounted = true;
     (async () => {
       if (!productId) return;
-      if (!getAccessToken()) {
+      if (!hasAuthSession()) {
         if (mounted) setIsFav(false);
         return;
       }
@@ -163,7 +163,7 @@ export default function ProductDetail({ product = {} }) {
   // Favori toggle
   const toggleFav = async () => {
     if (!productId) return;
-    if (!getAccessToken()) {
+    if (!hasAuthSession()) {
       // login sayfasına yönlendir (istersen ?next= ekleyebilirsin)
       navigate("/account?view=login");
       return;

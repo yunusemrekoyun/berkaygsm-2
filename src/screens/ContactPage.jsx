@@ -13,10 +13,14 @@ import { contactPageApi, contactMessageApi } from "../api/contact";
 import { useStorefrontLang } from "../context/LangContext.jsx";
 import { useStaticTranslation } from "../i18n/staticContent.js";
 import AppImage from "../components/ui/AppImage.jsx";
+import TurnstileWidget from "../components/ui/TurnstileWidget.jsx";
 import {
   formatTrPhoneForInput,
   formatTrPhoneForSubmit,
 } from "../utils/phoneMask.js";
+
+const TURNSTILE_SITE_KEY =
+  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
 const makeBlock = (title = "", lines = []) => ({
   title,
@@ -68,6 +72,7 @@ function buildDefaultConfig(copy = {}) {
       ]
     ),
     formEnabled: true,
+    security: { captchaEnabled: false },
     successMessage:
       form.success ||
       "Mesajınız için teşekkürler. Talebinizi aldık, en kısa sürede e‑posta ile dönüş yapacağız. Acil durumlarda aşağıdaki numaradan bize ulaşabilirsiniz.",
@@ -115,6 +120,9 @@ const mergeConfig = (raw, defaults) => {
           format: raw.heroImage.format,
         }
       : base.heroImage || null;
+  merged.security = {
+    captchaEnabled: Boolean(raw?.security?.captchaEnabled),
+  };
   return merged;
 };
 
@@ -149,6 +157,8 @@ export default function ContactPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaResetCounter, setCaptchaResetCounter] = useState(0);
   const { lang } = useStorefrontLang();
   const t = useStaticTranslation();
   const breadcrumbs = t("breadcrumbs") || {};
@@ -201,6 +211,10 @@ export default function ContactPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!config.formEnabled || submitting) return;
+    if (config.security?.captchaEnabled && !captchaToken) {
+      setSubmitError("Lütfen doğrulama adımını tamamlayın.");
+      return;
+    }
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -211,12 +225,17 @@ export default function ContactPage() {
         subject: formData.subject,
         message: formData.message,
         hp: formData.hp,
+        turnstileToken: captchaToken,
       });
       setSubmitted(true);
       setFormData(initialFormState);
+      setCaptchaToken("");
+      setCaptchaResetCounter((prev) => prev + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setSubmitError(getErrorMessage(err));
+      setCaptchaToken("");
+      setCaptchaResetCounter((prev) => prev + 1);
     } finally {
       setSubmitting(false);
     }
@@ -382,6 +401,21 @@ export default function ContactPage() {
                   tabIndex={-1}
                   autoComplete="off"
                 />
+
+                {config.security?.captchaEnabled ? (
+                  <TurnstileWidget
+                    siteKey={TURNSTILE_SITE_KEY}
+                    resetSignal={captchaResetCounter}
+                    onTokenChange={(token) => {
+                      setCaptchaToken(token);
+                      if (submitError) setSubmitError(null);
+                    }}
+                    onError={(message) => {
+                      setCaptchaToken("");
+                      setSubmitError(message);
+                    }}
+                  />
+                ) : null}
 
                 {submitError ? (
                   <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">

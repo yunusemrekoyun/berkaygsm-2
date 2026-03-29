@@ -1,9 +1,14 @@
 import ContactConfig from "../models/ContactConfig.js";
 import ContactMessage from "../models/ContactMessage.js";
+import { ZodError } from "zod";
 import {
   uploadBufferToCloudinary,
   deleteFromCloudinary,
 } from "../utils/cloudinaryUpload.js";
+import {
+  isTurnstileConfigured,
+  verifyTurnstileToken,
+} from "../utils/turnstile.js";
 import {
   DEFAULT_LANG,
   normalizeLang,
@@ -12,6 +17,7 @@ import {
   syncDocTranslations,
   composeResponseTranslations,
 } from "../utils/i18n.js";
+import { contactMessageSchema } from "../validation/schemas.js";
 
 // küçük yardımcılar
 const parseBool = (v, fb = false) => {
@@ -143,6 +149,9 @@ export async function getContact(req, res) {
       cfg,
       buildContactTrTranslation
     );
+    resolved.security = {
+      captchaEnabled: isTurnstileConfigured(),
+    };
     res.json({ contact: resolved });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -296,26 +305,52 @@ export async function updateContact(req, res) {
  */
 export async function submitMessage(req, res) {
   try {
-    const { name, email, phone = "", subject, message, hp = "" } = req.body;
+    const body = req.body || {};
+    const hp = String(body.hp || "").trim();
 
     // basit honeypot
-    if (hp && String(hp).trim() !== "") {
+    if (hp) {
       return res.status(200).json({ ok: true }); // sessizce kabul (spam)
     }
 
-    if (!name || !email || !subject || !message) {
-      return res
-        .status(400)
-        .json({ message: "Lütfen tüm zorunlu alanları doldurun." });
+    const {
+      name,
+      email,
+      phone = "",
+      subject,
+      message,
+      turnstileToken = null,
+    } =
+      contactMessageSchema.parse(body);
+
+    if (isTurnstileConfigured()) {
+      if (!turnstileToken) {
+        return res.status(400).json({
+          message: "Lütfen doğrulama adımını tamamlayın.",
+        });
+      }
+
+      const turnstileResult = await verifyTurnstileToken({
+        token: turnstileToken,
+        remoteIp: req.ip || req.headers["x-forwarded-for"] || "",
+        expectedHostname: process.env.TURNSTILE_EXPECTED_HOSTNAME || "",
+      });
+
+      if (!turnstileResult?.success) {
+        return res.status(400).json({
+          message: "Doğrulama başarısız oldu. Lütfen tekrar deneyin.",
+          details: turnstileResult?.["error-codes"] || [],
+        });
+      }
     }
 
     const doc = await ContactMessage.create({
       user: req.userId || null,
-      name: String(name).trim(),
-      email: String(email).trim(),
-      phone: String(phone || "").trim(),
-      subject: String(subject).trim(),
-      message: String(message).trim(),
+      name,
+      email,
+      phone,
+      subject,
+      message,
       ip: req.ip || req.headers["x-forwarded-for"] || "",
       userAgent: req.headers["user-agent"] || "",
     });
@@ -325,6 +360,12 @@ export async function submitMessage(req, res) {
 
     res.status(201).json({ ok: true, id: doc._id.toString() });
   } catch (err) {
+    if (err instanceof ZodError) {
+      return res.status(400).json({
+        message: err.issues?.[0]?.message || "Geçersiz istek içeriği",
+        details: err.issues,
+      });
+    }
     res.status(400).json({ message: err.message });
   }
 }

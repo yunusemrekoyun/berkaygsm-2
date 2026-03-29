@@ -10,7 +10,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { reviewApi } from "../../api/reviews";
-import { getAccessToken } from "../../api/client";
+import { hasAuthSession } from "../../api/client";
 import { useStorefrontLang } from "../../context/LangContext.jsx";
 import {
   useStaticTranslation,
@@ -62,7 +62,7 @@ export default function ReviewSectionCard({
   const [formError, setFormError] = useState(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
-  const isAuthenticated = Boolean(getAccessToken());
+  const isAuthenticated = hasAuthSession();
   const averageRating = useMemo(() => Number(stats.avgRating || 0), [stats]);
   const totalReviews = stats.count || 0;
   const fallbackDisplayName =

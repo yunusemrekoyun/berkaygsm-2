@@ -188,3 +188,17 @@ export const printJobFailSchema = z.object({
   error: optionalTrimmed(z.string().max(1000)),
   retryable: boolish,
 });
+
+export const contactMessageSchema = z.object({
+  name: z.string().trim().min(2, "Ad Soyad zorunlu").max(120),
+  email: z.string().trim().email("Geçerli bir e-posta adresi girin").max(160),
+  phone: optionalTrimmed(
+    z
+      .string()
+      .trim()
+      .regex(/^[0-9+()\-\s]{6,32}$/, "Telefon numarası geçersiz")
+  ),
+  subject: z.string().trim().min(3, "Konu zorunlu").max(160),
+  message: z.string().trim().min(10, "Mesaj çok kısa").max(4000),
+  hp: z.string().trim().max(200).optional().default(""),
+});

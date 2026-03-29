@@ -7,6 +7,7 @@ import {
   syncDocTranslations,
   composeResponseTranslations,
 } from "../utils/i18n.js";
+import { sanitizeRichHtml } from "../../utils/sanitizeHtml.js";
 
 /* helpers */
 const ensureArray = (v) => {
@@ -49,7 +50,7 @@ function buildPrivacyTrTranslation(doc) {
             : [],
         }))
       : [],
-    footerHtml: plain.footerHtml ?? "",
+    footerHtml: sanitizeRichHtml(plain.footerHtml ?? ""),
     seo: {
       title: plain.seo?.title ?? "",
       description: plain.seo?.description ?? "",
@@ -72,7 +73,7 @@ function applyPrivacyTrTranslation(doc, translation = {}) {
     doc.sections = translation.sections.map(sanitizeSection);
   }
   if (translation.footerHtml !== undefined) {
-    doc.footerHtml = String(translation.footerHtml ?? "");
+    doc.footerHtml = sanitizeRichHtml(String(translation.footerHtml ?? ""));
   }
   if (translation.seo) {
     doc.seo = sanitizeSeo({
@@ -90,7 +91,7 @@ const shape = (doc, { includeTranslations = false } = {}, translations = null) =
     heroTitle: d.heroTitle || "Gizlilik Politikası",
     heroIntro: d.heroIntro || "",
     sections: Array.isArray(d.sections) ? d.sections : [],
-    footerHtml: d.footerHtml || "",
+    footerHtml: sanitizeRichHtml(d.footerHtml || ""),
     isActive: d.isActive !== false,
     seo: {
       title: d.seo?.title || "",
@@ -176,7 +177,7 @@ export async function upsertPrivacy(req, res) {
     const heroIntro = String(body.heroIntro ?? "").trim();
     const sectionsRaw = Array.isArray(body.sections) ? body.sections : [];
     const sections = sectionsRaw.map(sanitizeSection);
-    const footerHtml = String(body.footerHtml ?? "");
+    const footerHtml = sanitizeRichHtml(String(body.footerHtml ?? ""));
     const isActive =
       body.isActive === undefined ? true : Boolean(body.isActive);
     const seo = sanitizeSeo(body?.seo);
@@ -229,7 +230,9 @@ export async function upsertPrivacy(req, res) {
         ensureLangBucket().sections = sectionsRaw.map(sanitizeSection);
       }
       if (Object.prototype.hasOwnProperty.call(body, "footerHtml")) {
-        ensureLangBucket().footerHtml = String(body.footerHtml ?? "");
+        ensureLangBucket().footerHtml = sanitizeRichHtml(
+          String(body.footerHtml ?? "")
+        );
       }
       if (Object.prototype.hasOwnProperty.call(body, "seo")) {
         ensureLangBucket().seo = sanitizeSeo(body.seo || {});
