@@ -97,16 +97,22 @@ async function buildSetFormData(payload = {}) {
 export const setApi = {
   async list(params = {}, lang = DEFAULT_LANG) {
     const qs = toQueryString({ ...params, lang: lang ?? DEFAULT_LANG });
-    const data = await http(`/sets${qs}`);
+    const data = await http(`/sets${qs}`, {
+      auth: Boolean(params?.includeHidden),
+    });
     return data.sets || [];
   },
-  async get(idOrSlug, lang = DEFAULT_LANG) {
+  async get(
+    idOrSlug,
+    lang = DEFAULT_LANG,
+    { auth = false } = {}
+  ) {
     const identifier = normalizeSetIdOrSlug(idOrSlug);
     if (!identifier) {
       throw new Error(JSON.stringify({ message: "Set kimliği bulunamadı" }));
     }
     const qs = toQueryString({ lang: lang ?? DEFAULT_LANG });
-    const data = await http(`/sets/${identifier}${qs}`, { auth: true });
+    const data = await http(`/sets/${identifier}${qs}`, { auth });
     return data.set;
   },
   async create(payload, lang = DEFAULT_LANG) {

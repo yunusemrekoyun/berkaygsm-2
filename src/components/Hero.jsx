@@ -112,8 +112,9 @@ export default function Hero({
       {/* SLAYTLAR */}
       {slides.map((s, i) => {
         const isActive = i === index;
-        const shouldLoadMedia =
+        const shouldLoadImage =
           i === index || i === previousIndex || i === nextIndex;
+        const shouldLoadVideo = i === index;
         return (
           <div
             key={s.id || i}
@@ -124,7 +125,7 @@ export default function Hero({
             aria-hidden={!isActive}
           >
             {s.image?.url ? (
-              shouldLoadMedia ? (
+              shouldLoadImage ? (
                 <AppImage
                   src={s.image.url}
                   alt={s.title || ""}
@@ -139,14 +140,14 @@ export default function Hero({
                 <div className="absolute inset-0 bg-slate-900/40" />
               )
             ) : s.video?.url ? (
-              shouldLoadMedia ? (
+              shouldLoadVideo ? (
                 <video
                   ref={(el) => (videoRefs.current[s.id] = el)}
                   className="absolute inset-0 h-full w-full object-cover"
                   src={s.video.url}
                   playsInline
                   muted
-                  preload={isActive ? "auto" : "metadata"}
+                  preload="metadata"
                   // loop YOK → bittiğinde sonraki slayta geçiyoruz
                   // controls={false}
                 />

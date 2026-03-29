@@ -1,5 +1,9 @@
 import Image from "next/image";
-import { optimizeCloudinaryImageUrl } from "../../utils/cloudinaryImage.js";
+import {
+  cloudinaryImageLoader,
+  isCloudinaryImageUrl,
+  optimizeCloudinaryImageUrl,
+} from "../../utils/cloudinaryImage.js";
 import { resolveImageSrc } from "../../utils/imageSrc.js";
 
 const REMOTE_RE = /^https?:\/\//i;
@@ -23,21 +27,24 @@ export default function AppImage({
 
   const resolvedSrc = resolveImageSrc(src);
   if (!resolvedSrc) return null;
+  const isCloudinary = isCloudinaryImageUrl(resolvedSrc);
   const optimizedSrc = optimizeCloudinaryImageUrl(resolvedSrc, {
     width: fill ? width : width,
     quality,
   });
+  const imageSrc = isCloudinary ? resolvedSrc : optimizedSrc;
   const unoptimized =
-    REMOTE_RE.test(resolvedSrc) ||
+    (REMOTE_RE.test(resolvedSrc) && !isCloudinary) ||
     BLOB_RE.test(resolvedSrc) ||
     DATA_RE.test(resolvedSrc);
 
   if (fill) {
     return (
       <Image
-        src={optimizedSrc}
+        src={imageSrc}
         alt={alt}
         fill
+        loader={isCloudinary ? cloudinaryImageLoader : undefined}
         sizes={sizes}
         className={className}
         unoptimized={unoptimized}
@@ -51,10 +58,11 @@ export default function AppImage({
 
   return (
     <Image
-      src={optimizedSrc}
+      src={imageSrc}
       alt={alt}
       width={width}
       height={height}
+      loader={isCloudinary ? cloudinaryImageLoader : undefined}
       sizes={sizes}
       className={className}
       unoptimized={unoptimized}

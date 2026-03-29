@@ -169,7 +169,7 @@ export default function AdminSets() {
     setModalOpen(true);
     setEditingSet(null);
     try {
-      const detail = await setApi.get(identifier, BASE_LANG);
+      const detail = await setApi.get(identifier, BASE_LANG, { auth: true });
       setEditingSet(detail);
     } catch (error) {
       setModalOpen(false);
@@ -244,7 +244,7 @@ export default function AdminSets() {
       error: null,
     });
     try {
-      const detail = await setApi.get(identifier, BASE_LANG);
+      const detail = await setApi.get(identifier, BASE_LANG, { auth: true });
       setTranslationState({
         open: true,
         loading: false,

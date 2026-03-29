@@ -412,7 +412,12 @@ async function buildProductDiscountMap(products = []) {
   return computeProductDiscountMap(activeDiscounts, products);
 }
 
-function presentProduct(doc, lang, discount = null) {
+function presentProduct(
+  doc,
+  lang,
+  discount = null,
+  { includeTranslations = true } = {}
+) {
   const localized = resolveTranslation(doc, lang);
   const resolvedId =
     localized?.id ||
@@ -428,11 +433,18 @@ function presentProduct(doc, lang, discount = null) {
   attachDiscountMeta(localized, doc, discount);
   if (doc.category && typeof doc.category === "object") {
     localized.category = resolveTranslation(doc.category, lang);
+    if (!includeTranslations && localized.category?.translations) {
+      delete localized.category.translations;
+    }
   }
-  localized.translations = composeResponseTranslations(
-    doc,
-    buildProductTrTranslation
-  );
+  if (includeTranslations) {
+    localized.translations = composeResponseTranslations(
+      doc,
+      buildProductTrTranslation
+    );
+  } else if (localized.translations) {
+    delete localized.translations;
+  }
   return localized;
 }
 
@@ -575,6 +587,8 @@ export async function listProducts(req, res) {
     const search = req.query.search?.trim();
     const includeHidden = parseBool(req.query.includeHidden, false);
     const category = req.query.category;
+    const view = String(req.query.view || "").trim().toLowerCase();
+    const isCardView = view === "card";
 
     const filter = {};
     if (search) filter.name = { $regex: search, $options: "i" };
@@ -590,18 +604,25 @@ export async function listProducts(req, res) {
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
-        .populate("category")
+        .populate({
+          path: "category",
+          select: "name slug ancestors translations",
+        })
         .lean(),
       Product.countDocuments(filter),
     ]);
 
-    await hydrateProductsWithInventory(items);
-    await annotateProductsWithSetUsage(items);
+    if (!isCardView) {
+      await hydrateProductsWithInventory(items);
+      await annotateProductsWithSetUsage(items);
+    }
     const discountMap = await buildProductDiscountMap(items);
 
     res.json({
       products: items.map((item) =>
-        presentProduct(item, lang, discountMap.get(resolveDocId(item)) || null)
+        presentProduct(item, lang, discountMap.get(resolveDocId(item)) || null, {
+          includeTranslations: !isCardView,
+        })
       ),
       pagination: {
         page,

@@ -51,3 +51,10 @@ export function optimizeCloudinaryImageUrl(
 
   return `${optimizedPath}${search}${hash}`;
 }
+
+export function cloudinaryImageLoader({ src, width, quality }) {
+  return optimizeCloudinaryImageUrl(src, {
+    width,
+    quality,
+  });
+}

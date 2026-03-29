@@ -1,31 +1,61 @@
 // src/components/layout/RootLayout.jsx
 "use client";
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Header from "./Header";
 import Footer from "./Footer";
-import GsapScrollProvider from "../animations/GsapScrollProvider.jsx";
 import GlobalLoadingOverlay from "../ui/GlobalLoadingOverlay.jsx";
+
+const GsapScrollProvider = dynamic(
+  () => import("../animations/GsapScrollProvider.jsx"),
+  { ssr: false }
+);
 
 export default function RootLayout({ children, initialCategoryTree = null }) {
   const [enableAnimations, setEnableAnimations] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    if (window.matchMedia("(max-width: 768px)").matches) return undefined;
+
     let timer = null;
+    let disposed = false;
     const enable = () => {
-      // Give streamed sections enough time to hydrate before GSAP mutates DOM.
-      timer = window.setTimeout(() => setEnableAnimations(true), 1600);
+      if (disposed || timer) return;
+      // Let the interaction settle before mutating the DOM with GSAP.
+      timer = window.setTimeout(() => setEnableAnimations(true), 120);
+    };
+
+    const eventOptions = { once: true, passive: true };
+    const bind = () => {
+      window.addEventListener("pointerdown", enable, eventOptions);
+      window.addEventListener("touchstart", enable, eventOptions);
+      window.addEventListener("wheel", enable, eventOptions);
+      window.addEventListener("keydown", enable, { once: true });
+    };
+
+    const unbind = () => {
+      window.removeEventListener("pointerdown", enable);
+      window.removeEventListener("touchstart", enable);
+      window.removeEventListener("wheel", enable);
+      window.removeEventListener("keydown", enable);
     };
 
     if (document.readyState === "complete") {
-      enable();
+      bind();
       return () => {
+        disposed = true;
+        unbind();
         if (timer) window.clearTimeout(timer);
       };
     }
 
-    window.addEventListener("load", enable, { once: true });
+    const handleLoad = () => bind();
+    window.addEventListener("load", handleLoad, { once: true });
     return () => {
-      window.removeEventListener("load", enable);
+      disposed = true;
+      window.removeEventListener("load", handleLoad);
+      unbind();
       if (timer) window.clearTimeout(timer);
     };
   }, []);
@@ -34,9 +64,7 @@ export default function RootLayout({ children, initialCategoryTree = null }) {
     <div className="app-shell store-glass">
       <div className="app-card">
         {enableAnimations ? (
-          <Suspense fallback={null}>
-            <GsapScrollProvider />
-          </Suspense>
+          <GsapScrollProvider />
         ) : null}
         <GlobalLoadingOverlay />
         <Header initialCategoryTree={initialCategoryTree} />

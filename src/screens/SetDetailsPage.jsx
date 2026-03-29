@@ -39,7 +39,7 @@ export default function SetDetailsPage() {
         // ---- similar
         setLoadingSimilar(true);
         try {
-          const allResp = await setApi.list({}, lang);
+          const allResp = await setApi.list({ view: "card" }, lang);
           const allSets = Array.isArray(allResp)
             ? allResp
             : allResp?.sets || [];
