@@ -8,6 +8,8 @@ import {
   getUser as getUserCache,
   setUser as setUserCache,
   getAccessToken,
+  hasAttemptedSessionRestore,
+  markSessionRestoreAttempted,
   refreshAccessToken,
   clearAuthState,
 } from "../../api/client.js";
@@ -37,8 +39,18 @@ function AdminGate({ children }) {
       let token = getAccessToken();
 
       if (!token && !cachedUser) {
-        finish(null);
-        return;
+        if (hasAttemptedSessionRestore()) {
+          finish(null);
+          return;
+        }
+        markSessionRestoreAttempted();
+        const refreshed = await refreshAccessToken();
+        token = refreshed ? getAccessToken() : null;
+        if (!token) {
+          clearAuthState();
+          finish(null);
+          return;
+        }
       }
 
       if (!token) {
@@ -58,13 +70,6 @@ function AdminGate({ children }) {
           finish(me);
           return;
         }
-      }
-
-      const nextCachedUser = getUserCache();
-      const nextToken = getAccessToken();
-      if (nextToken && nextCachedUser) {
-        finish(nextCachedUser);
-        return;
       }
 
       clearAuthState();

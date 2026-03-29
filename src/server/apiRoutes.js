@@ -208,12 +208,24 @@ import {
   strictLimiter,
   refreshLimiter,
   mediaUploadLimiter,
+  contactMessageLimiter,
 } from "./rateLimiters.js";
 
 const healthHandler = (req, res) => res.json({ ok: true });
 
 const uploadDefaultLimits = {
   maxFileSizeMb: 5,
+};
+
+const imageUploadLimits = {
+  ...uploadDefaultLimits,
+  allowedMime: (mime) => mime.startsWith("image/"),
+};
+
+const imageVideoUploadLimits = {
+  ...uploadDefaultLimits,
+  allowedMime: (mime) =>
+    mime.startsWith("image/") || mime.startsWith("video/"),
 };
 
 const heroUploadLimits = {
@@ -250,7 +262,7 @@ export const routes = [
     [requireAuth, requireRole("admin"), createProduct],
     {
       body: "form",
-      upload: { type: "array", field: "images", limits: { ...uploadDefaultLimits, maxFiles: 8 } },
+      upload: { type: "array", field: "images", limits: { ...imageUploadLimits, maxFiles: 8 } },
     }
   ),
   route("GET", ["products", ":idOrSlug", "sets"], [listProductSets]),
@@ -261,7 +273,7 @@ export const routes = [
     [requireAuth, requireRole("admin"), updateProduct],
     {
       body: "form",
-      upload: { type: "array", field: "images", limits: { ...uploadDefaultLimits, maxFiles: 8 } },
+      upload: { type: "array", field: "images", limits: { ...imageUploadLimits, maxFiles: 8 } },
     }
   ),
   route(
@@ -285,7 +297,7 @@ export const routes = [
     [requireAuth, requireRole("admin"), createCategory],
     {
       body: "form",
-      upload: { type: "single", field: "image", limits: uploadDefaultLimits },
+      upload: { type: "single", field: "image", limits: imageUploadLimits },
     }
   ),
   route(
@@ -294,7 +306,7 @@ export const routes = [
     [requireAuth, requireRole("admin"), updateCategory],
     {
       body: "form",
-      upload: { type: "single", field: "image", limits: uploadDefaultLimits },
+      upload: { type: "single", field: "image", limits: imageUploadLimits },
     }
   ),
   route(
@@ -318,7 +330,7 @@ export const routes = [
     [requireAuth, requireRole("admin"), mediaUploadLimiter, uploadMediaAsset],
     {
       body: "form",
-      upload: { type: "single", field: "file", limits: uploadDefaultLimits },
+      upload: { type: "single", field: "file", limits: imageVideoUploadLimits },
     }
   ),
 
@@ -330,7 +342,7 @@ export const routes = [
     [requireAuth, requireRole("admin"), createSet],
     {
       body: "form",
-      upload: { type: "array", field: "images", limits: { ...uploadDefaultLimits, maxFiles: 8 } },
+      upload: { type: "array", field: "images", limits: { ...imageUploadLimits, maxFiles: 8 } },
     }
   ),
   route("GET", ["sets", ":idOrSlug"], [getSet]),
@@ -340,7 +352,7 @@ export const routes = [
     [requireAuth, requireRole("admin"), updateSet],
     {
       body: "form",
-      upload: { type: "array", field: "images", limits: { ...uploadDefaultLimits, maxFiles: 8 } },
+      upload: { type: "array", field: "images", limits: { ...imageUploadLimits, maxFiles: 8 } },
     }
   ),
   route(
@@ -379,7 +391,7 @@ export const routes = [
     "PATCH",
     ["user-details", "me", "avatar"],
     [requireAuth, uploadAvatar],
-    { body: "form", upload: { type: "single", field: "avatar", limits: uploadDefaultLimits } }
+    { body: "form", upload: { type: "single", field: "avatar", limits: imageUploadLimits } }
   ),
   route("POST", ["user-details", "addresses"], [requireAuth, createAddress]),
   route("PUT", ["user-details", "addresses", ":addressId"], [requireAuth, updateAddress]),
@@ -538,13 +550,13 @@ export const routes = [
     "POST",
     ["campaigns"],
     [requireAuth, requireRole("admin"), createCampaign],
-    { body: "form", upload: { type: "single", field: "image", limits: uploadDefaultLimits } }
+    { body: "form", upload: { type: "single", field: "image", limits: imageUploadLimits } }
   ),
   route(
     "PUT",
     ["campaigns", ":id"],
     [requireAuth, requireRole("admin"), updateCampaign],
-    { body: "form", upload: { type: "single", field: "image", limits: uploadDefaultLimits } }
+    { body: "form", upload: { type: "single", field: "image", limits: imageUploadLimits } }
   ),
   route(
     "DELETE",
@@ -585,7 +597,7 @@ export const routes = [
           { name: "leftImage" },
           { name: "materialsImage" },
         ],
-        limits: uploadDefaultLimits,
+        limits: imageUploadLimits,
       },
     }
   ),
@@ -602,19 +614,19 @@ export const routes = [
           { name: "leftImage" },
           { name: "materialsImage" },
         ],
-        limits: uploadDefaultLimits,
+        limits: imageUploadLimits,
       },
     }
   ),
 
   // contact
   route("GET", ["contact"], [getContact]),
-  route("POST", ["contact", "messages"], [submitMessage]),
+  route("POST", ["contact", "messages"], [contactMessageLimiter, submitMessage]),
   route(
     "PUT",
     ["contact"],
     [requireAuth, requireRole("admin"), updateContact],
-    { body: "form", upload: { type: "single", field: "heroImage", limits: uploadDefaultLimits } }
+    { body: "form", upload: { type: "single", field: "heroImage", limits: imageUploadLimits } }
   ),
   route("GET", ["contact", "messages"], [requireAuth, requireRole("admin"), listMessages]),
   route(

@@ -4,7 +4,7 @@ import SetInfo from "./SetInfo";
 import SetIncludes from "./SetIncludes";
 import SetSummary from "./SetSummary";
 import { Heart } from "lucide-react";
-import { getAccessToken } from "../../api/client";
+import { hasAuthSession } from "../../api/client";
 import { userDetailsApi } from "../../api/userDetails";
 import { useNavigate } from "react-router-dom";
 import ReviewSectionCard from "../reviews/ReviewSectionCard.jsx";
@@ -63,7 +63,7 @@ export default function SetDetail({ setDoc }) {
     let mounted = true;
     (async () => {
       if (!setDoc?.id) return;
-      if (!getAccessToken()) {
+      if (!hasAuthSession()) {
         if (mounted) setIsFav(false);
         return;
       }
@@ -82,7 +82,7 @@ export default function SetDetail({ setDoc }) {
 
   const toggleFav = async () => {
     if (!setDoc?.id) return;
-    if (!getAccessToken()) {
+    if (!hasAuthSession()) {
       navigate("/account?view=login");
       return;
     }

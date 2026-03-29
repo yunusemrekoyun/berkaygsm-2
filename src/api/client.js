@@ -2,39 +2,79 @@ const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "/api").replace(/\/$/, "");
 
 const ACCESS_KEY = "accessToken";
 const USER_KEY = "authUser";
+let accessTokenMemory = null;
+let legacyAccessTokenCleared = false;
+let userCacheMemory = null;
+let legacyUserCacheCleared = false;
+let sessionRestoreAttempted = false;
 
-const canUseStorage = () =>
+const canUseLocalStorage = () =>
   typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 
-const getStorage = () => (canUseStorage() ? window.localStorage : null);
+const canUseSessionStorage = () =>
+  typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
 
-export const getAccessToken = () => {
-  const storage = getStorage();
-  return storage ? storage.getItem(ACCESS_KEY) || null : null;
-};
+const getLocalStorage = () =>
+  canUseLocalStorage() ? window.localStorage : null;
 
-export const setAccessToken = (token) => {
-  const storage = getStorage();
+const getUserStorage = () =>
+  canUseSessionStorage() ? window.sessionStorage : null;
+
+const clearLegacyAccessToken = () => {
+  if (legacyAccessTokenCleared) return;
+  const storage = getLocalStorage();
   if (!storage) return;
-  if (token) {
-    storage.setItem(ACCESS_KEY, token);
-  } else {
+  try {
     storage.removeItem(ACCESS_KEY);
+    legacyAccessTokenCleared = true;
+  } catch {
+    // ignore storage cleanup failures
   }
 };
 
+const clearLegacyUserCache = () => {
+  if (legacyUserCacheCleared) return;
+  const storage = getLocalStorage();
+  if (!storage) return;
+  try {
+    storage.removeItem(USER_KEY);
+    legacyUserCacheCleared = true;
+  } catch {
+    // ignore storage cleanup failures
+  }
+};
+
+export const getAccessToken = () => {
+  clearLegacyAccessToken();
+  return accessTokenMemory;
+};
+
+export const setAccessToken = (token) => {
+  accessTokenMemory = token ? String(token) : null;
+  if (accessTokenMemory) {
+    sessionRestoreAttempted = false;
+  }
+  clearLegacyAccessToken();
+};
+
 export const getUser = () => {
-  const storage = getStorage();
+  if (userCacheMemory) return userCacheMemory;
+  clearLegacyUserCache();
+  const storage = getUserStorage();
   if (!storage) return null;
   try {
-    return JSON.parse(storage.getItem(USER_KEY) || "null");
+    const parsed = JSON.parse(storage.getItem(USER_KEY) || "null");
+    userCacheMemory = parsed;
+    return parsed;
   } catch {
     return null;
   }
 };
 
 export const setUser = (user) => {
-  const storage = getStorage();
+  const storage = getUserStorage();
+  userCacheMemory = user || null;
+  clearLegacyUserCache();
   if (!storage) return;
   if (user) {
     storage.setItem(USER_KEY, JSON.stringify(user));
@@ -44,8 +84,15 @@ export const setUser = (user) => {
 };
 
 export const clearAuthState = () => {
+  sessionRestoreAttempted = false;
   setAccessToken(null);
   setUser(null);
+};
+
+export const hasAuthSession = () => Boolean(getAccessToken() || getUser());
+export const hasAttemptedSessionRestore = () => sessionRestoreAttempted;
+export const markSessionRestoreAttempted = () => {
+  sessionRestoreAttempted = true;
 };
 
 function buildHeaders({ body, headers = {}, auth }) {

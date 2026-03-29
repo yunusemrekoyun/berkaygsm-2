@@ -7,7 +7,7 @@ import LoadingOverlay from "../components/ui/LoadingOverlay.jsx";
 import { useCart } from "../hooks/useCart";
 import { userDetailsApi } from "../api/userDetails";
 import { orderApi } from "../api/orders";
-import { getAccessToken } from "../api/client";
+import { getAccessToken, refreshAccessToken } from "../api/client";
 
 const SIMULATION_PAYMENT_METHOD = "checkout_simulation";
 const SIMULATION_PAYMENT_PROVIDER = "simulation";
@@ -80,12 +80,29 @@ export default function CheckoutPage() {
   } = cart;
 
   useEffect(() => {
-    const token = getAccessToken();
-    if (!token) {
+    let active = true;
+
+    (async () => {
+      const token = getAccessToken();
+      if (token) {
+        if (active) setAuthChecked(true);
+        return;
+      }
+
+      const refreshed = await refreshAccessToken();
+      if (!active) return;
+
+      if (refreshed) {
+        setAuthChecked(true);
+        return;
+      }
+
       navigate(`/account?view=login&redirect=/checkout`, { replace: true });
-      return;
-    }
-    setAuthChecked(true);
+    })();
+
+    return () => {
+      active = false;
+    };
   }, [navigate]);
 
   const checkoutItems = useMemo(
