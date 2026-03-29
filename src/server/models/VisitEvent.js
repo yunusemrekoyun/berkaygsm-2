@@ -6,6 +6,7 @@ const SOURCE_ENUM = [
   "social",
   "referral",
   "paid",
+  "email",
   "internal",
   "other",
 ];
@@ -21,6 +22,14 @@ const VisitEventSchema = new mongoose.Schema(
       maxlength: 160,
       index: true,
     },
+    visitorId: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 160,
+      index: true,
+    },
+    isEntry: { type: Boolean, default: false, index: true },
     path: {
       type: String,
       required: true,
@@ -30,6 +39,19 @@ const VisitEventSchema = new mongoose.Schema(
     },
     query: { type: String, default: "", trim: true, maxlength: 400 },
     referrer: { type: String, default: "", trim: true, maxlength: 600 },
+    utmSource: { type: String, default: "", trim: true, maxlength: 160 },
+    utmMedium: { type: String, default: "", trim: true, maxlength: 160 },
+    utmCampaign: { type: String, default: "", trim: true, maxlength: 220 },
+    utmTerm: { type: String, default: "", trim: true, maxlength: 220 },
+    utmContent: { type: String, default: "", trim: true, maxlength: 220 },
+    clickId: { type: String, default: "", trim: true, maxlength: 220 },
+    clickIdType: { type: String, default: "", trim: true, maxlength: 64 },
+    firstTouchSource: { type: String, default: "", trim: true, maxlength: 64 },
+    firstTouchMedium: { type: String, default: "", trim: true, maxlength: 160 },
+    firstTouchCampaign: { type: String, default: "", trim: true, maxlength: 220 },
+    lastTouchSource: { type: String, default: "", trim: true, maxlength: 64 },
+    lastTouchMedium: { type: String, default: "", trim: true, maxlength: 160 },
+    lastTouchCampaign: { type: String, default: "", trim: true, maxlength: 220 },
     source: {
       type: String,
       enum: SOURCE_ENUM,
@@ -52,6 +74,8 @@ const VisitEventSchema = new mongoose.Schema(
 
 VisitEventSchema.index({ createdAt: -1 });
 VisitEventSchema.index({ sessionId: 1, path: 1, createdAt: -1 });
+VisitEventSchema.index({ visitorId: 1, createdAt: -1 });
+VisitEventSchema.index({ isEntry: 1, source: 1, createdAt: -1 });
 
 export default mongoose.models["VisitEvent"] ||
   mongoose.model("VisitEvent", VisitEventSchema);

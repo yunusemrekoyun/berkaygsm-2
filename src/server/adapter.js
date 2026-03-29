@@ -5,6 +5,7 @@ import {
   assertUploadLimits,
   applyUploadMode,
 } from "./multipart.js";
+import { getClientIp } from "./utils/clientIp.js";
 
 const METHODS_WITH_BODY = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
@@ -19,12 +20,6 @@ function buildHeaders(request) {
 function parseCookies(request) {
   const header = request.headers.get("cookie") || "";
   return cookie.parse(header);
-}
-
-function getClientIp(headers) {
-  const forwarded = headers["x-forwarded-for"] || headers["x-real-ip"];
-  if (forwarded) return forwarded.split(",")[0].trim();
-  return headers["cf-connecting-ip"] || "";
 }
 
 async function parseBody(request, bodyType) {

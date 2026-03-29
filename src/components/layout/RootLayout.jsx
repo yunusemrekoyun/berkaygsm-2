@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import Header from "./Header";
 import Footer from "./Footer";
 import GlobalLoadingOverlay from "../ui/GlobalLoadingOverlay.jsx";
+import CookieConsentBanner from "../privacy/CookieConsentBanner.jsx";
+import { CookieConsentProvider } from "../../context/CookieConsentContext.jsx";
 
 const GsapScrollProvider = dynamic(
   () => import("../animations/GsapScrollProvider.jsx"),
@@ -61,18 +63,21 @@ export default function RootLayout({ children, initialCategoryTree = null }) {
   }, []);
 
   return (
-    <div className="app-shell store-glass">
-      <div className="app-card">
-        {enableAnimations ? (
-          <GsapScrollProvider />
-        ) : null}
-        <GlobalLoadingOverlay />
-        <Header initialCategoryTree={initialCategoryTree} />
-        <main className="pb-20 pt-[112px] md:pb-0 md:pt-[136px]">
-          {children}
-        </main>
-        <Footer />
+    <CookieConsentProvider>
+      <div className="app-shell store-glass">
+        <div className="app-card">
+          {enableAnimations ? (
+            <GsapScrollProvider />
+          ) : null}
+          <GlobalLoadingOverlay />
+          <Header initialCategoryTree={initialCategoryTree} />
+          <main className="pb-20 pt-[112px] md:pb-0 md:pt-[136px]">
+            {children}
+          </main>
+          <Footer />
+        </div>
       </div>
-    </div>
+      <CookieConsentBanner />
+    </CookieConsentProvider>
   );
 }

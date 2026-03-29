@@ -332,7 +332,7 @@ export async function submitMessage(req, res) {
 
       const turnstileResult = await verifyTurnstileToken({
         token: turnstileToken,
-        remoteIp: req.ip || req.headers["x-forwarded-for"] || "",
+        remoteIp: req.ip || "",
         expectedHostname: process.env.TURNSTILE_EXPECTED_HOSTNAME || "",
       });
 
@@ -351,7 +351,7 @@ export async function submitMessage(req, res) {
       phone,
       subject,
       message,
-      ip: req.ip || req.headers["x-forwarded-for"] || "",
+      ip: req.ip || "",
       userAgent: req.headers["user-agent"] || "",
     });
 

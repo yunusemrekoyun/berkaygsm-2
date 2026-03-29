@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import RootLayout from "../../components/layout/RootLayout.jsx";
 import RouteMemory from "../../components/RouteMemory.jsx";
-import VisitTracker from "../../components/analytics/VisitTracker.jsx";
+import ConsentAwareVisitTracker from "../../components/analytics/ConsentAwareVisitTracker.jsx";
 import { getStorefrontCategoryTree } from "../../server/services/storefrontPrefetchService.js";
 
 export default async function StoreLayout({ children }) {
@@ -13,7 +13,7 @@ export default async function StoreLayout({ children }) {
         <RouteMemory />
       </Suspense>
       <Suspense fallback={null}>
-        <VisitTracker />
+        <ConsentAwareVisitTracker />
       </Suspense>
       <Suspense fallback={null}>{children}</Suspense>
     </RootLayout>

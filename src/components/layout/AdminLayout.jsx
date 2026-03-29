@@ -30,11 +30,47 @@ import {
   Home,
   LogOut,
   Sparkles,
+  MessageSquare,
+  Star,
   // SlidersHorizontal,
 } from "lucide-react";
 import { authApi } from "../../api/auth";
 import { getUser as getUserCache } from "../../api/client";
 import { adminNotificationsApi } from "../../api/adminNotifications";
+
+function getNotificationHref(item) {
+  if (item?.type === "review_pending") {
+    return "/admin/settings/reviews";
+  }
+  return "/admin/stocks";
+}
+
+function getNotificationTitle(item) {
+  if (item?.type === "review_pending") {
+    return item?.data?.targetName || item?.title || "Yeni yorum";
+  }
+  return item?.data?.productName || item?.title || "Bildirim";
+}
+
+function getNotificationMeta(item) {
+  if (item?.type === "review_pending") {
+    return item?.data?.reviewerName || item?.data?.reviewerEmail || "Müşteri";
+  }
+  return item?.data?.variantLabel || "Tüm varyant";
+}
+
+function getNotificationBadge(item) {
+  if (item?.type === "review_pending") {
+    return {
+      text: item?.data?.rating ? String(item.data.rating) : "Yeni",
+      Icon: item?.data?.rating ? Star : MessageSquare,
+    };
+  }
+  return {
+    text: String(item?.data?.qtyOnHand ?? 0),
+    Icon: null,
+  };
+}
 
 export default function AdminLayout({ children, title, subtitle, actions }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -600,7 +636,7 @@ function AdminNotificationMenu() {
                   } catch {
                     // ignore focus failures
                   }
-                  window.location.assign("/admin/stocks");
+                  window.location.assign(getNotificationHref(item));
                   browserNotification.close();
                 };
               } catch {
@@ -710,7 +746,7 @@ function AdminNotificationMenu() {
                 Bildirimler
               </div>
               <div className="text-xs text-[var(--color-text-admin-muted)]">
-                Düşük stok uyarıları burada listelenir.
+                Stok ve yorum bildirimleri burada listelenir.
               </div>
             </div>
             {loading && (
@@ -745,40 +781,52 @@ function AdminNotificationMenu() {
               </div>
             ) : (
               items.map((item) => (
-                <Link
+                <NotificationListItem
                   key={item.id}
-                  to="/admin/stocks"
-                  onClick={() => setOpen(false)}
-                  className="block border-b border-[var(--color-border-admin)]/40 px-4 py-3 transition hover:bg-[var(--color-bg-hover)] last:border-b-0"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-[var(--color-text-admin)]">
-                        {item.data?.productName || item.title}
-                      </div>
-                      <div className="mt-1 text-xs text-[var(--color-text-admin-muted)]">
-                        {item.message}
-                      </div>
-                    </div>
-                    <div className="rounded-full border border-[var(--color-border-admin)] px-2 py-1 text-xs font-semibold text-[var(--color-text-admin)]">
-                      {item.data?.qtyOnHand ?? 0}
-                    </div>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-[var(--color-text-admin-muted)]">
-                    <span>{item.data?.variantLabel || "Tüm varyant"}</span>
-                    <span>
-                      {item.createdAt
-                        ? new Date(item.createdAt).toLocaleString("tr-TR")
-                        : ""}
-                    </span>
-                  </div>
-                </Link>
+                  item={item}
+                  onSelect={() => setOpen(false)}
+                />
               ))
             )}
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+function NotificationListItem({ item, onSelect }) {
+  const badge = getNotificationBadge(item);
+
+  return (
+    <Link
+      to={getNotificationHref(item)}
+      onClick={onSelect}
+      className="block border-b border-[var(--color-border-admin)]/40 px-4 py-3 transition hover:bg-[var(--color-bg-hover)] last:border-b-0"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-[var(--color-text-admin)]">
+            {getNotificationTitle(item)}
+          </div>
+          <div className="mt-1 text-xs leading-5 text-[var(--color-text-admin-muted)]">
+            {item.message}
+          </div>
+        </div>
+        <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[var(--color-border-admin)] px-2 py-1 text-xs font-semibold text-[var(--color-text-admin)]">
+          {badge.Icon ? <badge.Icon className="h-3.5 w-3.5" /> : null}
+          <span>{badge.text}</span>
+        </div>
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-[var(--color-text-admin-muted)]">
+        <span className="truncate">{getNotificationMeta(item)}</span>
+        <span>
+          {item.createdAt
+            ? new Date(item.createdAt).toLocaleString("tr-TR")
+            : ""}
+        </span>
+      </div>
+    </Link>
   );
 }
 

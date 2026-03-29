@@ -2,7 +2,10 @@ import mongoose from "mongoose";
 import Review from "../models/Review.js";
 import Product from "../models/Product.js";
 import SetModel from "../models/Set.js";
+import User from "../models/User.js";
 import UserDetails from "../models/UserDetails.js";
+import { createPendingReviewNotification } from "../services/adminNotificationService.js";
+import { logger } from "../utils/logger.js";
 
 const isObjectId = (v) => typeof v === "string" && /^[0-9a-fA-F]{24}$/.test(v);
 
@@ -387,6 +390,35 @@ export async function createReview(req, res) {
       body: String(body || "").trim(),
       approved: false,
     });
+
+    try {
+      const reviewer = await User.findById(userId).select("firstName lastName email").lean();
+      const reviewerName =
+        `${reviewer?.firstName || ""} ${reviewer?.lastName || ""}`.trim() ||
+        reviewer?.email ||
+        "Müşteri";
+      await createPendingReviewNotification({
+        targetType: product ? "product" : "set",
+        owner: product?._id || set?._id,
+        targetName: product?.name || set?.name || "",
+        targetSlug: product?.slug || set?.slug || "",
+        reviewId: review._id.toString(),
+        reviewerName,
+        reviewerEmail: reviewer?.email || "",
+        rating: review.rating,
+        title: review.title,
+        body: review.body,
+      });
+    } catch (notificationError) {
+      logger.warn(
+        {
+          err: notificationError,
+          reviewId: review._id?.toString?.() || null,
+          userId,
+        },
+        "Failed to create pending review admin notification"
+      );
+    }
 
     res.status(201).json({
       review: {
