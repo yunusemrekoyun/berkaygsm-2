@@ -3,10 +3,7 @@ import RateLimitBucket from "./models/RateLimitBucket.js";
 const memoryBuckets = new Map();
 
 function resolveKey(req) {
-  const ip =
-    req.ip ||
-    req.headers?.["x-forwarded-for"]?.split?.(",")?.[0]?.trim?.() ||
-    "unknown";
+  const ip = req.ip || "unknown";
   const method = String(req.method || "GET").toUpperCase();
   let path = "";
   try {

@@ -84,7 +84,7 @@ export default function LayoutSelector() {
     return () => {
       mounted = false;
     };
-  }, [location.pathname, paramsKey, initializing]);
+  }, [location.pathname, paramsKey]);
 
   if (initializing) return null;
 

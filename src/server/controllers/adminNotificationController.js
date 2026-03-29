@@ -31,6 +31,15 @@ function shapeNotification(doc) {
       previousQty: Number(plain.data?.previousQty || 0) || 0,
       qtyOnHand: Number(plain.data?.qtyOnHand || 0) || 0,
       threshold: Number(plain.data?.threshold || 3) || 3,
+      targetType: plain.data?.targetType || "",
+      targetName: plain.data?.targetName || "",
+      targetSlug: plain.data?.targetSlug || "",
+      reviewId: plain.data?.reviewId || "",
+      reviewerName: plain.data?.reviewerName || "",
+      reviewerEmail: plain.data?.reviewerEmail || "",
+      rating: Number(plain.data?.rating || 0) || 0,
+      reviewTitle: plain.data?.reviewTitle || "",
+      reviewBody: plain.data?.reviewBody || "",
     },
   };
 }

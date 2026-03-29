@@ -1,14 +1,18 @@
+"use client";
+
 // src/components/footer/Footer.jsx
 import { Link } from "react-router-dom";
 import { Mail, Phone } from "lucide-react";
 import AppImage from "../ui/AppImage.jsx";
 import { useStaticTranslation } from "../../i18n/staticContent.js";
+import { useCookieConsent } from "../../context/CookieConsentContext.jsx";
 
 const BRAND_NAME = "CepLife";
 const BRAND_LOGO_SRC = "/ceplife-logo-cropped.png";
 
 export default function Footer() {
   const t = useStaticTranslation();
+  const { openPreferences } = useCookieConsent();
   const links = t("footer.links") || {};
   const year = new Date().getFullYear();
   const copy =
@@ -67,6 +71,13 @@ export default function Footer() {
           <Link to="/terms" className="hover:text-accent">
             {links.terms}
           </Link>
+          <button
+            type="button"
+            onClick={openPreferences}
+            className="cursor-pointer hover:text-accent"
+          >
+            {links.cookiePreferences || "Çerez Tercihleri"}
+          </button>
         </nav>
 
         {/* Copyright */}

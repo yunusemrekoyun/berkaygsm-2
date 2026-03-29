@@ -625,8 +625,44 @@ const STATIC_CONTENT = {
         shippingReturns: "Kargo & İade",
         privacy: "Gizlilik Politikası",
         terms: "Kullanım Koşulları",
+        cookiePreferences: "Çerez Tercihleri",
       },
       copyright: "© {year} CepLife. Tüm hakları saklıdır.",
+    },
+    cookieConsent: {
+      title: "Çerez tercihleri",
+      description:
+        "Sitemizde zorunlu çerezlerin yanında, performansı ölçmek ve deneyimi geliştirmek için analitik çerezler kullanmak istiyoruz. Analitik çerezler yalnızca onayınızla çalışır.",
+      hint:
+        "Tercihinizi istediğiniz zaman footer alanındaki Çerez Tercihleri bağlantısından değiştirebilirsiniz.",
+      buttons: {
+        acceptAll: "Hepsini kabul et",
+        rejectAll: "Sadece zorunlu",
+        manage: "Tercihleri yönet",
+        save: "Seçimi kaydet",
+        close: "Kapat",
+      },
+      categories: {
+        necessary: {
+          title: "Zorunlu",
+          description:
+            "Sepet, oturum ve temel site işlevleri için gereklidir. Her zaman aktiftir.",
+        },
+        analytics: {
+          title: "Analitik",
+          description:
+            "Ziyaret ve kullanım eğilimlerini ölçerek siteyi geliştirmemize yardımcı olur.",
+        },
+      },
+      labels: {
+        alwaysActive: "Her zaman aktif",
+        active: "Açık",
+        inactive: "Kapalı",
+      },
+      links: {
+        privacy: "KVKK ve Gizlilik",
+        terms: "Kullanım Koşulları",
+      },
     },
     homePage: {
       heroFallback: [

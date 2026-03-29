@@ -342,7 +342,7 @@ export default function AdminAnalytics() {
         </Card>
 
         <Card>
-          <CardHeader title="Trafik Kaynakları" subtitle="ziyaret payı" />
+          <CardHeader title="Trafik Kaynakları" subtitle="oturum giriş payı" />
           <div className="flex items-center gap-6">
             <div className="h-56 w-56">
               <ResponsiveContainer width="100%" height="100%">

@@ -1,6 +1,13 @@
 import Order from "../models/Order.js";
 import User from "../models/User.js";
 import VisitEvent from "../models/VisitEvent.js";
+import {
+  VISIT_SOURCE_KEYS,
+  classifyTrafficSource,
+  isLoopbackHost,
+  normalizeComparableHost,
+  parseReferrerMeta,
+} from "../../utils/visitAttribution.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MIN_DAYS = 7;
@@ -45,21 +52,14 @@ const STATUS_COLORS = {
   cancelled: "var(--color-contact-bg)",
 };
 
-const SOURCE_ORDER = [
-  "direct",
-  "organic",
-  "social",
-  "referral",
-  "paid",
-  "internal",
-  "other",
-];
+const SOURCE_ORDER = VISIT_SOURCE_KEYS;
 const SOURCE_LABELS = {
   direct: "Doğrudan",
   organic: "Organik Arama",
   social: "Sosyal Medya",
   referral: "Yönlendirme",
   paid: "Ücretli",
+  email: "E-posta",
   internal: "Site İçi",
   other: "Diğer",
 };
@@ -69,6 +69,7 @@ const SOURCE_COLORS = {
   social: "var(--color-secondary)",
   referral: "var(--color-surface)",
   paid: "var(--color-contact-bg)",
+  email: "var(--color-accent-hover)",
   internal: "var(--color-border-admin)",
   other: "var(--color-text-admin-muted)",
 };
@@ -170,6 +171,18 @@ function normalizeSessionId(value) {
   return raw;
 }
 
+function normalizeBoolean(value) {
+  if (typeof value === "boolean") return value;
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  return ["1", "true", "yes", "on"].includes(normalized);
+}
+
+function normalizeText(value, max = 160) {
+  return String(value || "").trim().slice(0, max);
+}
+
 function detectDevice(userAgentRaw) {
   const ua = String(userAgentRaw || "").toLowerCase();
   if (!ua) return "desktop";
@@ -192,57 +205,73 @@ function detectDevice(userAgentRaw) {
   return "desktop";
 }
 
-function deriveSource(rawSource, referrerRaw, hostRaw) {
-  const normalizedSource = String(rawSource || "")
-    .trim()
-    .toLowerCase();
-  if (SOURCE_ORDER.includes(normalizedSource)) return normalizedSource;
+function deriveSource(rawSource, referrerRaw, hostRaw, attribution = {}) {
+  return classifyTrafficSource({
+    rawSource,
+    referrer: referrerRaw,
+    currentHost: hostRaw,
+    utmSource: attribution.utmSource,
+    utmMedium: attribution.utmMedium,
+    clickIdType: attribution.clickIdType,
+  });
+}
 
-  const referrer = String(referrerRaw || "").trim();
-  if (!referrer) return "direct";
+function isAdminReferrer(referrerRaw, hostRaw) {
+  const referrerMeta = parseReferrerMeta(referrerRaw);
+  const currentHost = normalizeComparableHost(hostRaw);
+  return Boolean(
+    referrerMeta.comparableHost &&
+      currentHost &&
+      referrerMeta.comparableHost === currentHost &&
+      referrerMeta.pathname.startsWith("/admin")
+  );
+}
 
-  let refHost = "";
-  try {
-    refHost = new URL(referrer).hostname.toLowerCase();
-  } catch {
-    return "other";
-  }
+function buildVisitMatch(range = {}) {
+  return {
+    ...range,
+    host: {
+      $not: /^(localhost|127\.0\.0\.1|\[?::1\]?)(:\d+)?$/i,
+    },
+  };
+}
 
-  const currentHost = String(hostRaw || "")
-    .trim()
-    .toLowerCase()
-    .split(":")[0];
-  if (currentHost && refHost === currentHost) return "internal";
+function buildUniqueVisitorCountPipeline(match = {}) {
+  return [
+    { $match: match },
+    {
+      $project: {
+        visitorKey: {
+          $ifNull: ["$visitorId", "$sessionId"],
+        },
+      },
+    },
+    { $match: { visitorKey: { $ne: "" } } },
+    { $group: { _id: "$visitorKey" } },
+    { $count: "count" },
+  ];
+}
 
-  if (
-    refHost.includes("google.") ||
-    refHost.includes("bing.") ||
-    refHost.includes("duckduckgo.") ||
-    refHost.includes("yahoo.")
-  ) {
-    return "organic";
-  }
-
-  if (
-    refHost.includes("facebook.") ||
-    refHost.includes("instagram.") ||
-    refHost.includes("tiktok.") ||
-    refHost.includes("twitter.") ||
-    refHost.includes("x.com") ||
-    refHost.includes("youtube.")
-  ) {
-    return "social";
-  }
-
-  if (
-    refHost.includes("doubleclick.") ||
-    refHost.includes("adservice.") ||
-    refHost.includes("ads.")
-  ) {
-    return "paid";
-  }
-
-  return "referral";
+function buildDailyUniqueVisitorPipeline(match = {}) {
+  return [
+    { $match: match },
+    {
+      $project: {
+        day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+        visitorKey: {
+          $ifNull: ["$visitorId", "$sessionId"],
+        },
+      },
+    },
+    { $match: { visitorKey: { $ne: "" } } },
+    { $group: { _id: { day: "$day", visitorKey: "$visitorKey" } } },
+    {
+      $group: {
+        _id: "$_id.day",
+        uniqueVisitors: { $sum: 1 },
+      },
+    },
+  ];
 }
 
 function buildHeatmapFromRows(rows) {
@@ -275,6 +304,12 @@ export async function trackVisit(req, res) {
     if (!sessionId) {
       return res.status(400).json({ message: "Geçersiz oturum anahtarı" });
     }
+    const visitorId = normalizeSessionId(req.body.visitorId) || sessionId;
+
+    const host = normalizeText(req.headers.host || "", 160);
+    if (isLoopbackHost(host)) {
+      return res.json({ ok: true, skipped: true, reason: "loopback_host" });
+    }
 
     const now = Date.now();
     const duplicateWindowStart = new Date(now - 4000);
@@ -290,7 +325,22 @@ export async function trackVisit(req, res) {
     const referrer = String(req.body.referrer || req.headers.referer || "")
       .trim()
       .slice(0, 600);
-    const source = deriveSource(req.body.source, referrer, req.headers.host);
+    if (isAdminReferrer(referrer, host)) {
+      return res.json({ ok: true, skipped: true, reason: "admin_referrer" });
+    }
+
+    const utmSource = normalizeText(req.body.utmSource, 160);
+    const utmMedium = normalizeText(req.body.utmMedium, 160);
+    const utmCampaign = normalizeText(req.body.utmCampaign, 220);
+    const utmTerm = normalizeText(req.body.utmTerm, 220);
+    const utmContent = normalizeText(req.body.utmContent, 220);
+    const clickId = normalizeText(req.body.clickId, 220);
+    const clickIdType = normalizeText(req.body.clickIdType, 64).toLowerCase();
+    const source = deriveSource(req.body.source, referrer, host, {
+      utmSource,
+      utmMedium,
+      clickIdType,
+    });
     const userAgent = String(req.headers["user-agent"] || "").slice(0, 600);
     const device = detectDevice(userAgent);
     const country = parseCountry(
@@ -300,15 +350,36 @@ export async function trackVisit(req, res) {
         req.body.country
     );
     const query = String(req.body.query || "").slice(0, 400);
-    const host = String(req.headers.host || "").slice(0, 160);
     const ip = String(req.ip || "").slice(0, 80);
+    const isEntry = normalizeBoolean(req.body.isEntry);
+    const firstTouchSource = normalizeText(req.body.firstTouchSource, 64).toLowerCase();
+    const firstTouchMedium = normalizeText(req.body.firstTouchMedium, 160);
+    const firstTouchCampaign = normalizeText(req.body.firstTouchCampaign, 220);
+    const lastTouchSource = normalizeText(req.body.lastTouchSource, 64).toLowerCase();
+    const lastTouchMedium = normalizeText(req.body.lastTouchMedium, 160);
+    const lastTouchCampaign = normalizeText(req.body.lastTouchCampaign, 220);
 
     await VisitEvent.create({
       sessionId,
+      visitorId,
+      isEntry,
       path,
       query,
       referrer,
       source,
+      utmSource,
+      utmMedium,
+      utmCampaign,
+      utmTerm,
+      utmContent,
+      clickId,
+      clickIdType,
+      firstTouchSource,
+      firstTouchMedium,
+      firstTouchCampaign,
+      lastTouchSource,
+      lastTouchMedium,
+      lastTouchCampaign,
       device,
       country,
       ip,
@@ -332,26 +403,31 @@ export async function getAdminVisitAnalyticsOverview(req, res) {
     const previousEnd = new Date(start.getTime());
     const last7Start = new Date(today.getTime() - 6 * DAY_MS);
 
-    const currentRange = { createdAt: { $gte: start } };
-    const previousRange = { createdAt: { $gte: previousStart, $lt: previousEnd } };
+    const currentRange = buildVisitMatch({ createdAt: { $gte: start } });
+    const previousRange = buildVisitMatch({
+      createdAt: { $gte: previousStart, $lt: previousEnd },
+    });
+    const currentEntryRange = { ...currentRange, isEntry: true };
+    const last7Range = buildVisitMatch({ createdAt: { $gte: last7Start } });
 
     const [
       totalVisits,
-      uniqueVisitorIds,
+      uniqueVisitorRows,
       previousVisits,
-      previousUniqueVisitorIds,
+      previousUniqueVisitorRows,
       visitsDailyRows,
       uniqueDailyRows,
-      sourceRows,
+      entrySourceRows,
+      fallbackSourceRows,
       deviceRows,
       heatRows,
       countryRows,
       topPageRows,
     ] = await Promise.all([
       VisitEvent.countDocuments(currentRange),
-      VisitEvent.distinct("sessionId", currentRange),
+      VisitEvent.aggregate(buildUniqueVisitorCountPipeline(currentRange)),
       VisitEvent.countDocuments(previousRange),
-      VisitEvent.distinct("sessionId", previousRange),
+      VisitEvent.aggregate(buildUniqueVisitorCountPipeline(previousRange)),
       VisitEvent.aggregate([
         { $match: currentRange },
         {
@@ -363,23 +439,10 @@ export async function getAdminVisitAnalyticsOverview(req, res) {
           },
         },
       ]),
+      VisitEvent.aggregate(buildDailyUniqueVisitorPipeline(currentRange)),
       VisitEvent.aggregate([
-        { $match: currentRange },
-        {
-          $group: {
-            _id: {
-              day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
-              },
-              sessionId: "$sessionId",
-            },
-          },
-        },
-        {
-          $group: {
-            _id: "$_id.day",
-            uniqueVisitors: { $sum: 1 },
-          },
-        },
+        { $match: currentEntryRange },
+        { $group: { _id: "$source", count: { $sum: 1 } } },
       ]),
       VisitEvent.aggregate([
         { $match: currentRange },
@@ -390,7 +453,7 @@ export async function getAdminVisitAnalyticsOverview(req, res) {
         { $group: { _id: "$device", count: { $sum: 1 } } },
       ]),
       VisitEvent.aggregate([
-        { $match: { createdAt: { $gte: last7Start } } },
+        { $match: last7Range },
         {
           $project: {
             dow: { $isoDayOfWeek: "$createdAt" },
@@ -419,8 +482,8 @@ export async function getAdminVisitAnalyticsOverview(req, res) {
       ]),
     ]);
 
-    const uniqueVisitors = uniqueVisitorIds.length;
-    const previousUniqueVisitors = previousUniqueVisitorIds.length;
+    const uniqueVisitors = Number(uniqueVisitorRows?.[0]?.count || 0);
+    const previousUniqueVisitors = Number(previousUniqueVisitorRows?.[0]?.count || 0);
     const avgVisitsPerVisitor = uniqueVisitors
       ? round2(totalVisits / uniqueVisitors)
       : 0;
@@ -442,6 +505,10 @@ export async function getAdminVisitAnalyticsOverview(req, res) {
       uniqueVisitors: uniquesByDay.get(bucket.key) || 0,
     }));
 
+    const sourceRows =
+      Array.isArray(entrySourceRows) && entrySourceRows.some((row) => Number(row?.count || 0) > 0)
+        ? entrySourceRows
+        : fallbackSourceRows;
     const sourceCountMap = new Map(
       sourceRows.map((row) => [String(row._id || "other"), Number(row.count || 0)])
     );

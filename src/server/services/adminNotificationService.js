@@ -135,3 +135,50 @@ export async function maybeCreateLowStockNotification({
   }
   return AdminNotification.create(payload);
 }
+
+export async function createPendingReviewNotification({
+  targetType = "product",
+  owner,
+  targetName = "",
+  targetSlug = "",
+  reviewId = "",
+  reviewerName = "",
+  reviewerEmail = "",
+  rating = 0,
+  title = "",
+  body = "",
+  session = null,
+}) {
+  const normalizedTargetType = cleanText(targetType).toLowerCase() === "set" ? "set" : "product";
+  const ownerModel = normalizedTargetType === "set" ? "Set" : "Product";
+  const ownerId = String(owner || "").trim();
+  if (!mongoose.Types.ObjectId.isValid(ownerId)) return null;
+
+  const safeTargetName = cleanText(targetName) || (normalizedTargetType === "set" ? "Set" : "Ürün");
+  const safeReviewerName = cleanText(reviewerName) || cleanText(reviewerEmail) || "Müşteri";
+  const safeRating = Math.max(0, Math.min(5, asNumber(rating, 0)));
+  const message = `${safeReviewerName}, “${safeTargetName}” için ${safeRating || "?"}/5 puanlı yeni bir yorum gönderdi.`;
+  const payload = {
+    type: "review_pending",
+    ownerModel,
+    owner: ownerId,
+    title: "Onay bekleyen yeni yorum",
+    message,
+    data: {
+      targetType: normalizedTargetType,
+      targetName: safeTargetName,
+      targetSlug: cleanText(targetSlug),
+      reviewId: cleanText(reviewId),
+      reviewerName: safeReviewerName,
+      reviewerEmail: cleanText(reviewerEmail),
+      rating: safeRating,
+      reviewTitle: cleanText(title),
+      reviewBody: cleanText(body),
+    },
+  };
+
+  if (session) {
+    return (await AdminNotification.create([payload], { session }))[0];
+  }
+  return AdminNotification.create(payload);
+}
