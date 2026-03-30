@@ -18,6 +18,14 @@ import {
   formatTrPhoneForInput,
   formatTrPhoneForSubmit,
 } from "../utils/phoneMask.js";
+import {
+  OFFICIAL_ADDRESS,
+  OFFICIAL_ADDRESS_NOTE,
+  OFFICIAL_PHONE,
+  OFFICIAL_PHONE_NOTE,
+  OFFICIAL_SUPPORT_EMAIL,
+  OFFICIAL_SUPPORT_RESPONSE_NOTE,
+} from "../config/siteContact.js";
 
 const TURNSTILE_SITE_KEY =
   process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
@@ -44,10 +52,7 @@ function buildDefaultConfig(copy = {}) {
     heroImage: null,
     addressBlock: makeBlock(
       blocks.addressTitle || "Mağazamızı ziyaret edin",
-      blocks.addressLines || [
-        "Bağdat Caddesi 45, Kadıköy / İstanbul",
-        "Mağaza içi deneyim ve mağazadan teslim (randevu önerilir)",
-      ]
+      blocks.addressLines || [OFFICIAL_ADDRESS, OFFICIAL_ADDRESS_NOTE]
     ),
     hoursBlock: makeBlock(
       blocks.hoursTitle || "Çalışma saatleri",
@@ -59,17 +64,11 @@ function buildDefaultConfig(copy = {}) {
     ),
     emailBlock: makeBlock(
       blocks.emailTitle || "Müşteri hizmetleri",
-      blocks.emailLines || [
-        "destek@berkaygsm.com",
-        "Ortalama dönüş süresi: < 24 saat",
-      ]
+      blocks.emailLines || [OFFICIAL_SUPPORT_EMAIL, OFFICIAL_SUPPORT_RESPONSE_NOTE]
     ),
     phoneBlock: makeBlock(
       blocks.phoneTitle || "Telefon",
-      blocks.phoneLines || [
-        "+90 (212) 000 00 00",
-        "Aynı numaradan WhatsApp ve Signal",
-      ]
+      blocks.phoneLines || [OFFICIAL_PHONE, OFFICIAL_PHONE_NOTE]
     ),
     formEnabled: true,
     security: { captchaEnabled: false },

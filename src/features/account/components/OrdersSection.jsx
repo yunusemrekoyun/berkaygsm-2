@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { orderApi } from "../../../api/orders";
-import OrderDetailsModal from "../../../components/orders/OrderDetailsModal";
+import CustomerOrderDetailsModal from "../../../components/orders/CustomerOrderDetailsModal";
 import { useStorefrontLang } from "../../../context/LangContext.jsx";
 import { formatStaticText } from "../../../i18n/staticContent.js";
 
@@ -148,7 +148,7 @@ export default function OrdersSection({ copy = {} }) {
       </ul>
 
       {selectedId && (
-        <OrderDetailsModal
+        <CustomerOrderDetailsModal
           orderId={selectedId}
           onClose={() => setSelectedId(null)}
         />

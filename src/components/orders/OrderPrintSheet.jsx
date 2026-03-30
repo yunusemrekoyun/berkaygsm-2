@@ -3,6 +3,8 @@ import AppImage from "../ui/AppImage.jsx";
 export default function OrderPrintSheet({ model, previewRef = null }) {
   if (!model) return null;
   const preview = model?.layout?.profile?.preview || {};
+  const sheetWidthMm = Number(model?.layout?.dimensions?.widthMm || 100) || 100;
+  const sheetHeightMm = Number(model?.layout?.dimensions?.heightMm || 150) || 150;
   const customerNameLines = Array.isArray(model.customerNameLines)
     ? model.customerNameLines
     : [model.customerName].filter(Boolean);
@@ -15,7 +17,8 @@ export default function OrderPrintSheet({ model, previewRef = null }) {
   return (
     <div
       ref={previewRef}
-      className="mx-auto flex aspect-[2/3] w-full max-w-[340px] flex-col overflow-hidden rounded-[24px] border border-stone-300 bg-white p-4 text-stone-900 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:max-w-[360px]"
+      style={{ aspectRatio: `${sheetWidthMm} / ${sheetHeightMm}` }}
+      className="mx-auto flex w-full max-w-[340px] flex-col overflow-hidden rounded-[24px] border border-stone-300 bg-white p-4 text-stone-900 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:max-w-[360px]"
     >
       <div className="flex items-start justify-between gap-3 border-b border-stone-800 pb-3">
         <div className="flex flex-col gap-1.5">

@@ -21,6 +21,14 @@ import {
 } from "lucide-react";
 import { HAS_TRANSLATIONS, TRANSLATION_LANGS } from "../../constants/lang.js";
 import AppImage from "../../components/ui/AppImage.jsx";
+import {
+  OFFICIAL_ADDRESS,
+  OFFICIAL_ADDRESS_NOTE,
+  OFFICIAL_PHONE,
+  OFFICIAL_PHONE_NOTE,
+  OFFICIAL_SUPPORT_EMAIL,
+  OFFICIAL_SUPPORT_RESPONSE_NOTE,
+} from "../../config/siteContact.js";
 
 const BASE_LANG = "tr";
 const BASE_LANGUAGE_LABEL = "Türkçe (TR)";
@@ -33,24 +41,24 @@ const makeBlock = (title = "", lines = []) => ({
 const emptyConfig = {
   heroTitle: "Size yardımcı olmak için buradayız",
   heroSubtitle:
-    "Müşteri destek ekibimiz Pazartesi-Cuma günleri 09:00-18:00 (CET) saatleri arasında hizmet veriyor. Bize bir mesaj bırakın, en geç bir iş günü içinde yanıtlayalım.",
+    "Müşteri destek ekibimiz Pazartesi-Cuma günleri 09:00-18:00 saatleri arasında hizmet veriyor. Bize bir mesaj bırakın, en geç bir iş günü içinde yanıtlayalım.",
   heroImage: null,
-  addressBlock: makeBlock("Avrupa stüdyomuzu ziyaret edin", [
-    "Kurfürstendamm 45, 10719 Berlin",
-    "Showroom ve click-and-collect (randevu önerilir)",
+  addressBlock: makeBlock("Mağazamızı ziyaret edin", [
+    OFFICIAL_ADDRESS,
+    OFFICIAL_ADDRESS_NOTE,
   ]),
-  hoursBlock: makeBlock("Çalışma saatleri (CET)", [
+  hoursBlock: makeBlock("Çalışma saatleri", [
     "Pzt – Cum: 09:00 – 18:00",
-    "Cmt: 10:00 – 16:00 (sadece showroom)",
+    "Cmt: 10:00 – 16:00",
     "Paz ve resmi tatiller: kapalı",
   ]),
   emailBlock: makeBlock("Müşteri hizmetleri", [
-    "support@evimstil.com",
-    "Ortalama yanıt süresi: < 24 saat",
+    OFFICIAL_SUPPORT_EMAIL,
+    OFFICIAL_SUPPORT_RESPONSE_NOTE,
   ]),
   phoneBlock: makeBlock("Telefon", [
-    "+49 (0) 30 234 567 89",
-    "WhatsApp ve Signal aynı numaradan kullanılabilir",
+    OFFICIAL_PHONE,
+    OFFICIAL_PHONE_NOTE,
   ]),
   formEnabled: true,
   successMessage:

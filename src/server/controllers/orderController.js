@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Order from "../models/Order.js";
+import User from "../models/User.js";
 import UserDetails from "../models/UserDetails.js";
 import Product from "../models/Product.js";
 import SetModel from "../models/Set.js";
@@ -31,6 +32,10 @@ import {
   syncPrintJobsForOrder,
 } from "../services/printJobService.js";
 import { maybeCreateLowStockNotification } from "../services/adminNotificationService.js";
+import {
+  sendOrderAdminEmail,
+  sendOrderCustomerEmail,
+} from "../services/emailService.js";
 import {
   buildOrderCouponContext,
   buildOrderStockUsageEntries,
@@ -234,6 +239,13 @@ function shapeOrder(doc, printJob = null) {
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
+}
+
+function shapeCustomerOrder(doc) {
+  const shaped = shapeOrder(doc, null);
+  if (!shaped) return shaped;
+  delete shaped.printJob;
+  return shaped;
 }
 
 async function resolveAddressSnapshot({
@@ -1485,6 +1497,18 @@ export async function createOrder(req, res) {
       })
     );
 
+    if (order && order.status !== "cancelled" && order.payment?.status !== "failed") {
+      const customer = await User.findById(userId)
+        .select("firstName lastName email phone")
+        .lean()
+        .catch(() => null);
+
+      await Promise.allSettled([
+        sendOrderCustomerEmail({ order, user: customer }),
+        sendOrderAdminEmail({ order, user: customer }),
+      ]);
+    }
+
     res.status(201).json({ order: shapeOrder(order) });
   } catch (err) {
     if (err.status) {
@@ -1707,13 +1731,8 @@ async function ensureProductLoaded(map, id) {
 export async function myOrders(req, res) {
   try {
     const list = await Order.find({ user: req.userId }).sort({ createdAt: -1 });
-    const printJobMap = await getLatestPrintJobMap(
-      list.map((order) => order._id?.toString?.())
-    );
     res.json({
-      orders: list.map((order) =>
-        shapeOrder(order, printJobMap.get(order._id?.toString?.()))
-      ),
+      orders: list.map((order) => shapeCustomerOrder(order)),
     });
   } catch (err) {
     res.status(500).json({ message: err.message || "Siparişler alınamadı" });
@@ -1734,8 +1753,7 @@ export async function getOrder(req, res) {
       });
     }
     if (!o) return res.status(404).json({ message: "Sipariş bulunamadı" });
-    const printJob = await findLatestPrintJobForOrder(o._id);
-    res.json({ order: shapeOrder(o, printJob) });
+    res.json({ order: shapeCustomerOrder(o) });
   } catch (err) {
     res.status(500).json({ message: err.message || "Siparişler alınamadı" });
   }

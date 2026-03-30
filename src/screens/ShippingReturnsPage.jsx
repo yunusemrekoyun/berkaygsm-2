@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import BreadCrumb from "../components/shop/BreadCrumb";
 import { shippingReturnsApi } from "../api/shippingReturns";
 import { useStorefrontLang } from "../context/LangContext.jsx";
+import { OFFICIAL_SUPPORT_EMAIL } from "../config/siteContact.js";
+import { replaceLegacyContactText } from "../utils/officialContactText.js";
 import { sanitizeRichHtml } from "../utils/sanitizeHtml.js";
 
 export default function ShippingReturnsPage() {
@@ -136,8 +138,10 @@ export default function ShippingReturnsPage() {
                     // Yardım kutusu HTML destekli geliyor (admin sayfasında yazılıyor)
                     dangerouslySetInnerHTML={{
                       __html:
-                        sanitizeRichHtml(page?.sidebar?.helpBoxHtml || "") ||
-                        `Desteğe mi ihtiyacınız var? <a href="mailto:returns@berkaygsm.com" class="text-accent underline">returns@berkaygsm.com</a> adresinden bize ulaşabilirsiniz.`,
+                        sanitizeRichHtml(
+                          replaceLegacyContactText(page?.sidebar?.helpBoxHtml || "")
+                        ) ||
+                        `Desteğe mi ihtiyacınız var? <a href="mailto:${OFFICIAL_SUPPORT_EMAIL}" class="text-accent underline">${OFFICIAL_SUPPORT_EMAIL}</a> adresinden bize ulaşabilirsiniz.`,
                     }}
                   />
                 </div>
