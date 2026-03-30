@@ -28,6 +28,7 @@
     "lucide-react": "^0.543.0",
     "mongoose": "^8.6.3",
     "next": "^16.1.7",
+    "nodemailer": "^8.0.4",
     "pino": "^9.5.0",
     "pino-http": "^9.0.0",
     "react": "^18.2.0",

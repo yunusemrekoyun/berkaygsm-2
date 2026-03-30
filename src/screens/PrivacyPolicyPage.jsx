@@ -3,6 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import BreadCrumb from "../components/shop/BreadCrumb";
 import { privacyApi } from "../api/privacy";
 import { useStorefrontLang } from "../context/LangContext.jsx";
+import {
+  OFFICIAL_ADDRESS,
+  OFFICIAL_SUPPORT_EMAIL,
+} from "../config/siteContact.js";
+import { replaceLegacyContactText } from "../utils/officialContactText.js";
 import { sanitizeRichHtml } from "../utils/sanitizeHtml.js";
 
 export default function PrivacyPolicyPage() {
@@ -137,7 +142,9 @@ export default function PrivacyPolicyPage() {
           ) : data?.footerHtml ? (
             <footer className="glass-surface-soft mt-12 rounded-2xl border border-border bg-contact-bg/70 p-6 text-sm text-secondary">
               <div
-                dangerouslySetInnerHTML={{ __html: safeHtml(data.footerHtml) }}
+                dangerouslySetInnerHTML={{
+                  __html: safeHtml(replaceLegacyContactText(data.footerHtml)),
+                }}
               />
             </footer>
           ) : (
@@ -145,13 +152,13 @@ export default function PrivacyPolicyPage() {
               Bu politika hakkında sorularınız varsa veya veri koruma
               haklarınızı kullanmak isterseniz{" "}
               <a
-                href="mailto:privacy@berkaygsm.com"
+                href={`mailto:${OFFICIAL_SUPPORT_EMAIL}`}
                 className="text-accent underline"
               >
-                privacy@berkaygsm.com
+                {OFFICIAL_SUPPORT_EMAIL}
               </a>{" "}
-              adresine e‑posta gönderebilir ya da CepLife ekibine,
-              Kurfürstendamm 45, 10719 Berlin, Almanya adresine yazabilirsiniz.
+              adresine e‑posta gönderebilir ya da CepLife ekibine,{" "}
+              {OFFICIAL_ADDRESS} adresine yazabilirsiniz.
             </footer>
           )}
         </div>

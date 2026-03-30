@@ -38,7 +38,7 @@ describe("buildOrderPrintModel", () => {
     ).toContain("Model: iPhone 15 Pro Max");
   });
 
-  it("uses the printable note in the label model", () => {
+  it("keeps long notes fully in the label model and grows the sheet height", () => {
     const model = buildOrderPrintModel({
       orderNumber: "ORD-1",
       createdAt: "2026-03-19T12:00:00.000Z",
@@ -55,12 +55,19 @@ describe("buildOrderPrintModel", () => {
       subtotal: 0,
       shipping: 0,
       total: 0,
-      note:
-        "Bu not uzun tutuldugu icin yazdirma alanina sigacak sekilde sinirlanmalidir.",
+      note: [
+        "Kapida arayin ve guvenlige teslim etmeyin.",
+        "Paketin uzerine dikkat kirilabilir yazin.",
+        "Musait olmazsam 10 dakika sonra tekrar deneyin.",
+        "Kargo gelmeden once telefonla haber verin.",
+        "Site girisindeki guvenlik noktasina teslim etmeyin.",
+      ].join(" "),
     });
 
     expect(model.note).toBeTruthy();
-    expect(model.note.split("\n").length).toBeLessThanOrEqual(4);
+    expect(model.note).toContain("teslim etmeyin");
+    expect(model.note.endsWith("etmeyin.")).toBe(true);
+    expect(model.layout.dimensions.heightMm).toBeGreaterThan(150);
   });
 
   it("prefers base subtotal when discount adjustments are rendered", () => {

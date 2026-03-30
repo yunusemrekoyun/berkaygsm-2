@@ -1,4 +1,5 @@
 import PrivacyPolicy from "../models/PrivacyPolicy.js";
+import { OFFICIAL_SUPPORT_EMAIL } from "../../config/siteContact.js";
 import {
   DEFAULT_LANG,
   normalizeLang,
@@ -121,7 +122,7 @@ export async function getPublicPrivacy(req, res) {
           heroIntro: "",
           sections: [],
           footerHtml:
-            'Sorularınız için <a href="mailto:privacy@berkaygsm.com" class="text-accent underline">privacy@berkaygsm.com</a> adresine e‑posta gönderebilirsiniz.',
+            `Sorularınız için <a href="mailto:${OFFICIAL_SUPPORT_EMAIL}" class="text-accent underline">${OFFICIAL_SUPPORT_EMAIL}</a> adresine e‑posta gönderebilirsiniz.`,
           isActive: doc ? false : true,
           seo: { title: "", description: "", keywords: [] },
         },

@@ -1,6 +1,14 @@
 import { useCallback } from "react";
 import { DEFAULT_LANG } from "../constants/lang.js";
 import { useStorefrontLang } from "../context/LangContext.jsx";
+import {
+  OFFICIAL_ADDRESS,
+  OFFICIAL_ADDRESS_NOTE,
+  OFFICIAL_PHONE,
+  OFFICIAL_PHONE_NOTE,
+  OFFICIAL_SUPPORT_EMAIL,
+  OFFICIAL_SUPPORT_RESPONSE_NOTE,
+} from "../config/siteContact.js";
 
 const STATIC_CONTENT = {
   en: {
@@ -287,15 +295,9 @@ const STATIC_CONTENT = {
           "Pazar ve resmi tatillerde kapalı",
         ],
         emailTitle: "Müşteri Servisi",
-        emailLines: [
-          "support@evimstil.com",
-          "Ortalama yanıt süresi: < 24 saat",
-        ],
+        emailLines: [OFFICIAL_SUPPORT_EMAIL, OFFICIAL_SUPPORT_RESPONSE_NOTE],
         phoneTitle: "Telefon",
-        phoneLines: [
-          "+90 555 123 4567",
-          "WhatsApp üzerinden de ulaşabilirsiniz.",
-        ],
+        phoneLines: [OFFICIAL_PHONE, OFFICIAL_PHONE_NOTE],
       },
       form: {
         title: "Send us a message",
@@ -626,6 +628,8 @@ const STATIC_CONTENT = {
         privacy: "Gizlilik Politikası",
         terms: "Kullanım Koşulları",
         cookiePreferences: "Çerez Tercihleri",
+        email: OFFICIAL_SUPPORT_EMAIL,
+        phone: OFFICIAL_PHONE,
       },
       copyright: "© {year} CepLife. Tüm hakları saklıdır.",
     },
@@ -763,7 +767,7 @@ const STATIC_CONTENT = {
       description:
         "Mağazamızda kılıf, şarj ve aksesuarları deneyin. Ekibimiz cihazınıza en uygun modeli bulmanızda yardımcı olur.",
       storeName: "CepLife",
-      address: "Bağdat Caddesi 123, Kadıköy / İstanbul",
+      address: OFFICIAL_ADDRESS,
       hoursLabel: "Çalışma Saatleri:",
       hours: [
         { k: "Pzt - Cmt", v: "10:00 - 20:00" },
@@ -883,10 +887,7 @@ const STATIC_CONTENT = {
       },
       defaultBlocks: {
         addressTitle: "Mağazamızı ziyaret edin",
-        addressLines: [
-          "Bağdat Caddesi 45, Kadıköy / İstanbul",
-          "Mağaza içi deneyim ve mağazadan teslim (randevu önerilir)",
-        ],
+        addressLines: [OFFICIAL_ADDRESS, OFFICIAL_ADDRESS_NOTE],
         hoursTitle: "Çalışma saatleri",
         hoursLines: [
           "Pzt – Cum: 09:00 – 18:00",
@@ -894,15 +895,9 @@ const STATIC_CONTENT = {
           "Pazar ve resmi tatiller: kapalı",
         ],
         emailTitle: "Müşteri hizmetleri",
-        emailLines: [
-          "destek@berkaygsm.com",
-          "Ortalama dönüş süresi: < 24 saat",
-        ],
+        emailLines: [OFFICIAL_SUPPORT_EMAIL, OFFICIAL_SUPPORT_RESPONSE_NOTE],
         phoneTitle: "Telefon",
-        phoneLines: [
-          "+90 (212) 000 00 00",
-          "Aynı numaradan WhatsApp ve Signal",
-        ],
+        phoneLines: [OFFICIAL_PHONE, OFFICIAL_PHONE_NOTE],
       },
       form: {
         title: "Bize yazın",
@@ -1452,10 +1447,7 @@ const STATIC_CONTENT = {
       },
       defaultBlocks: {
         addressTitle: "Besuchen Sie unser europäisches Studio",
-        addressLines: [
-          "Kurfürstendamm 45, 10719 Berlin",
-          "Showroom & Click-and-Collect (Termin empfohlen)",
-        ],
+        addressLines: [OFFICIAL_ADDRESS, OFFICIAL_ADDRESS_NOTE],
         hoursTitle: "Öffnungszeiten",
         hoursLines: [
           "Mo – Fr: 09:00 – 18:00",
@@ -1463,15 +1455,9 @@ const STATIC_CONTENT = {
           "So & Feiertage: geschlossen",
         ],
         emailTitle: "Kundendienst",
-        emailLines: [
-          "support@evimstil.com",
-          "Durchschnittliche Antwortzeit: < 24 h",
-        ],
+        emailLines: [OFFICIAL_SUPPORT_EMAIL, OFFICIAL_SUPPORT_RESPONSE_NOTE],
         phoneTitle: "Telefon",
-        phoneLines: [
-          "+49 (0) 30 234 567 89",
-          "WhatsApp & Signal unter derselben Nummer",
-        ],
+        phoneLines: [OFFICIAL_PHONE, OFFICIAL_PHONE_NOTE],
       },
       form: {
         title: "Schreiben Sie uns",

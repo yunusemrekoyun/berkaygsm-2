@@ -541,7 +541,7 @@ function buildLayoutForProfile(input, profile) {
   const noteWrapped = wrapPrintableText(
     input?.note || "",
     profile.noteMaxChars,
-    profile.noteMaxLines
+    Number.MAX_SAFE_INTEGER
   );
 
   const itemLayout = fitItemsIntoProfile(input?.items || [], profile);

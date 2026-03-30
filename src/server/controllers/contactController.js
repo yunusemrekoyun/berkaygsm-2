@@ -2,9 +2,18 @@ import ContactConfig from "../models/ContactConfig.js";
 import ContactMessage from "../models/ContactMessage.js";
 import { ZodError } from "zod";
 import {
+  OFFICIAL_ADDRESS,
+  OFFICIAL_ADDRESS_NOTE,
+  OFFICIAL_PHONE,
+  OFFICIAL_PHONE_NOTE,
+  OFFICIAL_SUPPORT_EMAIL,
+  OFFICIAL_SUPPORT_RESPONSE_NOTE,
+} from "../../config/siteContact.js";
+import {
   uploadBufferToCloudinary,
   deleteFromCloudinary,
 } from "../utils/cloudinaryUpload.js";
+import { sendContactMessageAdminEmail } from "../services/emailService.js";
 import {
   isTurnstileConfigured,
   verifyTurnstileToken,
@@ -52,6 +61,18 @@ const normalizeLines = (val) => {
   return [];
 };
 
+const LEGACY_EMAILS = new Set([
+  "destek@berkaygsm.com",
+  "support@evimstil.com",
+  "hello@berkaygsm.com",
+]);
+const LEGACY_PHONES = new Set(["+49 (0) 30 234 567 89", "+90 (212) 000 00 00"]);
+const LEGACY_ADDRESSES = new Set([
+  "Kurfürstendamm 45, 10719 Berlin",
+  "Bağdat Caddesi 45, Kadıköy / İstanbul",
+  "Bağdat Caddesi 123, Kadıköy / İstanbul",
+]);
+
 async function getOrCreateConfig() {
   let cfg = await ContactConfig.findOne({ key: "default" });
   if (!cfg) {
@@ -59,31 +80,73 @@ async function getOrCreateConfig() {
       key: "default",
       addressBlock: {
         title: "Mağazamızı ziyaret edin",
-        lines: [
-          "Kurfürstendamm 45, 10719 Berlin",
-          "Showroom & mağazadan teslim (randevu önerilir)",
-        ],
+        lines: [OFFICIAL_ADDRESS, OFFICIAL_ADDRESS_NOTE],
       },
       hoursBlock: {
-        title: "Çalışma saatleri (CET)",
+        title: "Çalışma saatleri",
         lines: [
           "Pzt – Cum: 09:00 – 18:00",
-          "Cmt: 10:00 – 16:00 (showroom)",
+          "Cmt: 10:00 – 16:00",
           "Paz ve resmi tatiller: kapalı",
         ],
       },
       emailBlock: {
         title: "Müşteri hizmetleri",
-        lines: ["destek@berkaygsm.com", "Ortalama dönüş süresi: < 24 saat"],
+        lines: [OFFICIAL_SUPPORT_EMAIL, OFFICIAL_SUPPORT_RESPONSE_NOTE],
       },
       phoneBlock: {
         title: "Telefon",
-        lines: [
-          "+49 (0) 30 234 567 89",
-          "WhatsApp & Signal aynı numaradan",
-        ],
+        lines: [OFFICIAL_PHONE, OFFICIAL_PHONE_NOTE],
       },
     });
+  } else {
+    let dirty = false;
+
+    const nextAddressLines = (cfg.addressBlock?.lines || []).map((line) => {
+      if (!LEGACY_ADDRESSES.has(String(line || "").trim())) return line;
+      dirty = true;
+      return OFFICIAL_ADDRESS;
+    });
+    const nextEmailLines = (cfg.emailBlock?.lines || []).map((line, index) => {
+      const trimmed = String(line || "").trim();
+      if (LEGACY_EMAILS.has(trimmed)) {
+        dirty = true;
+        return OFFICIAL_SUPPORT_EMAIL;
+      }
+      if (index === 1 && /yanıt süresi|dönüş süresi/i.test(trimmed)) {
+        dirty = true;
+        return OFFICIAL_SUPPORT_RESPONSE_NOTE;
+      }
+      return line;
+    });
+    const nextPhoneLines = (cfg.phoneBlock?.lines || []).map((line, index) => {
+      const trimmed = String(line || "").trim();
+      if (LEGACY_PHONES.has(trimmed)) {
+        dirty = true;
+        return OFFICIAL_PHONE;
+      }
+      if (index === 1 && /whatsapp|signal/i.test(trimmed)) {
+        dirty = true;
+        return OFFICIAL_PHONE_NOTE;
+      }
+      return line;
+    });
+
+    if (dirty) {
+      cfg.addressBlock = {
+        ...(cfg.addressBlock?.toObject?.() || cfg.addressBlock || {}),
+        lines: nextAddressLines,
+      };
+      cfg.emailBlock = {
+        ...(cfg.emailBlock?.toObject?.() || cfg.emailBlock || {}),
+        lines: nextEmailLines,
+      };
+      cfg.phoneBlock = {
+        ...(cfg.phoneBlock?.toObject?.() || cfg.phoneBlock || {}),
+        lines: nextPhoneLines,
+      };
+      await cfg.save();
+    }
   }
   return cfg;
 }
@@ -355,8 +418,7 @@ export async function submitMessage(req, res) {
       userAgent: req.headers["user-agent"] || "",
     });
 
-    // Burada (opsiyonel) e-posta bildirimi tetikleyebilirsin.
-    // await sendMail(...)
+    await Promise.allSettled([sendContactMessageAdminEmail({ message: doc })]);
 
     res.status(201).json({ ok: true, id: doc._id.toString() });
   } catch (err) {
