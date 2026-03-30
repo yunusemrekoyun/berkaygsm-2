@@ -4,126 +4,6 @@ import {
   wrapPrintableTextLines,
 } from "../../utils/orderPrintLayout.js";
 const LOGO_SRC = "/ceplife-logo-cropped.png";
-const SHEET_WIDTH_MM = 100;
-const MIN_SHEET_HEIGHT_MM = 150;
-const PX_PER_MM = 3.78;
-
-function mmToNumber(value, fallback = 0) {
-  const parsed = Number.parseFloat(String(value ?? "").replace("mm", ""));
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function lineBlockHeight(fontSizeMm, lineHeight, lines = 1) {
-  const safeLines = Math.max(1, Number(lines || 0));
-  return fontSizeMm * lineHeight * safeLines;
-}
-
-function estimateSheetDimensions(model) {
-  const html = model?.layout?.profile?.html || {};
-  const adjustments = Array.isArray(model?.adjustments) ? model.adjustments : [];
-  const items = Array.isArray(model?.items) ? model.items : [];
-  const customerLines = Math.max(1, model?.customerNameLines?.length || 0);
-  const addressLines = Math.max(1, model?.addressLineParts?.length || 0);
-  const noteLines = Math.max(0, model?.noteLines?.length || 0);
-
-  const sheetPadding = mmToNumber(html.sheetPadding, 4);
-  const sheetGap = mmToNumber(html.sheetGap, 2);
-  const sectionPaddingY = mmToNumber(html.sectionPaddingY, 2);
-  const sectionTitleFontSize = mmToNumber(html.sectionTitleFontSize, 2.1);
-  const sectionTitleMarginBottom = mmToNumber(
-    html.sectionTitleMarginBottom,
-    1
-  );
-  const customerNameFontSize = mmToNumber(html.customerNameFontSize, 3.1);
-  const customerNameGap = mmToNumber(html.customerNameGap, 0.3);
-  const customerPhoneFontSize = mmToNumber(html.customerPhoneFontSize, 2.7);
-  const addressFontSize = mmToNumber(html.addressFontSize, 2.5);
-  const addressLineHeight = Number.parseFloat(html.addressLineHeight || "1.24");
-  const itemsGap = mmToNumber(html.itemsGap, 1.4);
-  const itemRowPaddingBottom = mmToNumber(html.itemRowPaddingBottom, 1.1);
-  const itemNameFontSize = mmToNumber(html.itemNameFontSize, 2.65);
-  const itemNameLineHeight = Number.parseFloat(html.itemNameLineHeight || "1.18");
-  const itemMetaGap = mmToNumber(html.itemMetaGap, 0.3);
-  const itemSubFontSize = mmToNumber(html.itemSubFontSize, 2.18);
-  const itemSubLineHeight = Number.parseFloat(html.itemSubLineHeight || "1.16");
-  const totalsGap = mmToNumber(html.totalsGap, 0.65);
-  const totalFontSize = mmToNumber(html.totalFontSize, 2.45);
-  const totalStrongFontSize = mmToNumber(html.totalStrongFontSize, 2.9);
-  const noteFontSize = mmToNumber(html.noteFontSize, 2.3);
-  const noteLineHeight = Number.parseFloat(html.noteLineHeight || "1.18");
-
-  const sectionBaseHeight =
-    sectionPaddingY * 2 +
-    lineBlockHeight(sectionTitleFontSize, 1.35, 1) +
-    sectionTitleMarginBottom;
-
-  const headerHeightMm = 23;
-  const customerHeight =
-    sectionBaseHeight +
-    lineBlockHeight(customerNameFontSize, 1.15, customerLines) +
-    Math.max(0, customerLines - 1) * customerNameGap +
-    lineBlockHeight(customerPhoneFontSize, 1.2, 1) +
-    1.4;
-  const addressHeight =
-    sectionBaseHeight +
-    lineBlockHeight(addressFontSize, addressLineHeight, addressLines) +
-    1.2;
-  const itemsHeight =
-    sectionBaseHeight +
-    items.reduce((sum, item, index) => {
-      const nameLines = Math.max(1, item?.nameLines?.length || 0);
-      const metaLines = Math.max(0, item?.metaLines?.length || 0);
-      const metaHeight = metaLines
-        ? itemMetaGap +
-          lineBlockHeight(itemSubFontSize, itemSubLineHeight, metaLines)
-        : 0;
-      const spacer = index < items.length - 1 ? itemsGap + itemRowPaddingBottom : 0;
-      return (
-        sum +
-        lineBlockHeight(itemNameFontSize, itemNameLineHeight, nameLines) +
-        metaHeight +
-        spacer
-      );
-    }, 0) +
-    1.4;
-
-  const regularTotalRows = 2 + adjustments.length;
-  const totalRows = 1;
-  const totalsHeight =
-    sectionBaseHeight +
-    lineBlockHeight(totalFontSize, 1.25, regularTotalRows) +
-    lineBlockHeight(totalStrongFontSize, 1.28, totalRows) +
-    Math.max(0, regularTotalRows + totalRows - 1) * totalsGap +
-    1.6;
-  const noteHeight =
-    noteLines > 0
-      ? sectionBaseHeight +
-        lineBlockHeight(noteFontSize, noteLineHeight, noteLines) +
-        1.4
-      : 0;
-
-  const blockCount = 5 + (noteLines > 0 ? 1 : 0);
-  const totalHeight =
-    sheetPadding * 2 +
-    headerHeightMm +
-    customerHeight +
-    addressHeight +
-    itemsHeight +
-    totalsHeight +
-    noteHeight +
-    Math.max(0, blockCount - 1) * sheetGap +
-    4;
-
-  const heightMm = Math.max(MIN_SHEET_HEIGHT_MM, Math.ceil(totalHeight));
-  return {
-    widthMm: SHEET_WIDTH_MM,
-    heightMm,
-    heightPx: Math.max(
-      Math.ceil(MIN_SHEET_HEIGHT_MM * PX_PER_MM),
-      Math.ceil(heightMm * PX_PER_MM)
-    ),
-  };
-}
 
 export function formatOrderMoney(value) {
   const amount = Number(value || 0);
@@ -219,11 +99,18 @@ function buildDensityCssRules() {
 
 export function formatPrintableOrderNote(value, options = {}) {
   const maxChars = Math.max(8, Number(options.maxChars || 36) || 36);
-  const maxLines =
-    options.maxLines === undefined
-      ? Number.MAX_SAFE_INTEGER
-      : Math.max(1, Number(options.maxLines || 1) || 1);
+  const maxLines = Math.max(1, Number(options.maxLines || 4) || 4);
   return wrapPrintableTextLines(value, maxChars, maxLines).join("\n");
+}
+
+function uniquePrintableLines(lines = []) {
+  const seen = new Set();
+  return lines.filter((line) => {
+    const normalized = String(line || "").trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
 }
 
 export function buildOrderPrintModel(order, options = {}) {
@@ -237,7 +124,6 @@ export function buildOrderPrintModel(order, options = {}) {
         name: item.name || `Ürün ${index + 1}`,
         qty: Number(item.qty || 0) || 1,
         qtyLabel: `${Number(item.qty || 0) || 1} adet`,
-        unitPriceLabel: formatOrderMoney(item.unitPrice),
         lineTotalLabel: formatOrderMoney(
           (Number(item.unitPrice || 0) || 0) * (Number(item.qty || 0) || 1)
         ),
@@ -248,11 +134,11 @@ export function buildOrderPrintModel(order, options = {}) {
       }))
     : [];
 
-  const addressLineParts = [
+  const addressLineParts = uniquePrintableLines([
     address.addressLine || "",
     [address.city, address.district].filter(Boolean).join(" / "),
     [address.postalCode, address.country].filter(Boolean).join(" "),
-  ].filter(Boolean);
+  ].filter(Boolean));
   const baseSubtotal = Number(order?.pricing?.baseSubtotal || 0);
   const subtotalForPrint =
     baseSubtotal > 0 ? baseSubtotal : Number(order?.subtotal || 0);
@@ -268,7 +154,7 @@ export function buildOrderPrintModel(order, options = {}) {
   });
   const printableItems = Array.isArray(layout.items) ? layout.items : items;
 
-  const model = {
+  return {
     logoSrc: options.logoSrc || LOGO_SRC,
     orderNumber: order.orderNumber || order.id || "-",
     createdAtLabel: formatOrderDateTime(order.createdAt),
@@ -319,28 +205,12 @@ export function buildOrderPrintModel(order, options = {}) {
       metrics: layout.metrics || {},
     },
   };
-
-  return {
-    ...model,
-    layout: {
-      ...model.layout,
-      dimensions: estimateSheetDimensions(model),
-    },
-  };
 }
 
 export function buildOrderPrintHtml(model, options = {}) {
   if (!model) return "";
   const autoPrint = options.autoPrint !== false;
   const imageMode = options.imageMode === true;
-  const sheetWidthMm = Math.max(
-    SHEET_WIDTH_MM,
-    Number(model?.layout?.dimensions?.widthMm || SHEET_WIDTH_MM)
-  );
-  const sheetHeightMm = Math.max(
-    MIN_SHEET_HEIGHT_MM,
-    Number(model?.layout?.dimensions?.heightMm || MIN_SHEET_HEIGHT_MM)
-  );
 
   const itemsHtml = model.items
     .map((item) => {
@@ -418,7 +288,7 @@ export function buildOrderPrintHtml(model, options = {}) {
       <title>Sipariş Etiketi ${escapeHtml(model.orderNumber)}</title>
       <style>
         @page {
-          size: ${sheetWidthMm}mm ${sheetHeightMm}mm;
+          size: 100mm 150mm;
           margin: 0;
         }
         * {
@@ -429,21 +299,23 @@ export function buildOrderPrintHtml(model, options = {}) {
           padding: 0;
           font-family: Arial, Helvetica, sans-serif;
           color: #221c17;
-          width: ${sheetWidthMm}mm;
-          min-height: ${sheetHeightMm}mm;
+          width: 100mm;
+          height: 150mm;
+          overflow: hidden;
           background: ${imageMode ? "#ffffff" : "#f3efe7"};
         }
         body {
           ${imageMode ? "display: block; padding: 0;" : "min-height: 100vh; display: grid; place-items: center; padding: 8px;"}
         }
         .sheet {
-          width: ${sheetWidthMm}mm;
-          min-height: ${sheetHeightMm}mm;
+          width: 100mm;
+          height: 150mm;
           background: #ffffff;
           padding: var(--sheet-padding);
           display: flex;
           flex-direction: column;
           gap: var(--sheet-gap);
+          overflow: hidden;
         }
         .sheet-content {
           min-height: 0;
@@ -575,12 +447,14 @@ export function buildOrderPrintHtml(model, options = {}) {
           line-height: var(--note-line-height);
           white-space: pre-wrap;
           word-break: break-word;
+          max-height: var(--note-max-height);
+          overflow: hidden;
         }
         ${buildDensityCssRules()}
         @media print {
           html, body {
-            width: ${sheetWidthMm}mm;
-            min-height: ${sheetHeightMm}mm;
+            width: 100mm;
+            height: 150mm;
           }
           body {
             display: block;
@@ -589,8 +463,8 @@ export function buildOrderPrintHtml(model, options = {}) {
             background: #fff;
           }
           .sheet {
-            width: ${sheetWidthMm}mm;
-            min-height: ${sheetHeightMm}mm;
+            width: 100mm;
+            height: 150mm;
             page-break-after: avoid;
           }
         }

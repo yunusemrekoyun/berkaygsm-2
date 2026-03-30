@@ -38,7 +38,7 @@ describe("buildOrderPrintModel", () => {
     ).toContain("Model: iPhone 15 Pro Max");
   });
 
-  it("keeps long notes fully in the label model and grows the sheet height", () => {
+  it("keeps more of the long note in the single-label model", () => {
     const model = buildOrderPrintModel({
       orderNumber: "ORD-1",
       createdAt: "2026-03-19T12:00:00.000Z",
@@ -66,8 +66,7 @@ describe("buildOrderPrintModel", () => {
 
     expect(model.note).toBeTruthy();
     expect(model.note).toContain("teslim etmeyin");
-    expect(model.note.endsWith("etmeyin.")).toBe(true);
-    expect(model.layout.dimensions.heightMm).toBeGreaterThan(150);
+    expect(model.note.split("\n").length).toBeLessThanOrEqual(6);
   });
 
   it("prefers base subtotal when discount adjustments are rendered", () => {
