@@ -6,7 +6,7 @@ const BASE_PROFILES = [
     addressMaxChars: 34,
     addressMaxLines: 4,
     noteMaxChars: 36,
-    noteMaxLines: 4,
+    noteMaxLines: 6,
     itemNameMaxChars: 28,
     itemNameMaxLines: 2,
     itemMetaMaxChars: 32,
@@ -77,7 +77,7 @@ const BASE_PROFILES = [
     addressMaxChars: 38,
     addressMaxLines: 5,
     noteMaxChars: 40,
-    noteMaxLines: 4,
+    noteMaxLines: 6,
     itemNameMaxChars: 32,
     itemNameMaxLines: 2,
     itemMetaMaxChars: 36,
@@ -148,7 +148,7 @@ const BASE_PROFILES = [
     addressMaxChars: 42,
     addressMaxLines: 5,
     noteMaxChars: 44,
-    noteMaxLines: 4,
+    noteMaxLines: 5,
     itemNameMaxChars: 36,
     itemNameMaxLines: 2,
     itemMetaMaxChars: 40,
@@ -219,7 +219,7 @@ const BASE_PROFILES = [
     addressMaxChars: 46,
     addressMaxLines: 5,
     noteMaxChars: 48,
-    noteMaxLines: 4,
+    noteMaxLines: 5,
     itemNameMaxChars: 40,
     itemNameMaxLines: 2,
     itemMetaMaxChars: 44,
@@ -412,12 +412,8 @@ function buildItemLayout(item, profile) {
   );
 
   const metaInputs = [];
-  if (item?.qtyLabel || item?.unitPriceLabel) {
-    metaInputs.push(
-      [item?.qtyLabel, item?.unitPriceLabel].filter(Boolean).join(" • ")
-    );
-  }
-  if (item?.variantSummary) metaInputs.push(item.variantSummary);
+  const baseMeta = [item?.qtyLabel, item?.variantSummary].filter(Boolean).join(" • ");
+  if (baseMeta) metaInputs.push(baseMeta);
 
   const rawSelections = Array.isArray(item?.selectionLines)
     ? item.selectionLines.filter(Boolean)
@@ -541,7 +537,7 @@ function buildLayoutForProfile(input, profile) {
   const noteWrapped = wrapPrintableText(
     input?.note || "",
     profile.noteMaxChars,
-    Number.MAX_SAFE_INTEGER
+    profile.noteMaxLines
   );
 
   const itemLayout = fitItemsIntoProfile(input?.items || [], profile);
