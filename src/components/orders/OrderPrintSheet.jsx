@@ -45,58 +45,89 @@ export default function OrderPrintSheet({ model, previewRef = null }) {
       </div>
 
       <div className={`mt-3 ${preview.sectionSpacing || "space-y-2.5"} text-[12px]`}>
-        <section
-          className={`rounded-[18px] border border-stone-200 bg-stone-50/60 ${
-            preview.sectionPadding || "p-3"
+        <div
+          className={`grid gap-2.5 ${
+            model.note ? "grid-cols-[minmax(0,1.32fr)_minmax(0,0.88fr)]" : "grid-cols-1"
           }`}
         >
-          <div
-            className={`font-semibold uppercase tracking-[0.2em] text-stone-400 ${
-              preview.titleText || "text-[10px]"
-            }`}
-          >
-            Alıcı
-          </div>
-          <div
-            className={`mt-1.5 font-bold text-stone-950 ${
-              preview.customerNameText || "text-[15px] leading-5"
-            }`}
-          >
-            {customerNameLines.map((line, index) => (
-              <div key={`${line}-${index}`}>{line}</div>
-            ))}
-          </div>
-          <div
-            className={`mt-1 text-stone-600 ${
-              preview.customerPhoneText || "text-[13px]"
-            }`}
-          >
-            {model.phone}
-          </div>
-        </section>
+          <div className={preview.sectionSpacing || "space-y-2.5"}>
+            <section
+              className={`rounded-[18px] border border-stone-200 bg-stone-50/60 ${
+                preview.sectionPadding || "p-3"
+              }`}
+            >
+              <div
+                className={`font-semibold uppercase tracking-[0.2em] text-stone-400 ${
+                  preview.titleText || "text-[10px]"
+                }`}
+              >
+                Alıcı
+              </div>
+              <div
+                className={`mt-1.5 font-bold text-stone-950 ${
+                  preview.customerNameText || "text-[15px] leading-5"
+                }`}
+              >
+                {customerNameLines.map((line, index) => (
+                  <div key={`${line}-${index}`}>{line}</div>
+                ))}
+              </div>
+              <div
+                className={`mt-1 text-stone-600 ${
+                  preview.customerPhoneText || "text-[13px]"
+                }`}
+              >
+                {model.phone}
+              </div>
+            </section>
 
-        <section
-          className={`rounded-[18px] border border-stone-200 bg-stone-50/60 ${
-            preview.sectionPadding || "p-3"
-          }`}
-        >
-          <div
-            className={`font-semibold uppercase tracking-[0.2em] text-stone-400 ${
-              preview.titleText || "text-[10px]"
-            }`}
-          >
-            Adres
+            <section
+              className={`rounded-[18px] border border-stone-200 bg-stone-50/60 ${
+                preview.sectionPadding || "p-3"
+              }`}
+            >
+              <div
+                className={`font-semibold uppercase tracking-[0.2em] text-stone-400 ${
+                  preview.titleText || "text-[10px]"
+                }`}
+              >
+                Adres
+              </div>
+              <div
+                className={`mt-1.5 space-y-1 text-stone-700 ${
+                  preview.addressText || "text-[12.5px] leading-[1.35]"
+                }`}
+              >
+                {model.addressLineParts.map((line, index) => (
+                  <div key={`${line}-${index}`}>{line}</div>
+                ))}
+              </div>
+            </section>
           </div>
-          <div
-            className={`mt-1.5 space-y-1 text-stone-700 ${
-              preview.addressText || "text-[12.5px] leading-[1.35]"
-            }`}
-          >
-            {model.addressLineParts.map((line, index) => (
-              <div key={`${line}-${index}`}>{line}</div>
-            ))}
-          </div>
-        </section>
+
+          {model.note ? (
+            <section
+              className={`rounded-[18px] border border-stone-200 ${
+                preview.sectionPadding || "p-3"
+              }`}
+            >
+              <div
+                className={`font-semibold uppercase tracking-[0.2em] text-stone-400 ${
+                  preview.titleText || "text-[10px]"
+                }`}
+              >
+                Sipariş Notu
+              </div>
+              <div
+                className={`mt-1.5 whitespace-pre-wrap text-stone-700 ${
+                  preview.noteText || "text-[12px] leading-[1.35]"
+                }`}
+              >
+                {noteLines.join("\n")}
+              </div>
+            </section>
+          ) : null}
+        </div>
 
         <section
           className={`rounded-[18px] border border-stone-200 ${
@@ -200,28 +231,6 @@ export default function OrderPrintSheet({ model, previewRef = null }) {
           </div>
         </section>
 
-        {model.note && (
-          <section
-            className={`rounded-[18px] border border-stone-200 ${
-              preview.sectionPadding || "p-3"
-            }`}
-          >
-            <div
-              className={`font-semibold uppercase tracking-[0.2em] text-stone-400 ${
-                preview.titleText || "text-[10px]"
-              }`}
-            >
-              Sipariş Notu
-            </div>
-            <div
-              className={`mt-1.5 whitespace-pre-wrap text-stone-700 ${
-                preview.noteText || "text-[12px] leading-[1.35]"
-              }`}
-            >
-              {noteLines.join("\n")}
-            </div>
-          </section>
-        )}
       </div>
     </div>
   );
