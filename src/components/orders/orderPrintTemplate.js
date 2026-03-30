@@ -258,12 +258,12 @@ export function buildOrderPrintHtml(model, options = {}) {
     })
     .join("");
 
-  const noteHtml = model.note
+  const notePanelHtml = model.note
     ? `
-      <div class="section">
+      <section class="section note-section">
         <div class="section-title">Sipariş Notu</div>
         <div class="note-box">${escapeHtml(model.note)}</div>
-      </div>
+      </section>
     `
     : "";
 
@@ -360,6 +360,20 @@ export function buildOrderPrintHtml(model, options = {}) {
           border-radius: 2mm;
           padding: var(--section-padding-y) var(--section-padding-x);
           min-height: 0;
+        }
+        .top-grid {
+          display: grid;
+          grid-template-columns: ${model.note ? "minmax(0, 1.32fr) minmax(0, 0.88fr)" : "minmax(0, 1fr)"};
+          gap: var(--sheet-gap);
+          align-items: stretch;
+        }
+        .top-stack {
+          display: grid;
+          gap: var(--sheet-gap);
+          min-width: 0;
+        }
+        .note-section {
+          min-width: 0;
         }
         .section-title {
           font-size: var(--section-title-font-size);
@@ -486,27 +500,32 @@ export function buildOrderPrintHtml(model, options = {}) {
           </div>
         </header>
 
-        <section class="section">
-          <div class="section-title">Alıcı</div>
-          <div class="customer-name">
-            ${(Array.isArray(model.customerNameLines)
-              ? model.customerNameLines
-              : [model.customerName]
-            )
-              .map((line) => `<div>${escapeHtml(line)}</div>`)
-              .join("")}
-          </div>
-          <div class="customer-phone">${escapeHtml(model.phone)}</div>
-        </section>
+        <div class="top-grid">
+          <div class="top-stack">
+            <section class="section">
+              <div class="section-title">Alıcı</div>
+              <div class="customer-name">
+                ${(Array.isArray(model.customerNameLines)
+                  ? model.customerNameLines
+                  : [model.customerName]
+                )
+                  .map((line) => `<div>${escapeHtml(line)}</div>`)
+                  .join("")}
+              </div>
+              <div class="customer-phone">${escapeHtml(model.phone)}</div>
+            </section>
 
-        <section class="section">
-          <div class="section-title">Adres</div>
-          ${model.addressLineParts
-            .map(
-              (line) => `<div class="address-line">${escapeHtml(line)}</div>`
-            )
-            .join("")}
-        </section>
+            <section class="section">
+              <div class="section-title">Adres</div>
+              ${model.addressLineParts
+                .map(
+                  (line) => `<div class="address-line">${escapeHtml(line)}</div>`
+                )
+                .join("")}
+            </section>
+          </div>
+          ${notePanelHtml}
+        </div>
 
         <section class="section">
           <div class="section-title">Ürünler (${escapeHtml(
@@ -533,8 +552,6 @@ export function buildOrderPrintHtml(model, options = {}) {
             </div>
           </div>
         </section>
-
-        ${noteHtml}
         </div>
       </main>
 

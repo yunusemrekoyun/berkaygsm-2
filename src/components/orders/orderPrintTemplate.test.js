@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildOrderPrintHtml,
   buildOrderPrintModel,
   formatVariantSummary,
   formatPrintableOrderNote,
@@ -124,5 +125,43 @@ describe("buildOrderPrintModel", () => {
 
     expect(model.layout.key).not.toBe("regular");
     expect(model.items.some((item) => item.isOverflowSummary)).toBe(true);
+  });
+
+  it("renders the order note in the top grid before product and total sections", () => {
+    const model = buildOrderPrintModel({
+      orderNumber: "ORD-3",
+      createdAt: "2026-03-30T20:00:00.000Z",
+      address: {
+        fullName: "Test Kullanici",
+        phone: "05550000000",
+        addressLine: "Deneme Mahallesi 1",
+        city: "Kutahya",
+        district: "Merkez",
+        postalCode: "43000",
+        country: "Turkiye",
+      },
+      items: [
+        {
+          ref: "item-1",
+          name: "Urun 1",
+          qty: 1,
+          unitPrice: 100,
+        },
+      ],
+      subtotal: 100,
+      shipping: 0,
+      total: 100,
+      note: "Kargo gelince arayin",
+    });
+
+    const html = buildOrderPrintHtml(model, { autoPrint: false });
+    const noteIndex = html.indexOf("Sipariş Notu");
+    const productsIndex = html.indexOf("Ürünler");
+    const totalsIndex = html.indexOf("Toplamlar");
+
+    expect(html).toContain('class="top-grid"');
+    expect(noteIndex).toBeGreaterThan(-1);
+    expect(noteIndex).toBeLessThan(productsIndex);
+    expect(noteIndex).toBeLessThan(totalsIndex);
   });
 });
