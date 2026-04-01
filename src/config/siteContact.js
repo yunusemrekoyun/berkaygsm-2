@@ -1,4 +1,4 @@
-export const OFFICIAL_SUPPORT_EMAIL = "ceplife43@gmail.com";
+export const OFFICIAL_SUPPORT_EMAIL = "info@ceplife.com";
 export const OFFICIAL_PHONE = "+905522174343";
 export const OFFICIAL_ADDRESS =
   "Cemalettin, Adnan Menderes Blv. No:57, 43050 Kütahya Merkez/Kütahya";

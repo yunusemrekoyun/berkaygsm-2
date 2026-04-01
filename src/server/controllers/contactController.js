@@ -62,6 +62,7 @@ const normalizeLines = (val) => {
 };
 
 const LEGACY_EMAILS = new Set([
+  "ceplife43@gmail.com",
   "destek@berkaygsm.com",
   "support@evimstil.com",
   "hello@berkaygsm.com",

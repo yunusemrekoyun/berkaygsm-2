@@ -4,6 +4,7 @@ import {
 } from "../config/siteContact.js";
 
 const REPLACEMENTS = [
+  ["ceplife43@gmail.com", OFFICIAL_SUPPORT_EMAIL],
   ["privacy@berkaygsm.com", OFFICIAL_SUPPORT_EMAIL],
   ["returns@berkaygsm.com", OFFICIAL_SUPPORT_EMAIL],
   ["support@evimstil.com", OFFICIAL_SUPPORT_EMAIL],
