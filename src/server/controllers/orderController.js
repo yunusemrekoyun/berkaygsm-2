@@ -35,6 +35,7 @@ import { maybeCreateLowStockNotification } from "../services/adminNotificationSe
 import {
   sendOrderAdminEmail,
   sendOrderCustomerEmail,
+  sendOrderShippedEmail,
 } from "../services/emailService.js";
 import {
   buildOrderCouponContext,
@@ -1856,7 +1857,7 @@ export async function adminGetOrder(req, res) {
 export async function updateOrderStatus(req, res) {
   try {
     const { status, paymentMethod, paymentTxnId, markPaid } = req.body || {};
-    const updatedOrderId = await runInMongoTransaction(async (session, tx) => {
+    const updateResult = await runInMongoTransaction(async (session, tx) => {
       const order = await findOrderByIdOrNumber(req.params.id, session);
       if (!order) {
         fail(404, "Sipariş bulunamadı");
@@ -1864,6 +1865,7 @@ export async function updateOrderStatus(req, res) {
 
       const rollbackSteps = [];
       const accountingState = deriveOrderAccountingState(order);
+      const previousStatus = String(order.status || "").toLowerCase();
       const nextStatusRaw =
         status !== undefined ? String(status).toLowerCase() : undefined;
 
@@ -2007,14 +2009,30 @@ export async function updateOrderStatus(req, res) {
       }
 
       await syncOrderPrintJobsSafely(order, { session });
-      return order._id?.toString?.() || "";
+      return {
+        orderId: order._id?.toString?.() || "",
+        shouldSendShippedEmail:
+          previousStatus !== "shipped" &&
+          String(order.status || "").toLowerCase() === "shipped",
+      };
     });
 
-    const order = await Order.findById(updatedOrderId).populate(
+    const order = await Order.findById(updateResult?.orderId || "").populate(
       "user",
       "firstName lastName email phone"
     );
     if (!order) return res.status(404).json({ message: "Sipariş bulunamadı" });
+
+    if (updateResult?.shouldSendShippedEmail) {
+      await Promise.allSettled([
+        sendOrderShippedEmail({
+          order,
+          user:
+            order.user && typeof order.user === "object" ? order.user : null,
+        }),
+      ]);
+    }
+
     const printJob = await findLatestPrintJobForOrder(order._id);
     res.json({ order: shapeOrder(order, printJob) });
   } catch (error) {

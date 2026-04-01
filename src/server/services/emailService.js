@@ -98,6 +98,18 @@ function getOrderAddress(order) {
     .join(", ");
 }
 
+function getOrderCustomerEmail(order, user) {
+  return String(user?.email || order?.payment?.payer?.email || "").trim();
+}
+
+function getOrderCustomerName(order, user, fallback = "Müşterimiz") {
+  return String(
+    order?.address?.fullName ||
+      `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
+      fallback
+  ).trim();
+}
+
 function getCampaignRows(order) {
   const rows = [];
   const standardDiscountAmount = Number(order?.pricing?.standardDiscountAmount || 0);
@@ -321,16 +333,10 @@ async function sendEmail({ to, subject, html, text, replyTo }) {
 }
 
 export async function sendOrderCustomerEmail({ order, user }) {
-  const customerEmail = String(
-    user?.email || order?.payment?.payer?.email || ""
-  ).trim();
+  const customerEmail = getOrderCustomerEmail(order, user);
   if (!customerEmail) return { ok: false, skipped: true };
 
-  const customerName = String(
-    order?.address?.fullName ||
-      `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
-      "Müşterimiz"
-  ).trim();
+  const customerName = getOrderCustomerName(order, user);
 
   const orderAddress = getOrderAddress(order);
   const campaignRows = getCampaignRows(order);
@@ -514,16 +520,151 @@ export async function sendOrderCustomerEmail({ order, user }) {
   });
 }
 
+export async function sendOrderShippedEmail({ order, user }) {
+  const customerEmail = getOrderCustomerEmail(order, user);
+  if (!customerEmail) return { ok: false, skipped: true };
+
+  const customerName = getOrderCustomerName(order, user);
+  const orderAddress = getOrderAddress(order);
+  const orderStatus = getOrderStatusLabel(order);
+  const subject = `Siparişiniz kargoya verildi: ${order?.orderNumber || "CepLife"}`;
+
+  const bodyHtml = `
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:22px">
+      <tr>
+        <td style="padding:0 0 16px">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="padding:0 6px 12px 0" width="50%">
+                <div style="padding:18px;border:1px solid ${BRAND_BORDER};border-radius:18px;background:${BRAND_SURFACE}">
+                  <div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em">Sipariş numarası</div>
+                  <div style="margin-top:8px;font-size:18px;font-weight:700;color:${BRAND_COLOR}">${escapeHtml(
+                    order?.orderNumber || ""
+                  )}</div>
+                </div>
+              </td>
+              <td style="padding:0 0 12px 6px" width="50%">
+                <div style="padding:18px;border:1px solid ${BRAND_BORDER};border-radius:18px;background:${BRAND_SURFACE}">
+                  <div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em">Güncel durum</div>
+                  <div style="margin-top:8px;font-size:18px;font-weight:700;color:${BRAND_COLOR}">${escapeHtml(
+                    orderStatus
+                  )}</div>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <div style="padding:22px;border:1px solid ${BRAND_BORDER};border-radius:20px;background:#ffffff">
+            <div style="padding:16px 18px;border-radius:18px;background:${BRAND_SURFACE};border:1px solid ${BRAND_BORDER};font-size:14px;line-height:1.8;color:#334155">
+              Siparişiniz kargoya verildi. Teslimat sürecinde olası sorularınız için bize ulaşabilirsiniz.
+            </div>
+
+            <h2 style="margin:20px 0 14px;font-size:18px;color:${BRAND_COLOR}">Sipariş özeti</h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #e0f2fe;border-radius:16px;overflow:hidden">
+              <thead>
+                <tr style="background:${BRAND_SURFACE}">
+                  <th align="left" style="padding:14px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:#64748b">Ürün</th>
+                  <th align="center" style="padding:14px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:#64748b">Adet</th>
+                  <th align="right" style="padding:14px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:#64748b">Birim</th>
+                  <th align="right" style="padding:14px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:#64748b">Tutar</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${formatOrderItemsHtml(order?.items)}
+              </tbody>
+            </table>
+
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:18px">
+              ${formatPricingTableHtml(order)}
+            </table>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding-top:18px">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="padding:0 6px 12px 0" width="50%">
+                <div style="padding:18px;border:1px solid ${BRAND_BORDER};border-radius:18px;background:${BRAND_SURFACE};height:100%">
+                  <div style="font-size:13px;font-weight:700;color:${BRAND_COLOR};margin-bottom:8px">Teslimat bilgisi</div>
+                  <div style="font-size:14px;line-height:1.7;color:#334155">${escapeHtml(
+                    customerName
+                  )}</div>
+                  <div style="font-size:14px;line-height:1.7;color:#334155">${escapeHtml(
+                    orderAddress || "-"
+                  )}</div>
+                </div>
+              </td>
+              <td style="padding:0 0 12px 6px" width="50%">
+                <div style="padding:18px;border:1px solid ${BRAND_BORDER};border-radius:18px;background:${BRAND_SURFACE};height:100%">
+                  <div style="font-size:13px;font-weight:700;color:${BRAND_COLOR};margin-bottom:8px">İletişim ve destek</div>
+                  <div style="font-size:14px;line-height:1.7;color:#334155">Sipariş tarihi: ${escapeHtml(
+                    formatDate(order?.createdAt || new Date())
+                  )}</div>
+                  <div style="font-size:14px;line-height:1.7;color:#334155">E-posta: <a href="mailto:${escapeHtml(
+                    OFFICIAL_SUPPORT_EMAIL
+                  )}" style="color:${BRAND_COLOR};text-decoration:none">${escapeHtml(
+                    OFFICIAL_SUPPORT_EMAIL
+                  )}</a></div>
+                  <div style="font-size:14px;line-height:1.7;color:#334155">Telefon: ${escapeHtml(
+                    OFFICIAL_PHONE
+                  )}</div>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const html = buildEmailShell({
+    preheader: `${order?.orderNumber || ""} numaralı siparişiniz kargoya verildi.`,
+    heading: "Siparişiniz kargoya verildi",
+    intro:
+      "Siparişiniz sevkiyata çıktı. Teslimat sürecinde ihtiyaç duyarsanız destek ekibimiz size yardımcı olacaktır.",
+    bodyHtml,
+    footerNote:
+      "Bu e-posta otomatik olarak oluşturulmuştur. Siparişinizle ilgili desteğe ihtiyaç duyarsanız bize resmi iletişim kanallarımızdan ulaşabilirsiniz.",
+  });
+
+  const text = [
+    `Merhaba ${customerName},`,
+    "",
+    `${order?.orderNumber || ""} numaralı siparişiniz kargoya verildi.`,
+    `Durum: ${orderStatus}`,
+    `Sipariş tarihi: ${formatDate(order?.createdAt || new Date())}`,
+    "",
+    "Ürünler:",
+    formatOrderItemsText(order?.items),
+    "",
+    "Özet:",
+    `Ara toplam: ${formatMoney(order?.subtotal)}`,
+    `${order?.shippingName || "Kargo"}: ${formatMoney(order?.shipping)}`,
+    `Genel toplam: ${formatMoney(order?.total)}`,
+    "",
+    `Teslimat adresi: ${orderAddress || "-"}`,
+    `Destek: ${OFFICIAL_SUPPORT_EMAIL}`,
+    `Telefon: ${OFFICIAL_PHONE}`,
+  ].join("\n");
+
+  return sendEmail({
+    to: customerEmail,
+    subject,
+    html,
+    text,
+  });
+}
+
 export async function sendOrderAdminEmail({ order, user }) {
   const { adminInbox } = getMailConfig();
   if (!adminInbox) return { ok: false, skipped: true };
 
-  const customerName = String(
-    order?.address?.fullName ||
-      `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
-      "Müşteri"
-  ).trim();
-  const customerEmail = String(user?.email || order?.payment?.payer?.email || "").trim();
+  const customerName = getOrderCustomerName(order, user, "Müşteri");
+  const customerEmail = getOrderCustomerEmail(order, user);
   const customerPhone = String(order?.address?.phone || user?.phone || "").trim();
   const note = String(order?.note || "").trim();
   const couponCode = String(order?.coupon?.code || "").trim();

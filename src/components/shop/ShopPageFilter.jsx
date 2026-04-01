@@ -9,6 +9,7 @@ const isHexColor = (value) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value || "");
 
 export default function ShopPageFilter({
   categoryTree = [],
+  loading = false,
   selectedCategory = "all",
   onCategoryChange,
   colors = [],
@@ -67,9 +68,13 @@ export default function ShopPageFilter({
 
   return (
     <aside
-      className="glass-surface rounded-xl bg-contact-bg p-5 ring-1 ring-border"
+      className="glass-surface min-h-[560px] rounded-xl bg-contact-bg p-5 ring-1 ring-border"
       data-animate="fade-right"
     >
+      {loading ? (
+        <FilterSkeleton title={text.title} />
+      ) : (
+        <>
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-primary">{text.title}</h3>
         <button
@@ -187,7 +192,54 @@ export default function ShopPageFilter({
           </div>
         </section>
       )}
+        </>
+      )}
     </aside>
+  );
+}
+
+function FilterSkeleton({ title = "Filtreler" }) {
+  return (
+    <>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-primary">{title}</h3>
+        <div className="h-4 w-14 animate-pulse rounded bg-surface-light/80" />
+      </div>
+
+      <section className="mt-5">
+        <div className="mb-3 h-4 w-24 animate-pulse rounded bg-surface-light/80" />
+        <div className="space-y-2">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div
+              key={index}
+              className="h-9 animate-pulse rounded-lg bg-surface-light"
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-6">
+        <div className="mb-3 h-4 w-20 animate-pulse rounded bg-surface-light/80" />
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div
+              key={index}
+              className="h-9 w-20 animate-pulse rounded-full bg-surface-light"
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-6">
+        <div className="mb-3 h-4 w-24 animate-pulse rounded bg-surface-light/80" />
+        <div className="h-10 animate-pulse rounded-xl bg-surface-light" />
+        <div className="mt-3 flex justify-between">
+          <div className="h-4 w-12 animate-pulse rounded bg-surface-light/80" />
+          <div className="h-4 w-12 animate-pulse rounded bg-surface-light/80" />
+          <div className="h-4 w-12 animate-pulse rounded bg-surface-light/80" />
+        </div>
+      </section>
+    </>
   );
 }
 

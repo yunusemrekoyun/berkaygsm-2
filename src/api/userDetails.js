@@ -1,5 +1,16 @@
 import { http } from "./client.js";
-import { uploadAsset, appendAsset } from "./uploads.js";
+
+const isFileLike = (value) =>
+  typeof File !== "undefined" &&
+  (value instanceof File || value instanceof Blob);
+
+const resolveFile = (value) => {
+  if (!value) return null;
+  if (isFileLike(value)) return value;
+  if (isFileLike(value.originalFile)) return value.originalFile;
+  if (isFileLike(value.file)) return value.file;
+  return null;
+};
 
 export const userDetailsApi = {
   async getAll() {
@@ -34,9 +45,12 @@ export const userDetailsApi = {
     return data?.details || data || null;
   },
   async uploadAvatar(file) {
+    const avatarFile = resolveFile(file);
+    if (!avatarFile) {
+      throw new Error("Geçerli bir avatar dosyası gerekli");
+    }
     const form = new FormData();
-    const uploaded = await uploadAsset(file, { scope: "avatars" });
-    appendAsset(form, "avatar", uploaded);
+    form.append("avatar", avatarFile);
     const data = await http("/user-details/me/avatar", {
       method: "PATCH",
       body: form,

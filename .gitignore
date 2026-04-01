@@ -18,6 +18,8 @@ node_modules
 # Build çıktıları
 .next
 out
+exports/
+scripts/
 
 # Cache ve geçici dosyalar
 .cache

@@ -208,6 +208,7 @@ import {
   strictLimiter,
   refreshLimiter,
   mediaUploadLimiter,
+  mediaSignatureLimiter,
   contactMessageLimiter,
 } from "./rateLimiters.js";
 
@@ -323,7 +324,12 @@ export const routes = [
     ["media", "resources", ":publicId"],
     [requireAuth, requireRole("admin"), deleteCloudinaryResource]
   ),
-  route("POST", ["media", "signature"], [requireAuth, createUploadSignature]),
+  route("POST", ["media", "signature"], [
+    requireAuth,
+    requireRole("admin"),
+    mediaSignatureLimiter,
+    createUploadSignature,
+  ]),
   route(
     "POST",
     ["media", "upload"],

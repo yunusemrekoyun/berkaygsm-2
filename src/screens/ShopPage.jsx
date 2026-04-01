@@ -1,3 +1,5 @@
+"use client";
+
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
@@ -13,6 +15,7 @@ import { stackedDiscountApi } from "../api/stackedDiscount";
 import { mapCategoryTree } from "../utils/catalog";
 import SetsSetItem from "../components/sets-sets/SetsSetItem";
 import { useStorefrontLang } from "../context/LangContext.jsx";
+import { DEFAULT_LANG } from "../constants/lang.js";
 import {
   useStaticTranslation,
   formatStaticText,
@@ -82,16 +85,61 @@ function getComparablePrice(item) {
   return Number(item?.finalPrice ?? item?.price ?? 0) || 0;
 }
 
-export default function ShopPage() {
+function normalizeInitialData(initialData) {
+  return {
+    categoryTree: Array.isArray(initialData?.categoryTree)
+      ? initialData.categoryTree
+      : [],
+    products: Array.isArray(initialData?.products) ? initialData.products : [],
+  };
+}
+
+export default function ShopPage({
+  initialData = null,
+  initialLang = DEFAULT_LANG,
+}) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { lang } = useStorefrontLang();
+  const normalizedInitialData = useMemo(
+    () => normalizeInitialData(initialData),
+    [initialData]
+  );
+  const hasInitialCategoryTree = normalizedInitialData.categoryTree.length > 0;
+  const hasInitialProducts = normalizedInitialData.products.length > 0;
 
-  const [products, setProducts] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
+  const campaignId = searchParams.get("campaign");
+  const searchQuery = (searchParams.get("q") || "").trim();
+  const saleParam = (searchParams.get("sale") || "").toLowerCase();
+  const isSaleMode = saleParam === "true" || saleParam === "1";
+  const stackedDiscountParam =
+    (searchParams.get("stackedDiscount") || "").toLowerCase();
+  const isStackedDiscountMode =
+    stackedDiscountParam === "true" || stackedDiscountParam === "1";
+  const shouldUseInitialCategoryTree = hasInitialCategoryTree && lang === initialLang;
+  const shouldUseInitialProducts =
+    hasInitialProducts &&
+    lang === initialLang &&
+    !campaignId &&
+    !searchQuery &&
+    !isSaleMode &&
+    !isStackedDiscountMode;
+
+  const [products, setProducts] = useState(() =>
+    shouldUseInitialProducts ? normalizedInitialData.products : []
+  );
+  const [loadingProducts, setLoadingProducts] = useState(
+    () => !shouldUseInitialProducts
+  );
   const [matchingSets, setMatchingSets] = useState([]);
   const [loadingSets, setLoadingSets] = useState(false);
 
-  const [categoryTree, setCategoryTree] = useState([]);
+  const [categoryTree, setCategoryTree] = useState(() =>
+    shouldUseInitialCategoryTree ? normalizedInitialData.categoryTree : []
+  );
+  const [loadingCategoryTree, setLoadingCategoryTree] = useState(
+    () => !shouldUseInitialCategoryTree
+  );
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   const [selectedColor, setSelectedColor] = useState("");
@@ -107,7 +155,6 @@ export default function ShopPage() {
   );
 
   const [error, setError] = useState(null);
-  const { lang } = useStorefrontLang();
   const t = useStaticTranslation();
   const shopCopy = useMemo(() => t("shopPage") || {}, [t]);
   const matchingCopy = shopCopy.matchingSets || {};
@@ -127,13 +174,6 @@ export default function ShopPage() {
     return setsPage.cards || {};
   }, [t]);
 
-  const campaignId = searchParams.get("campaign");
-  const searchQuery = (searchParams.get("q") || "").trim();
-  const saleParam = (searchParams.get("sale") || "").toLowerCase();
-  const isSaleMode = saleParam === "true" || saleParam === "1";
-  const stackedDiscountParam = (searchParams.get("stackedDiscount") || "").toLowerCase();
-  const isStackedDiscountMode =
-    stackedDiscountParam === "true" || stackedDiscountParam === "1";
   const sortParam = (searchParams.get("sort") || "").toLowerCase();
   const selectedSort = VALID_SORT_VALUES.has(sortParam)
     ? sortParam
@@ -220,8 +260,16 @@ export default function ShopPage() {
   useEffect(() => {
     let mounted = true;
     setError(null);
+    if (shouldUseInitialCategoryTree) {
+      setCategoryTree(normalizedInitialData.categoryTree);
+      setLoadingCategoryTree(false);
+      return () => {
+        mounted = false;
+      };
+    }
     if (isStackedDiscountMode && !stackedDiscountContext && !stackedDiscountError) {
       setLoadingProducts(true);
+      setLoadingCategoryTree(true);
       return () => {
         mounted = false;
       };
@@ -231,29 +279,49 @@ export default function ShopPage() {
       setMatchingSets([]);
       setLoadingProducts(false);
       setLoadingSets(false);
+      setLoadingCategoryTree(false);
       return () => {
         mounted = false;
       };
     }
     (async () => {
       try {
+        setLoadingCategoryTree(true);
         const treeRes = await categoryApi.tree(lang);
         if (!mounted) return;
         setCategoryTree(mapCategoryTree(treeRes));
       } catch (err) {
         if (!mounted) return;
         setError((prev) => prev || extractMessage(err));
+      } finally {
+        if (mounted) setLoadingCategoryTree(false);
       }
     })();
     return () => {
       mounted = false;
     };
-  }, [isStackedDiscountMode, lang, stackedDiscountContext, stackedDiscountError]);
+  }, [
+    isStackedDiscountMode,
+    lang,
+    normalizedInitialData.categoryTree,
+    shouldUseInitialCategoryTree,
+    stackedDiscountContext,
+    stackedDiscountError,
+  ]);
 
   // Ürünler + set arama sonuçları
   useEffect(() => {
     let mounted = true;
     setError(null);
+    if (shouldUseInitialProducts) {
+      setProducts(normalizedInitialData.products);
+      setMatchingSets([]);
+      setLoadingSets(false);
+      setLoadingProducts(false);
+      return () => {
+        mounted = false;
+      };
+    }
     (async () => {
       try {
         setLoadingProducts(true);
@@ -372,8 +440,10 @@ export default function ShopPage() {
     isSaleMode,
     isStackedDiscountMode,
     lang,
+    normalizedInitialData.products,
     searchQuery,
     setsCardCopy,
+    shouldUseInitialProducts,
     stackedDiscountContext,
   ]);
 
@@ -982,6 +1052,7 @@ export default function ShopPage() {
         <div className="hidden lg:block lg:w-[320px] lg:flex-shrink-0">
           <ShopPageFilter
             categoryTree={categoryTree}
+            loading={loadingCategoryTree}
             selectedCategory={selectedCategory}
             onCategoryChange={(category) => handleCategoryChange(category.id)}
             colors={availableColors}
@@ -1076,6 +1147,7 @@ export default function ShopPage() {
             products={displayedProducts}
             totalCount={deferredSortedProducts.length}
             loading={loadingProducts}
+            loadingCount={INITIAL_PRODUCT_BATCH}
             emptyLabel={shopProductsEmpty}
             loadMoreLabel={shopCopy.loadMore || "Daha fazla ürün göster"}
             onLoadMore={handleLoadMoreProducts}
@@ -1145,6 +1217,7 @@ export default function ShopPage() {
             <div className="flex-1 overflow-y-auto p-4">
               <ShopPageFilter
                 categoryTree={categoryTree}
+                loading={loadingCategoryTree}
                 selectedCategory={pendingFilterValues.category}
                 onCategoryChange={(category) =>
                   setDraftFilters((prev) => ({
