@@ -1,4 +1,5 @@
 import { Plus_Jakarta_Sans, Source_Serif_4 } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import Providers from "./providers.jsx";
 
@@ -48,6 +49,7 @@ export default function RootLayout({ children }) {
     >
       <body className="font-sans">
         <Providers>{children}</Providers>
+        <SpeedInsights />
       </body>
     </html>
   );
