@@ -88,7 +88,13 @@ export default function AuthSelector() {
     };
   }, [paramsKey]);
 
-  if (!ready) return null;
+  if (!ready) {
+    return isLogged ? (
+      <UserAccountGateSkeleton />
+    ) : (
+      <AuthGateSkeleton initialView={currentView === "login" ? "login" : "register"} />
+    );
+  }
 
   if (isLogged)
     return (
@@ -110,5 +116,60 @@ export default function AuthSelector() {
         navigate("/account", { replace: true });
       }}
     />
+  );
+}
+
+function AuthGateSkeleton({ initialView = "register" }) {
+  const isLogin = initialView === "login";
+
+  return (
+    <section className="store-page bg-surface-light/60">
+      <div className="mx-auto max-w-[1400px] px-4 py-12 sm:px-6">
+        <div className="glass-surface mx-auto max-w-md rounded-2xl border border-border bg-white p-6 shadow-sm">
+          <div className="mx-auto h-10 w-52 animate-pulse rounded bg-surface-light" />
+          <div className="mx-auto mt-3 h-4 w-72 max-w-full animate-pulse rounded bg-surface-light/80" />
+          <div className="mx-auto mt-2 h-4 w-64 max-w-full animate-pulse rounded bg-surface-light/70" />
+
+          <div className="mt-6 space-y-4">
+            {Array.from({ length: isLogin ? 2 : 4 }).map((_, index) => (
+              <div key={index} className="space-y-2">
+                <div className="h-3 w-20 animate-pulse rounded bg-surface-light/70" />
+                <div className="h-12 w-full animate-pulse rounded-xl bg-surface-light" />
+              </div>
+            ))}
+            <div className="h-12 w-full animate-pulse rounded-full bg-surface-light" />
+          </div>
+
+          <div className="mx-auto mt-6 h-4 w-48 animate-pulse rounded bg-surface-light/70" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function UserAccountGateSkeleton() {
+  return (
+    <section className="store-page bg-surface-light/60">
+      <div className="mx-auto max-w-[1400px] px-4 py-10 sm:px-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
+          <aside className="md:col-span-3">
+            <div className="glass-surface rounded-2xl border border-border bg-white p-4 space-y-4">
+              <div className="glass-surface-soft rounded-xl border border-border bg-contact-bg p-4">
+                <div className="mx-auto mb-2 h-16 w-16 animate-pulse rounded-full bg-surface" />
+                <div className="mx-auto h-4 w-2/3 animate-pulse rounded bg-surface" />
+                <div className="mx-auto mt-2 h-3 w-1/2 animate-pulse rounded bg-surface" />
+              </div>
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div key={idx} className="h-9 animate-pulse rounded-lg bg-surface" />
+              ))}
+              <div className="h-10 rounded-full border border-border" />
+            </div>
+          </aside>
+          <div className="md:col-span-9">
+            <div className="glass-surface h-[520px] animate-pulse rounded-2xl border border-border bg-white p-6" />
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

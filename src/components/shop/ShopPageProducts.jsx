@@ -6,6 +6,7 @@ export default function ShopPageProducts({
   products = [],
   totalCount = null,
   loading = false,
+  loadingCount = 12,
   emptyLabel = "Seçili filtrelere uygun ürün bulunamadı.",
   loadMoreLabel = "Daha fazla ürün göster",
   onLoadMore = null,
@@ -43,11 +44,17 @@ export default function ShopPageProducts({
           data-animate="stagger"
           data-animate-children="> *"
         >
-          {Array.from({ length: 6 }).map((_, index) => (
+          {Array.from({ length: loadingCount }).map((_, index) => (
             <div
               key={index}
-              className="h-80 animate-pulse rounded-2xl bg-surface-light"
-            />
+              className="glass-surface overflow-hidden rounded-2xl bg-white ring-1 ring-border shadow-sm"
+            >
+              <div className="aspect-[4/5] w-full animate-pulse bg-surface-light/80" />
+              <div className="space-y-3 p-4">
+                <div className="h-5 w-3/4 animate-pulse rounded bg-surface-light" />
+                <div className="h-5 w-1/2 animate-pulse rounded bg-surface-light/80" />
+              </div>
+            </div>
           ))}
         </div>
       ) : (

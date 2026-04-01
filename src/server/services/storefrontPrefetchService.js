@@ -23,6 +23,8 @@ import {
 } from "../utils/i18n.js";
 
 const HOME_REVALIDATE_SECONDS = 60;
+const SHOP_REVALIDATE_SECONDS = 300;
+const PRODUCT_REVALIDATE_SECONDS = 300;
 const CATEGORY_REVALIDATE_SECONDS = 300;
 
 function toClientSafe(value) {
@@ -172,6 +174,35 @@ function shapeCampaignPreview(campaign, lang = DEFAULT_LANG) {
         : `/shop?campaign=${encodeURIComponent(id)}`,
     isActive: !!campaign.isActive,
     sortOrder: Number(campaign.sortOrder || 0),
+  };
+}
+
+function shapeCatalogProductCard(
+  product,
+  lang = DEFAULT_LANG,
+  discount = null
+) {
+  const localized = resolveTranslation(product, lang);
+  if (product.category && typeof product.category === "object") {
+    localized.category = resolveTranslation(product.category, lang);
+  }
+  const shaped = shapeProduct(localized, { discount });
+  return {
+    id: shaped.id,
+    name: shaped.name,
+    slug: shaped.slug,
+    price: shaped.price,
+    finalPrice: shaped.finalPrice,
+    discount: shaped.discount,
+    hasDiscount: shaped.hasDiscount,
+    images: shaped.images,
+    colors: shaped.colors,
+    sizes: shaped.sizes,
+    showColors: shaped.showColors,
+    showSizes: shaped.showSizes,
+    category: shaped.category,
+    createdAt: shaped.createdAt,
+    updatedAt: shaped.updatedAt,
   };
 }
 
@@ -357,10 +388,123 @@ const getCachedHomePageData = unstable_cache(
   { revalidate: HOME_REVALIDATE_SECONDS }
 );
 
+const getCachedShopPageData = unstable_cache(
+  async (lang = DEFAULT_LANG) => {
+    const normalizedLang = normalizeLang(lang);
+    await connectDB();
+
+    const [categoryTree, products, discounts] = await Promise.all([
+      getCachedCategoryTree(normalizedLang),
+      Product.find({ isActive: true, listedInCatalog: true })
+        .sort({ createdAt: -1 })
+        .limit(200)
+        .populate({
+          path: "category",
+          select: "name slug ancestors image level parent sortOrder translations",
+        })
+        .lean(),
+      fetchActiveDiscounts(),
+    ]);
+
+    const productDiscountMap = computeProductDiscountMap(discounts, products);
+
+    return toClientSafe({
+      categoryTree,
+      products: products.map((product) =>
+        shapeCatalogProductCard(
+          product,
+          normalizedLang,
+          productDiscountMap.get(resolveId(product)) || null
+        )
+      ),
+    });
+  },
+  ["storefront-shop-page"],
+  { revalidate: SHOP_REVALIDATE_SECONDS }
+);
+
+const getCachedProductPageData = unstable_cache(
+  async (slug, lang = DEFAULT_LANG) => {
+    const normalizedLang = normalizeLang(lang);
+    if (!slug) return null;
+
+    await connectDB();
+
+    const product = await Product.findOne({
+      slug,
+      isActive: true,
+      listedInCatalog: true,
+    })
+      .populate({
+        path: "category",
+        select: "name slug ancestors image level parent sortOrder translations",
+      })
+      .lean();
+
+    if (!product) return null;
+
+    await hydrateProductsWithInventory([product]);
+    const discounts = await fetchActiveDiscounts();
+    const productDiscountMap = computeProductDiscountMap(discounts, [product]);
+    const localizedProduct = resolveTranslation(product, normalizedLang);
+    if (product.category && typeof product.category === "object") {
+      localizedProduct.category = resolveTranslation(product.category, normalizedLang);
+    }
+
+    const categoryId = resolveId(product.category);
+    let similar = [];
+
+    if (categoryId) {
+      const relatedProducts = await Product.find({
+        _id: { $ne: product._id },
+        isActive: true,
+        listedInCatalog: true,
+        category: categoryId,
+      })
+        .sort({ createdAt: -1 })
+        .limit(8)
+        .populate({
+          path: "category",
+          select: "name slug ancestors image level parent sortOrder translations",
+        })
+        .lean();
+
+      const relatedDiscountMap = computeProductDiscountMap(discounts, relatedProducts);
+      similar = relatedProducts
+        .map((relatedProduct) =>
+          shapeCatalogProductCard(
+            relatedProduct,
+            normalizedLang,
+            relatedDiscountMap.get(resolveId(relatedProduct)) || null
+          )
+        )
+        .filter((item) => item.slug !== localizedProduct.slug)
+        .slice(0, 4);
+    }
+
+    return toClientSafe({
+      product: shapeProduct(localizedProduct, {
+        discount: productDiscountMap.get(resolveId(product)) || null,
+      }),
+      similar,
+    });
+  },
+  ["storefront-product-page"],
+  { revalidate: PRODUCT_REVALIDATE_SECONDS }
+);
+
 export async function getStorefrontCategoryTree(lang = DEFAULT_LANG) {
   return getCachedCategoryTree(normalizeLang(lang));
 }
 
 export async function getHomePageData(lang = DEFAULT_LANG) {
   return getCachedHomePageData(normalizeLang(lang));
+}
+
+export async function getShopPageData(lang = DEFAULT_LANG) {
+  return getCachedShopPageData(normalizeLang(lang));
+}
+
+export async function getProductPageData(slug, lang = DEFAULT_LANG) {
+  return getCachedProductPageData(String(slug || ""), normalizeLang(lang));
 }

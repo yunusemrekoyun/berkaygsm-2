@@ -94,6 +94,10 @@ const refreshWindow = Number(process.env.RATE_LIMIT_REFRESH_WINDOW_MS || 60 * 10
 const refreshMax = Number(process.env.RATE_LIMIT_REFRESH_MAX || 200);
 const mediaWindow = Number(process.env.RATE_LIMIT_MEDIA_WINDOW_MS || 15 * 60 * 1000);
 const mediaMax = Number(process.env.RATE_LIMIT_MEDIA_MAX || 50);
+const mediaSignatureWindow = Number(
+  process.env.RATE_LIMIT_MEDIA_SIGNATURE_WINDOW_MS || 15 * 60 * 1000
+);
+const mediaSignatureMax = Number(process.env.RATE_LIMIT_MEDIA_SIGNATURE_MAX || 30);
 
 export const generalLimiter = rateLimit({
   windowMs: defaultWindow,
@@ -117,6 +121,13 @@ export const refreshLimiter = rateLimit({
 export const mediaUploadLimiter = rateLimit({
   windowMs: mediaWindow,
   max: mediaMax,
+  message: { message: "Yükleme limiti aşıldı. Lütfen daha sonra tekrar deneyin." },
+  persistent: true,
+});
+
+export const mediaSignatureLimiter = rateLimit({
+  windowMs: mediaSignatureWindow,
+  max: mediaSignatureMax,
   message: { message: "Yükleme limiti aşıldı. Lütfen daha sonra tekrar deneyin." },
   persistent: true,
 });

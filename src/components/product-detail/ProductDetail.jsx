@@ -314,6 +314,7 @@ export default function ProductDetail({ product = {} }) {
             width={1400}
             height={1750}
             sizes="(max-width: 768px) 100vw, 42vw"
+            priority
             className="aspect-[4/5] w-full object-cover"
             draggable="false"
           />

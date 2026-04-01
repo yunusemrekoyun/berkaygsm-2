@@ -1,7 +1,9 @@
-"use client";
-
 import ShopPage from "../../../screens/ShopPage.jsx";
+import { DEFAULT_LANG } from "../../../constants/lang.js";
+import { getShopPageData } from "../../../server/services/storefrontPrefetchService.js";
 
-export default function Page() {
-  return <ShopPage />;
+export default async function Page() {
+  const initialData = await getShopPageData(DEFAULT_LANG);
+
+  return <ShopPage initialData={initialData} initialLang={DEFAULT_LANG} />;
 }

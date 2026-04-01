@@ -1,3 +1,5 @@
+"use client";
+
 /* eslint-disable no-unused-vars */
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -7,14 +9,30 @@ import SimilarProducts from "../components/product-detail/SimilarProducts";
 import { productApi } from "../api/products";
 import { useStorefrontLang } from "../context/LangContext.jsx";
 import { useStaticTranslation } from "../i18n/staticContent.js";
+import { DEFAULT_LANG } from "../constants/lang.js";
 
-export default function ProductDetailPage() {
-  const { slug } = useParams();
-  const [product, setProduct] = useState(null);
-  const [similar, setSimilar] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+export default function ProductDetailPage({
+  initialSlug = "",
+  initialProduct = null,
+  initialSimilar = [],
+  initialError = null,
+  initialLang = DEFAULT_LANG,
+}) {
+  const params = useParams();
+  const slug = params?.slug || initialSlug;
   const { lang } = useStorefrontLang();
+  const canUseInitialPayload =
+    slug === initialSlug && lang === initialLang && (initialProduct || initialError);
+  const [product, setProduct] = useState(() =>
+    canUseInitialPayload ? initialProduct : null
+  );
+  const [similar, setSimilar] = useState(() =>
+    canUseInitialPayload ? initialSimilar : []
+  );
+  const [loading, setLoading] = useState(() => !canUseInitialPayload);
+  const [error, setError] = useState(() =>
+    canUseInitialPayload ? initialError : null
+  );
   const t = useStaticTranslation();
   const breadcrumbCopy = t("breadcrumbs") || {};
   const productPageCopy = t("productDetailPage") || {};
@@ -23,6 +41,15 @@ export default function ProductDetailPage() {
   useEffect(() => {
     if (!slug) return;
     let mounted = true;
+    if (canUseInitialPayload) {
+      setProduct(initialProduct);
+      setSimilar(initialSimilar);
+      setError(initialError);
+      setLoading(false);
+      return () => {
+        mounted = false;
+      };
+    }
     setLoading(true);
     setError(null);
     setSimilar([]);
@@ -32,32 +59,52 @@ export default function ProductDetailPage() {
         const detail = await productApi.get(slug, lang);
         if (!mounted) return;
         setProduct(detail);
+        setLoading(false);
 
         if (detail?.category) {
-          const related = await productApi.list({
-            category: detail.category?.id || detail.category?._id || detail.category,
-            limit: 8,
-            view: "card",
-          }, lang);
-          if (mounted && related?.products) {
-            setSimilar(
-              related.products
-                .filter((item) => item.slug !== detail.slug)
-                .slice(0, 4)
+          try {
+            const related = await productApi.list(
+              {
+                category:
+                  detail.category?.id || detail.category?._id || detail.category,
+                limit: 8,
+                view: "card",
+              },
+              lang
             );
+            if (mounted && related?.products) {
+              setSimilar(
+                related.products
+                  .filter((item) => item.slug !== detail.slug)
+                  .slice(0, 4)
+              );
+            }
+          } catch {
+            if (mounted) setSimilar([]);
           }
         }
       } catch (err) {
-        if (mounted) setError(extractMessage(err));
-      } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setProduct(null);
+          setError(extractMessage(err));
+          setLoading(false);
+        }
       }
     })();
 
     return () => {
       mounted = false;
     };
-  }, [lang, slug]);
+  }, [
+    canUseInitialPayload,
+    initialError,
+    initialLang,
+    initialProduct,
+    initialSimilar,
+    initialSlug,
+    lang,
+    slug,
+  ]);
 
   if (loading) {
     return (

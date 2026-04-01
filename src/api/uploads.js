@@ -42,13 +42,22 @@ async function getUploadSignature({ scope, resourceType }) {
   });
 }
 
+function appendUploadParams(form, params = {}) {
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") return;
+    form.append(key, String(value));
+  });
+}
+
 async function uploadWithSignature(file, signature) {
   const form = new FormData();
   form.append("file", file);
   form.append("api_key", signature.apiKey);
-  form.append("timestamp", String(signature.timestamp));
   form.append("signature", signature.signature);
-  if (signature.folder) form.append("folder", signature.folder);
+  appendUploadParams(form, signature.params || {
+    timestamp: signature.timestamp,
+    folder: signature.folder,
+  });
 
   const response = await fetch(signature.uploadUrl, {
     method: "POST",

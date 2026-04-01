@@ -3,6 +3,11 @@ import { uploadBufferToCloudinary } from "../utils/cloudinaryUpload.js";
 
 configureCloudinary();
 
+const DEFAULT_ALLOWED_FORMATS = {
+  image: ["jpg", "jpeg", "png", "webp", "avif", "gif"],
+  video: ["mp4", "webm", "mov", "m4v"],
+};
+
 const UPLOAD_SCOPES = {
   products: { folder: "products", adminOnly: true, resourceTypes: ["image", "video"] },
   sets: { folder: "sets", adminOnly: true, resourceTypes: ["image", "video"] },
@@ -12,7 +17,12 @@ const UPLOAD_SCOPES = {
   about: { folder: "about", adminOnly: true, resourceTypes: ["image"] },
   contact: { folder: "contact", adminOnly: true, resourceTypes: ["image"] },
   media: { folder: "media", adminOnly: true, resourceTypes: ["image", "video"] },
-  avatars: { folder: "avatars", adminOnly: false, resourceTypes: ["image"] },
+  avatars: {
+    folder: "avatars",
+    adminOnly: false,
+    resourceTypes: ["image"],
+    allowClientSignature: false,
+  },
 };
 
 function resolveScopeConfig(scope) {
@@ -27,11 +37,38 @@ function resolveFolder(scopeConfig) {
   return `${base}${suffix}`;
 }
 
+function resolveAllowedFormats(scopeConfig, resourceType) {
+  const scopedFormats = scopeConfig?.allowedFormats?.[resourceType];
+  const formats =
+    Array.isArray(scopedFormats) && scopedFormats.length
+      ? scopedFormats
+      : DEFAULT_ALLOWED_FORMATS[resourceType] || [];
+  return formats.join(",");
+}
+
+function buildSignedUploadParams({ scopeConfig, resourceType, timestamp, folder }) {
+  const params = {
+    timestamp,
+    folder,
+    overwrite: "false",
+    unique_filename: "true",
+    use_filename: "true",
+  };
+  const allowedFormats = resolveAllowedFormats(scopeConfig, resourceType);
+  if (allowedFormats) {
+    params.allowed_formats = allowedFormats;
+  }
+  return params;
+}
+
 export async function createUploadSignature(req, res) {
   try {
     const scopeConfig = resolveScopeConfig(req.body?.scope);
     if (!scopeConfig) {
       return res.status(400).json({ message: "Geçersiz yükleme kapsamı" });
+    }
+    if (scopeConfig.allowClientSignature === false) {
+      return res.status(403).json({ message: "Bu kapsam istemci imzasını desteklemiyor" });
     }
     if (scopeConfig.adminOnly && req.userRole !== "admin") {
       return res.status(403).json({ message: "Erişim reddedildi" });
@@ -54,8 +91,14 @@ export async function createUploadSignature(req, res) {
 
     const folder = resolveFolder(scopeConfig);
     const timestamp = Math.floor(Date.now() / 1000);
+    const params = buildSignedUploadParams({
+      scopeConfig,
+      resourceType,
+      timestamp,
+      folder,
+    });
     const signature = cloudinary.utils.api_sign_request(
-      { timestamp, folder },
+      params,
       apiSecret
     );
 
@@ -66,6 +109,7 @@ export async function createUploadSignature(req, res) {
       cloudName,
       folder,
       resourceType,
+      params,
       uploadUrl: `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
     });
   } catch (error) {
