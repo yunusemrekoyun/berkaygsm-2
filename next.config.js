@@ -23,7 +23,7 @@ const securityHeaders = (() => {
     "font-src 'self' data:",
     "style-src 'self' 'unsafe-inline'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
-    "connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com https://www.google.com https://maps.googleapis.com https://maps.gstatic.com https://challenges.cloudflare.com",
+    "connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com https://www.google.com https://maps.googleapis.com https://maps.gstatic.com https://challenges.cloudflare.com https://vitals.vercel-insights.com",
     "frame-src 'self' https://www.google.com https://maps.google.com https://challenges.cloudflare.com",
     "worker-src 'self' blob:",
   ].join("; ");
