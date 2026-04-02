@@ -1,6 +1,7 @@
 import { Plus_Jakarta_Sans, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers.jsx";
+import { Analytics } from '@vercel/analytics/next';
 
 const brandSans = Plus_Jakarta_Sans({
   subsets: ["latin", "latin-ext"],
@@ -48,6 +49,7 @@ export default function RootLayout({ children }) {
     >
       <body className="font-sans">
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );
