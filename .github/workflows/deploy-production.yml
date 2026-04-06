@@ -1,0 +1,64 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - pc
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      PROD_HOST: ${{ secrets.PROD_HOST }}
+      PROD_PORT: ${{ secrets.PROD_PORT }}
+      PROD_USER: ${{ secrets.PROD_USER }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PROD_SSH_KEY }}
+
+      - name: Add production host to known_hosts
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          PORT="${PROD_PORT:-22}"
+          ssh-keyscan -p "$PORT" -H "$PROD_HOST" >> ~/.ssh/known_hosts
+
+      - name: Sync repository to VPS
+        run: |
+          set -euo pipefail
+          PORT="${PROD_PORT:-22}"
+          rsync -az --delete \
+            -e "ssh -p $PORT" \
+            --exclude '.git' \
+            --exclude 'node_modules' \
+            --exclude '.next' \
+            --exclude 'exports' \
+            --exclude 'scripts' \
+            ./ "${PROD_USER}@${PROD_HOST}:/root/berkaygsm-clone/"
+
+      - name: Run production deploy
+        run: |
+          set -euo pipefail
+          PORT="${PROD_PORT:-22}"
+          ssh -p "$PORT" "${PROD_USER}@${PROD_HOST}" <<'EOF'
+          set -euo pipefail
+          rsync -a --delete /root/berkaygsm-clone/ /home/ceplife/app-src/
+          chown -R ceplife:ceplife /home/ceplife/app-src
+          cp /home/ceplife/app-src/ops/vps/ecosystem.config.cjs /srv/ceplife/shared/ecosystem.config.cjs
+          chown ceplife:ceplife /srv/ceplife/shared/ecosystem.config.cjs
+          sudo -iu ceplife bash -lc 'cd /home/ceplife/app-src && bash ops/vps/deploy.sh && pm2 save'
+          EOF
