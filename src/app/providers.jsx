@@ -28,7 +28,7 @@ function filterInternalRoutes(event) {
   return event;
 }
 
-export default function Providers({ children }) {
+export default function Providers({ children, enableVercelInsights = false }) {
   useThemeInit();
 
   return (
@@ -37,7 +37,9 @@ export default function Providers({ children }) {
         <ConfirmProvider>
           <Toaster position="top-right" toastOptions={{ duration: 2500 }} />
           {children}
-          <SpeedInsights sampleRate={0.5} beforeSend={filterInternalRoutes} />
+          {enableVercelInsights ? (
+            <SpeedInsights sampleRate={0.5} beforeSend={filterInternalRoutes} />
+          ) : null}
         </ConfirmProvider>
       </CartProvider>
     </LangProvider>

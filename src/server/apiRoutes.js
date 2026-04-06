@@ -189,6 +189,7 @@ import {
 } from "./controllers/adminNotificationController.js";
 
 import { requireAuth } from "./middleware/auth.js";
+import { requireMediaWritesEnabled } from "./middleware/mediaFreeze.js";
 import { requirePrintAgent } from "./middleware/printAgent.js";
 import { requireRole } from "./middleware/roles.js";
 import { validateBody } from "./middleware/validate.js";
@@ -260,7 +261,7 @@ export const routes = [
   route(
     "POST",
     ["products"],
-    [requireAuth, requireRole("admin"), createProduct],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, createProduct],
     {
       body: "form",
       upload: { type: "array", field: "images", limits: { ...imageUploadLimits, maxFiles: 8 } },
@@ -271,7 +272,7 @@ export const routes = [
   route(
     "PUT",
     ["products", ":idOrSlug"],
-    [requireAuth, requireRole("admin"), updateProduct],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, updateProduct],
     {
       body: "form",
       upload: { type: "array", field: "images", limits: { ...imageUploadLimits, maxFiles: 8 } },
@@ -280,7 +281,7 @@ export const routes = [
   route(
     "DELETE",
     ["products", ":idOrSlug"],
-    [requireAuth, requireRole("admin"), deleteProduct]
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, deleteProduct]
   ),
 
   // categories
@@ -295,7 +296,7 @@ export const routes = [
   route(
     "POST",
     ["categories"],
-    [requireAuth, requireRole("admin"), createCategory],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, createCategory],
     {
       body: "form",
       upload: { type: "single", field: "image", limits: imageUploadLimits },
@@ -304,7 +305,7 @@ export const routes = [
   route(
     "PATCH",
     ["categories", ":idOrSlug"],
-    [requireAuth, requireRole("admin"), updateCategory],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, updateCategory],
     {
       body: "form",
       upload: { type: "single", field: "image", limits: imageUploadLimits },
@@ -313,7 +314,7 @@ export const routes = [
   route(
     "DELETE",
     ["categories", ":idOrSlug"],
-    [requireAuth, requireRole("admin"), deleteCategory]
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, deleteCategory]
   ),
 
   // media
@@ -322,18 +323,19 @@ export const routes = [
   route(
     "DELETE",
     ["media", "resources", ":publicId"],
-    [requireAuth, requireRole("admin"), deleteCloudinaryResource]
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, deleteCloudinaryResource]
   ),
   route("POST", ["media", "signature"], [
     requireAuth,
     requireRole("admin"),
+    requireMediaWritesEnabled,
     mediaSignatureLimiter,
     createUploadSignature,
   ]),
   route(
     "POST",
     ["media", "upload"],
-    [requireAuth, requireRole("admin"), mediaUploadLimiter, uploadMediaAsset],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, mediaUploadLimiter, uploadMediaAsset],
     {
       body: "form",
       upload: { type: "single", field: "file", limits: imageVideoUploadLimits },
@@ -345,7 +347,7 @@ export const routes = [
   route(
     "POST",
     ["sets"],
-    [requireAuth, requireRole("admin"), createSet],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, createSet],
     {
       body: "form",
       upload: { type: "array", field: "images", limits: { ...imageUploadLimits, maxFiles: 8 } },
@@ -355,7 +357,7 @@ export const routes = [
   route(
     "PUT",
     ["sets", ":idOrSlug"],
-    [requireAuth, requireRole("admin"), updateSet],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, updateSet],
     {
       body: "form",
       upload: { type: "array", field: "images", limits: { ...imageUploadLimits, maxFiles: 8 } },
@@ -364,7 +366,7 @@ export const routes = [
   route(
     "DELETE",
     ["sets", ":idOrSlug"],
-    [requireAuth, requireRole("admin"), deleteSet]
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, deleteSet]
   ),
 
   // users (admin)
@@ -396,7 +398,7 @@ export const routes = [
   route(
     "PATCH",
     ["user-details", "me", "avatar"],
-    [requireAuth, uploadAvatar],
+    [requireAuth, requireMediaWritesEnabled, uploadAvatar],
     { body: "form", upload: { type: "single", field: "avatar", limits: imageUploadLimits } }
   ),
   route("POST", ["user-details", "addresses"], [requireAuth, createAddress]),
@@ -458,7 +460,7 @@ export const routes = [
   route(
     "POST",
     ["heroes"],
-    [requireAuth, requireRole("admin"), createHero],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, createHero],
     { body: "form", upload: { type: "single", field: "media", limits: heroUploadLimits } }
   ),
   route(
@@ -469,13 +471,13 @@ export const routes = [
   route(
     "PUT",
     ["heroes", ":id"],
-    [requireAuth, requireRole("admin"), updateHero],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, updateHero],
     { body: "form", upload: { type: "single", field: "media", limits: heroUploadLimits } }
   ),
   route(
     "DELETE",
     ["heroes", ":id"],
-    [requireAuth, requireRole("admin"), deleteHero]
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, deleteHero]
   ),
   route(
     "POST",
@@ -521,7 +523,7 @@ export const routes = [
   route(
     "POST",
     ["service-records"],
-    [requireAuth, requireRole("admin"), createServiceRecord],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, createServiceRecord],
     {
       body: "form",
       upload: { type: "array", field: "images", limits: serviceImageUploadLimits },
@@ -530,7 +532,7 @@ export const routes = [
   route(
     "PATCH",
     ["service-records", ":id"],
-    [requireAuth, requireRole("admin"), updateServiceRecord],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, updateServiceRecord],
     {
       body: "form",
       upload: { type: "array", field: "images", limits: serviceImageUploadLimits },
@@ -539,7 +541,7 @@ export const routes = [
   route(
     "DELETE",
     ["service-records", ":id"],
-    [requireAuth, requireRole("admin"), deleteServiceRecord]
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, deleteServiceRecord]
   ),
   route(
     "POST",
@@ -555,19 +557,19 @@ export const routes = [
   route(
     "POST",
     ["campaigns"],
-    [requireAuth, requireRole("admin"), createCampaign],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, createCampaign],
     { body: "form", upload: { type: "single", field: "image", limits: imageUploadLimits } }
   ),
   route(
     "PUT",
     ["campaigns", ":id"],
-    [requireAuth, requireRole("admin"), updateCampaign],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, updateCampaign],
     { body: "form", upload: { type: "single", field: "image", limits: imageUploadLimits } }
   ),
   route(
     "DELETE",
     ["campaigns", ":id"],
-    [requireAuth, requireRole("admin"), deleteCampaign]
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, deleteCampaign]
   ),
   route(
     "POST",
@@ -593,7 +595,7 @@ export const routes = [
   route(
     "PUT",
     ["about"],
-    [requireAuth, requireRole("admin"), updateAbout],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, updateAbout],
     {
       body: "form",
       upload: {
@@ -610,7 +612,7 @@ export const routes = [
   route(
     "PATCH",
     ["about"],
-    [requireAuth, requireRole("admin"), updateAbout],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, updateAbout],
     {
       body: "form",
       upload: {
@@ -631,7 +633,7 @@ export const routes = [
   route(
     "PUT",
     ["contact"],
-    [requireAuth, requireRole("admin"), updateContact],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, updateContact],
     { body: "form", upload: { type: "single", field: "heroImage", limits: imageUploadLimits } }
   ),
   route("GET", ["contact", "messages"], [requireAuth, requireRole("admin"), listMessages]),

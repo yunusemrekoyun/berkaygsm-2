@@ -34,52 +34,17 @@ const resolveResourceType = (file) => {
   return type.startsWith("video/") ? "video" : "image";
 };
 
-async function getUploadSignature({ scope, resourceType }) {
-  return http("/media/signature", {
-    method: "POST",
-    auth: true,
-    body: { scope, resourceType },
-  });
-}
-
-function appendUploadParams(form, params = {}) {
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === "") return;
-    form.append(key, String(value));
-  });
-}
-
-async function uploadWithSignature(file, signature) {
+async function uploadWithApi(file, { scope, resourceType }) {
   const form = new FormData();
   form.append("file", file);
-  form.append("api_key", signature.apiKey);
-  form.append("signature", signature.signature);
-  appendUploadParams(form, signature.params || {
-    timestamp: signature.timestamp,
-    folder: signature.folder,
-  });
-
-  const response = await fetch(signature.uploadUrl, {
+  if (scope) form.append("scope", scope);
+  if (resourceType) form.append("resourceType", resourceType);
+  const result = await http("/media/upload", {
     method: "POST",
+    auth: true,
     body: form,
   });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(text || "Yükleme başarısız");
-  }
-
-  const result = await response.json();
-  return {
-    url: result.secure_url,
-    publicId: result.public_id,
-    width: result.width,
-    height: result.height,
-    format: result.format,
-    bytes: result.bytes,
-    duration: result.duration,
-    resourceType: result.resource_type,
-  };
+  return normalizeAsset(result?.asset || result);
 }
 
 export async function uploadAsset(value, { scope } = {}) {
@@ -87,11 +52,10 @@ export async function uploadAsset(value, { scope } = {}) {
   if (existing) return existing;
   const file = extractFile(value);
   if (!file) return null;
-  const signature = await getUploadSignature({
+  return uploadWithApi(file, {
     scope,
     resourceType: resolveResourceType(file),
   });
-  return uploadWithSignature(file, signature);
 }
 
 export async function uploadAssets(values = [], { scope } = {}) {
@@ -117,9 +81,8 @@ export async function uploadAssets(values = [], { scope } = {}) {
 
   const uploaded = [];
   for (const [resourceType, files] of filesByType.entries()) {
-    const signature = await getUploadSignature({ scope, resourceType });
     const results = await Promise.all(
-      files.map((file) => uploadWithSignature(file, signature))
+      files.map((file) => uploadWithApi(file, { scope, resourceType }))
     );
     uploaded.push(...results);
   }

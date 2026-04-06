@@ -7,7 +7,9 @@ export async function requireAuth(req, res, next) {
   if (!token) return res.status(401).json({ message: "Token bulunamadı" });
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    const secret =
+      process.env.JWT_ACCESS_SECRET || process.env.JWT_REFRESH_SECRET || null;
+    const payload = jwt.verify(token, secret);
 
     const user = await User.findById(payload.sub).select(
       "role isDeleted deletedAlias"

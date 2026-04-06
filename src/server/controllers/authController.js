@@ -14,8 +14,6 @@ import {
   upsertRefreshSession,
 } from "../utils/refreshSessions.js";
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 const ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES || "15m";
 const REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES || "7d";
 
@@ -35,11 +33,15 @@ const secureCookieDefault =
 const sameSiteDefault = resolveSameSite(process.env.COOKIE_SAMESITE || "strict");
 
 function signAccessToken(payload) {
-  return jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_EXPIRES });
+  const secret =
+    process.env.JWT_ACCESS_SECRET || process.env.JWT_REFRESH_SECRET || null;
+  return jwt.sign(payload, secret, { expiresIn: ACCESS_EXPIRES });
 }
 
 function signRefreshToken(payload) {
-  return jwt.sign(payload, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES });
+  const secret =
+    process.env.JWT_REFRESH_SECRET || process.env.JWT_ACCESS_SECRET || null;
+  return jwt.sign(payload, secret, { expiresIn: REFRESH_EXPIRES });
 }
 
 function clearRefreshCookie(res) {
@@ -188,7 +190,9 @@ export const refresh = async (req, res) => {
   if (!token) return res.status(401).json({ message: "Refresh token yok" });
 
   try {
-    const payload = jwt.verify(token, REFRESH_SECRET);
+    const secret =
+      process.env.JWT_REFRESH_SECRET || process.env.JWT_ACCESS_SECRET || null;
+    const payload = jwt.verify(token, secret);
     const user = await User.findById(payload.sub);
 
     if (!user)
@@ -244,7 +248,9 @@ export const logout = async (req, res) => {
   const token = req.cookies?.refreshToken;
   if (token) {
     try {
-      const payload = jwt.verify(token, REFRESH_SECRET);
+      const secret =
+        process.env.JWT_REFRESH_SECRET || process.env.JWT_ACCESS_SECRET || null;
+      const payload = jwt.verify(token, secret);
       const user = await User.findById(payload.sub);
       if (user) {
         user.refreshSessions = removeRefreshSession(user.refreshSessions || [], {

@@ -95,7 +95,7 @@ export default function AdminMedia() {
             Medya Kütüphanesi
           </h1>
           <p className="text-sm text-[var(--color-text-admin-muted)]">
-            Cloudinary kullanımını takip edin ve yüklenen varlıkları yönetin.
+            Aktif medya sürücüsünü takip edin ve yüklenen varlıkları yönetin.
           </p>
         </div>
         <button

@@ -1,7 +1,7 @@
 import { Plus_Jakarta_Sans, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers.jsx";
-import { Analytics } from '@vercel/analytics/next';
+import { Analytics } from "@vercel/analytics/next";
 
 const brandSans = Plus_Jakarta_Sans({
   subsets: ["latin", "latin-ext"],
@@ -41,6 +41,8 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
+  const enableVercelInsights = process.env.VERCEL === "1";
+
   return (
     <html
       lang="tr"
@@ -48,8 +50,10 @@ export default function RootLayout({ children }) {
       className={`${brandSans.variable} ${brandSerif.variable}`}
     >
       <body className="font-sans">
-        <Providers>{children}</Providers>
-        <Analytics />
+        <Providers enableVercelInsights={enableVercelInsights}>
+          {children}
+        </Providers>
+        {enableVercelInsights ? <Analytics /> : null}
       </body>
     </html>
   );

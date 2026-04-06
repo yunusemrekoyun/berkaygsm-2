@@ -11,12 +11,17 @@ export function configureCloudinary() {
     CLOUDINARY_API_KEY,
     CLOUDINARY_API_SECRET,
     CLOUDINARY_UPLOAD_FOLDER = "berkaygsm",
+    MEDIA_DRIVER = "",
   } = process.env;
 
+  cloudinary.uploadFolder = CLOUDINARY_UPLOAD_FOLDER;
+
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
-    console.warn(
-      "⚠️  Cloudinary environment variables missing. Image upload disabled until configured."
-    );
+    if (String(MEDIA_DRIVER || "").trim().toLowerCase() !== "local") {
+      console.warn(
+        "⚠️  Cloudinary environment variables missing. Image upload disabled until configured."
+      );
+    }
     return cloudinary;
   }
 
@@ -25,8 +30,6 @@ export function configureCloudinary() {
     api_key: CLOUDINARY_API_KEY,
     api_secret: CLOUDINARY_API_SECRET,
   });
-
-  cloudinary.uploadFolder = CLOUDINARY_UPLOAD_FOLDER;
   configured = true;
   logger.info("✅ Cloudinary configured");
   return cloudinary;
