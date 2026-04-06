@@ -2,6 +2,15 @@ import path from "path";
 
 const DRIVER_RE = /^(cloudinary|local)$/i;
 
+function normalizeFolderPath(folder = "") {
+  return String(folder || "")
+    .replace(/\\/g, "/")
+    .split("/")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .join("/");
+}
+
 function normalizeDriver(value) {
   if (!value) return "";
   const normalized = String(value).trim().toLowerCase();
@@ -29,13 +38,20 @@ export function getMediaBaseFolder() {
 }
 
 export function resolveScopedFolder(folder = "") {
+  return resolveMediaFolder(folder, { driver: "cloudinary" });
+}
+
+export function resolveMediaFolder(
+  folder = "",
+  { driver = getMediaDriver() } = {}
+) {
   const base = getMediaBaseFolder();
-  const normalized = String(folder || "")
-    .replace(/\\/g, "/")
-    .split("/")
-    .map((segment) => segment.trim())
-    .filter(Boolean)
-    .join("/");
+  const normalized = normalizeFolderPath(folder);
+
+  if (String(driver).trim().toLowerCase() === "local") {
+    return normalized || "media";
+  }
+
   return normalized ? `${base}/${normalized}` : base;
 }
 

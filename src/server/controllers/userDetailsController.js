@@ -7,6 +7,7 @@ import {
   uploadBufferToCloudinary,
   deleteFromCloudinary,
 } from "../utils/cloudinaryUpload.js";
+import { resolveMediaFolder } from "../media/config.js";
 import { extractSingleAsset } from "../utils/uploadPayload.js";
 import { shapeUser } from "../utils/userPresenter.js";
 import { shapeProduct } from "../utils/productHelpers.js";
@@ -229,7 +230,9 @@ export async function uploadAvatar(req, res) {
         format: directAvatar.format,
       };
     } else {
-      const result = await uploadBufferToCloudinary(req.file.buffer);
+      const result = await uploadBufferToCloudinary(req.file.buffer, {
+        folder: resolveMediaFolder("avatars"),
+      });
       details.avatar = {
         url: result.secure_url,
         publicId: result.public_id,

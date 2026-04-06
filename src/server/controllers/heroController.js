@@ -5,7 +5,7 @@ import {
   deleteFromCloudinary,
 } from "../utils/cloudinaryUpload.js";
 import { extractSingleAsset } from "../utils/uploadPayload.js";
-import { configureCloudinary } from "../config/cloudinary.js";
+import { resolveMediaFolder } from "../media/config.js";
 import {
   DEFAULT_LANG,
   normalizeLang,
@@ -34,6 +34,7 @@ const toPlainVideo = (video) =>
     ? {
         url: video.url,
         publicId: video.publicId,
+        posterUrl: video.posterUrl || null,
         width: video.width,
         height: video.height,
         duration: video.duration,
@@ -41,14 +42,7 @@ const toPlainVideo = (video) =>
       }
     : null;
 
-const resolveFolder = () => {
-  const instance = configureCloudinary();
-  const base = (instance.uploadFolder || "berkaygsm").replace(
-    /\/+$/,
-    ""
-  );
-  return `${base}/heroes`;
-};
+const resolveFolder = () => resolveMediaFolder("heroes");
 
 const shapeHero = (
   doc,
@@ -116,14 +110,15 @@ async function uploadMedia(file) {
       video: null,
     };
   }
-  return {
-    image: null,
-    video: {
-      url: uploadResult.secure_url,
-      publicId: uploadResult.public_id,
-      width: uploadResult.width,
-      height: uploadResult.height,
-      duration: uploadResult.duration,
+    return {
+      image: null,
+      video: {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+        posterUrl: uploadResult.posterUrl || uploadResult.poster_url || null,
+        width: uploadResult.width,
+        height: uploadResult.height,
+        duration: uploadResult.duration,
       format: uploadResult.format,
     },
   };
@@ -140,6 +135,7 @@ function normalizeDirectMedia(payload) {
       video: {
         url: asset.url,
         publicId: asset.publicId,
+        posterUrl: asset.posterUrl || null,
         width: asset.width,
         height: asset.height,
         duration: asset.duration,

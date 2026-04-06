@@ -145,6 +145,7 @@ export default function Hero({
                   ref={(el) => (videoRefs.current[s.id] = el)}
                   className="absolute inset-0 h-full w-full object-cover"
                   src={s.video.url}
+                  poster={s.video.posterUrl || undefined}
                   playsInline
                   muted
                   preload="metadata"

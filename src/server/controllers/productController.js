@@ -7,7 +7,7 @@ import {
   uploadBufferToCloudinary,
   deleteFromCloudinary,
 } from "../utils/cloudinaryUpload.js";
-import cloudinary, { configureCloudinary } from "../config/cloudinary.js";
+import { resolveMediaFolder } from "../media/config.js";
 import { hydrateProductsWithInventory } from "../utils/stockItemHelpers.js";
 import {
   fetchActiveDiscounts,
@@ -23,8 +23,6 @@ import {
   composeResponseTranslations,
 } from "../utils/i18n.js";
 import { extractAssetList } from "../utils/uploadPayload.js";
-
-configureCloudinary();
 
 const isId = (s) => typeof s === "string" && /^[0-9a-fA-F]{24}$/.test(s);
 
@@ -451,9 +449,7 @@ function presentProduct(
 // Cloudinary upload (buffer üzerinden)
 async function uploadImages(files = [], folderHint = "products") {
   if (!Array.isArray(files) || !files.length) return [];
-  const baseFolder =
-    cloudinary.uploadFolder /* set in config */ || "berkaygsm";
-  const folder = `${baseFolder}/${folderHint}`;
+  const folder = resolveMediaFolder(folderHint);
 
   const uploads = files.map(async (file) => {
     const isVideo = file.mimetype?.startsWith("video/");

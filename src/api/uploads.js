@@ -23,6 +23,7 @@ const normalizeAsset = (value) => {
     width: value.width,
     height: value.height,
     format: value.format,
+    posterUrl: value.posterUrl || value.poster_url,
     resourceType: value.resourceType || value.resource_type,
     bytes: value.bytes,
     duration: value.duration,

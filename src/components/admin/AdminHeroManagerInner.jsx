@@ -267,6 +267,7 @@ export default function AdminHeroManagerInner() {
                 <video
                   className="h-full w-full object-cover"
                   src={h.video.url}
+                  poster={h.video.posterUrl || undefined}
                   muted
                   playsInline
                   autoPlay
@@ -634,6 +635,7 @@ function HeroModal({
                   ) : initialHasVideo ? (
                     <video
                       src={mediaPreview}
+                      poster={initial?.video?.posterUrl || undefined}
                       className="h-full w-full object-cover"
                       controls
                     />

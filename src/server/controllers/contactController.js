@@ -13,6 +13,7 @@ import {
   uploadBufferToCloudinary,
   deleteFromCloudinary,
 } from "../utils/cloudinaryUpload.js";
+import { resolveMediaFolder } from "../media/config.js";
 import { sendContactMessageAdminEmail } from "../services/emailService.js";
 import {
   isTurnstileConfigured,
@@ -321,7 +322,9 @@ export async function updateContact(req, res) {
       if (cfg.heroImage?.publicId) {
         await deleteFromCloudinary(cfg.heroImage.publicId).catch(() => {});
       }
-      const up = await uploadBufferToCloudinary(req.file.buffer);
+      const up = await uploadBufferToCloudinary(req.file.buffer, {
+        folder: resolveMediaFolder("contact"),
+      });
       cfg.heroImage = {
         url: up.secure_url,
         publicId: up.public_id,

@@ -8,7 +8,7 @@ import {
   uploadBufferToCloudinary,
   deleteFromCloudinary,
 } from "../utils/cloudinaryUpload.js";
-import { configureCloudinary } from "../config/cloudinary.js";
+import { resolveMediaFolder } from "../media/config.js";
 import { extractAssetList } from "../utils/uploadPayload.js";
 
 const MIN_LIMIT = 5;
@@ -79,9 +79,7 @@ function normalizeEnum(value, allowedSet, fieldName, fallback) {
 }
 
 function resolveUploadFolder() {
-  const instance = configureCloudinary();
-  const base = (instance.uploadFolder || "berkaygsm").replace(/\/+$/, "");
-  return `${base}/service-records`;
+  return resolveMediaFolder("service-records");
 }
 
 async function uploadImages(files = []) {

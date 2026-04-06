@@ -15,6 +15,7 @@ const VideoSchema = new mongoose.Schema(
   {
     url: { type: String, required: true },
     publicId: { type: String, required: true },
+    posterUrl: { type: String, default: null },
     width: Number,
     height: Number,
     duration: Number,
