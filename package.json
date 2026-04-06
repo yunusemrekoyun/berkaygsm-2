@@ -11,6 +11,8 @@
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx --cache",
     "test": "vitest",
+    "media:migrate": "node ops/media/migrate-assets.mjs",
+    "media:backfill-orders": "node ops/media/backfill-order-images.mjs",
     "print:agent": "node printer-agent/index.mjs",
     "print:agent:once": "node printer-agent/index.mjs --once",
     "print:agent:settings": "powershell -NoProfile -ExecutionPolicy Bypass -File printer-agent/Yazdirici.ps1"

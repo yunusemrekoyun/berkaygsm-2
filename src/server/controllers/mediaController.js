@@ -1,6 +1,6 @@
 import cloudinary, { configureCloudinary } from "../config/cloudinary.js";
 import { DEFAULT_ALLOWED_FORMATS, resolveScopeConfig } from "../media/constants.js";
-import { resolveScopedFolder } from "../media/config.js";
+import { resolveMediaFolder, resolveScopedFolder } from "../media/config.js";
 import {
   deleteMediaResource,
   getMediaProviderName,
@@ -13,6 +13,10 @@ configureCloudinary();
 
 function resolveFolder(scopeConfig) {
   return resolveScopedFolder(scopeConfig?.folder || "");
+}
+
+function resolveUploadFolder(scopeConfig) {
+  return resolveMediaFolder(scopeConfig?.folder || "");
 }
 
 function resolveAllowedFormats(scopeConfig, resourceType) {
@@ -162,7 +166,7 @@ export async function uploadMediaAsset(req, res) {
     }
 
     const result = await uploadBufferToCloudinary(req.file.buffer, {
-      folder: resolveFolder(scopeConfig),
+      folder: resolveUploadFolder(scopeConfig),
       resource_type: resourceType,
       mimeType: req.file.mimetype,
       originalName: req.file.originalname,
@@ -175,6 +179,7 @@ export async function uploadMediaAsset(req, res) {
         width: result.width,
         height: result.height,
         format: result.format,
+        posterUrl: result.posterUrl || result.poster_url || null,
         bytes: result.bytes,
         duration: result.duration,
         resourceType: result.resource_type,

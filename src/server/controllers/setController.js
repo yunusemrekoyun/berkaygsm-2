@@ -5,7 +5,7 @@ import {
   uploadBufferToCloudinary,
   deleteFromCloudinary,
 } from "../utils/cloudinaryUpload.js";
-import { configureCloudinary } from "../config/cloudinary.js";
+import { resolveMediaFolder } from "../media/config.js";
 import {
   DEFAULT_LANG,
   normalizeLang,
@@ -33,9 +33,7 @@ function parseBool(value, fallback = false) {
 }
 
 const resolveSetFolder = () => {
-  const instance = configureCloudinary();
-  const base = (instance.uploadFolder || "berkaygsm").replace(/\/+$/, "");
-  return `${base}/sets`;
+  return resolveMediaFolder("sets");
 };
 
 async function uploadImages(files = []) {

@@ -19,6 +19,7 @@ export function normalizeAssetPayload(value) {
     width: value.width ?? value.w,
     height: value.height ?? value.h,
     format: value.format,
+    posterUrl: value.posterUrl ?? value.poster_url,
     resourceType: value.resourceType || value.resource_type,
     bytes: value.bytes,
     duration: value.duration,

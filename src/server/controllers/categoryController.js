@@ -4,7 +4,7 @@ import {
   uploadBufferToCloudinary,
   deleteFromCloudinary,
 } from "../utils/cloudinaryUpload.js";
-import { configureCloudinary } from "../config/cloudinary.js";
+import { resolveMediaFolder } from "../media/config.js";
 import {
   DEFAULT_LANG,
   normalizeLang,
@@ -124,12 +124,7 @@ async function resolveNextCategorySortOrder(parentId = null) {
 }
 
 const resolveCategoryFolder = () => {
-  const instance = configureCloudinary();
-  const base = (instance.uploadFolder || "berkaygsm").replace(
-    /\/+$/,
-    ""
-  );
-  return `${base}/categories`;
+  return resolveMediaFolder("categories");
 };
 
 const toImagePayload = (uploadResult) => ({

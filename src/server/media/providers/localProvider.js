@@ -1,4 +1,5 @@
-import { createHash } from "crypto";
+import { createHash, randomUUID } from "crypto";
+import { spawn } from "child_process";
 import { promises as fs } from "fs";
 import path from "path";
 import sharp from "sharp";
@@ -7,9 +8,13 @@ import {
   getMediaPublicBaseUrl,
   getMediaRootDir,
   getMediaStorageLimitBytes,
+  getMediaTmpDir,
 } from "../config.js";
 
 const META_FILE = "meta.json";
+const VIDEO_FILENAME = "video.mp4";
+const VIDEO_POSTER_FILENAME = "poster.webp";
+const VIDEO_MAX_WIDTH = 1280;
 
 const MIME_EXTENSION_MAP = {
   "image/jpeg": ".jpg",
@@ -82,6 +87,27 @@ function extractFolder(publicId = "") {
   return segments.join("/");
 }
 
+function resolveAssetTarget(buffer, options = {}) {
+  const explicitPublicId = normalizeFolder(
+    options.publicId || options.public_id || ""
+  );
+
+  if (explicitPublicId) {
+    return {
+      publicId: explicitPublicId,
+      folder: extractFolder(explicitPublicId) || "media",
+    };
+  }
+
+  const folder = normalizeFolder(options.folder);
+  const assetId = buildAssetId(buffer, folder, options.originalName);
+
+  return {
+    publicId: `${folder}/${assetId}`,
+    folder,
+  };
+}
+
 function normalizeResource(resource = {}) {
   const secureUrl = resource.secureUrl || resource.secure_url || resource.url || "";
   const publicId = resource.publicId || resource.public_id || "";
@@ -90,6 +116,8 @@ function normalizeResource(resource = {}) {
     url: secureUrl,
     secureUrl,
     secure_url: secureUrl,
+    posterUrl: resource.posterUrl || resource.poster_url || null,
+    poster_url: resource.poster_url || resource.posterUrl || null,
     publicId,
     public_id: publicId,
     width: resource.width,
@@ -109,6 +137,13 @@ async function ensureDirectory(dir) {
   await fs.mkdir(dir, { recursive: true });
 }
 
+async function prepareAssetDirectory(publicId) {
+  const assetDir = buildAssetDirectory(publicId);
+  await fs.rm(assetDir, { recursive: true, force: true });
+  await ensureDirectory(assetDir);
+  return assetDir;
+}
+
 async function writeJson(filePath, payload) {
   await fs.writeFile(filePath, JSON.stringify(payload, null, 2), "utf8");
 }
@@ -116,6 +151,81 @@ async function writeJson(filePath, payload) {
 async function loadJson(filePath) {
   const raw = await fs.readFile(filePath, "utf8");
   return JSON.parse(raw);
+}
+
+function runBinary(command, args = []) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on("error", (error) => {
+      reject(error);
+    });
+
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve({ stdout, stderr });
+        return;
+      }
+      reject(
+        new Error(
+          `${command} exited with code ${code}${
+            stderr ? `: ${stderr.trim()}` : ""
+          }`
+        )
+      );
+    });
+  });
+}
+
+async function ensureTmpDirectory() {
+  const root = path.join(getMediaTmpDir(), "local-provider");
+  await ensureDirectory(root);
+  return root;
+}
+
+async function createTempWorkspace() {
+  const root = await ensureTmpDirectory();
+  return fs.mkdtemp(path.join(root, `${randomUUID()}-`));
+}
+
+async function probeVideoFile(filePath) {
+  const { stdout } = await runBinary("ffprobe", [
+    "-v",
+    "error",
+    "-print_format",
+    "json",
+    "-show_entries",
+    "format=duration:stream=codec_type,width,height",
+    filePath,
+  ]);
+
+  const parsed = JSON.parse(stdout || "{}");
+  const streams = Array.isArray(parsed.streams) ? parsed.streams : [];
+  const videoStream = streams.find(
+    (stream) => String(stream?.codec_type || "").toLowerCase() === "video"
+  );
+
+  return {
+    width: Number(videoStream?.width || 0) || null,
+    height: Number(videoStream?.height || 0) || null,
+    duration: Number(parsed?.format?.duration || 0) || null,
+  };
+}
+
+function buildVideoScaleFilter(maxWidth = VIDEO_MAX_WIDTH) {
+  return `scale=w='min(${maxWidth},iw)':h=-2:force_original_aspect_ratio=decrease`;
 }
 
 async function walkMetaFiles(dirPath) {
@@ -166,10 +276,8 @@ async function sumDirectoryBytes(dirPath) {
 }
 
 async function buildImageAsset(buffer, options = {}) {
-  const folder = normalizeFolder(options.folder);
-  const assetId = buildAssetId(buffer, folder, options.originalName);
-  const publicId = `${folder}/${assetId}`;
-  const assetDir = buildAssetDirectory(publicId);
+  const { publicId, folder } = resolveAssetTarget(buffer, options);
+  const assetDir = await prepareAssetDirectory(publicId);
   const originalExtension = resolveExtension({
     originalName: options.originalName,
     mimeType: options.mimeType,
@@ -177,7 +285,6 @@ async function buildImageAsset(buffer, options = {}) {
   });
   const originalFilename = `original${originalExtension}`;
 
-  await ensureDirectory(assetDir);
   await fs.writeFile(path.join(assetDir, originalFilename), buffer);
 
   const source = sharp(buffer, { failOn: "none", animated: false }).rotate();
@@ -224,36 +331,110 @@ async function buildImageAsset(buffer, options = {}) {
 }
 
 async function buildVideoAsset(buffer, options = {}) {
-  const folder = normalizeFolder(options.folder);
-  const assetId = buildAssetId(buffer, folder, options.originalName);
-  const publicId = `${folder}/${assetId}`;
-  const assetDir = buildAssetDirectory(publicId);
+  const { publicId, folder } = resolveAssetTarget(buffer, options);
+  const assetDir = await prepareAssetDirectory(publicId);
   const extension = resolveExtension({
     originalName: options.originalName,
     mimeType: options.mimeType,
     resourceType: "video",
   });
   const originalFilename = `original${extension}`;
+  const originalPath = path.join(assetDir, originalFilename);
+  const optimizedPath = path.join(assetDir, VIDEO_FILENAME);
+  const posterPath = path.join(assetDir, VIDEO_POSTER_FILENAME);
+  const workspace = await createTempWorkspace();
+  const inputPath = path.join(workspace, `source${extension}`);
+  const posterSourcePath = path.join(workspace, "poster.jpg");
 
-  await ensureDirectory(assetDir);
-  await fs.writeFile(path.join(assetDir, originalFilename), buffer);
+  await fs.writeFile(originalPath, buffer);
+  await fs.writeFile(inputPath, buffer);
 
-  const asset = normalizeResource({
-    url: buildPublicUrl(publicId, originalFilename),
-    publicId,
-    format: extension.replace(/^\./, ""),
-    bytes: buffer.length,
-    resourceType: "video",
-    folder,
-    createdAt: new Date().toISOString(),
-  });
+  let posterUrl = null;
 
-  await writeJson(path.join(assetDir, META_FILE), {
-    ...asset,
-    originalFilename,
-  });
+  try {
+    await runBinary("ffmpeg", [
+      "-y",
+      "-i",
+      inputPath,
+      "-map",
+      "0:v:0",
+      "-map",
+      "0:a?",
+      "-vf",
+      buildVideoScaleFilter(),
+      "-c:v",
+      "libx264",
+      "-preset",
+      "medium",
+      "-crf",
+      "24",
+      "-pix_fmt",
+      "yuv420p",
+      "-movflags",
+      "+faststart",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "128k",
+      "-ac",
+      "2",
+      optimizedPath,
+    ]);
 
-  return asset;
+    try {
+      await runBinary("ffmpeg", [
+        "-y",
+        "-ss",
+        "0",
+        "-i",
+        optimizedPath,
+        "-frames:v",
+        "1",
+        "-vf",
+        buildVideoScaleFilter(960),
+        posterSourcePath,
+      ]);
+
+      await sharp(posterSourcePath)
+        .webp({ quality: 82 })
+        .toFile(posterPath);
+
+      posterUrl = buildPublicUrl(publicId, VIDEO_POSTER_FILENAME);
+    } catch {
+      posterUrl = null;
+    }
+
+    const [videoStats, videoMeta] = await Promise.all([
+      fs.stat(optimizedPath),
+      probeVideoFile(optimizedPath),
+    ]);
+
+    const asset = normalizeResource({
+      url: buildPublicUrl(publicId, VIDEO_FILENAME),
+      posterUrl,
+      publicId,
+      width: videoMeta.width,
+      height: videoMeta.height,
+      duration: videoMeta.duration,
+      format: "mp4",
+      bytes: videoStats.size,
+      resourceType: "video",
+      folder,
+      createdAt: new Date().toISOString(),
+    });
+
+    await writeJson(path.join(assetDir, META_FILE), {
+      ...asset,
+      originalFilename,
+      optimizedFilename: VIDEO_FILENAME,
+      posterFilename: posterUrl ? VIDEO_POSTER_FILENAME : null,
+      originalUrl: buildPublicUrl(publicId, originalFilename),
+    });
+
+    return asset;
+  } finally {
+    await fs.rm(workspace, { recursive: true, force: true }).catch(() => {});
+  }
 }
 
 async function uploadBuffer(buffer, options = {}) {

@@ -4,6 +4,7 @@ import {
   uploadBufferToCloudinary,
   deleteFromCloudinary,
 } from "../utils/cloudinaryUpload.js";
+import { resolveMediaFolder } from "../media/config.js";
 import { extractSingleAsset } from "../utils/uploadPayload.js";
 import { normalizeArray, parseBoolean } from "../utils/productHelpers.js";
 import {
@@ -374,7 +375,9 @@ export async function updateAbout(req, res) {
       const directMaterials = extractSingleAsset(req.body.materialsImage);
 
       if (files.heroImage?.[0]?.buffer) {
-        const up = await uploadBufferToCloudinary(files.heroImage[0].buffer);
+        const up = await uploadBufferToCloudinary(files.heroImage[0].buffer, {
+          folder: resolveMediaFolder("about"),
+        });
         doc.heroImage = shapeImageResult(up);
       } else if (directHero) {
         doc.heroImage = {
@@ -386,7 +389,9 @@ export async function updateAbout(req, res) {
         };
       }
       if (files.leftImage?.[0]?.buffer) {
-        const up = await uploadBufferToCloudinary(files.leftImage[0].buffer);
+        const up = await uploadBufferToCloudinary(files.leftImage[0].buffer, {
+          folder: resolveMediaFolder("about"),
+        });
         doc.leftImage = shapeImageResult(up);
       } else if (directLeft) {
         doc.leftImage = {
@@ -399,7 +404,10 @@ export async function updateAbout(req, res) {
       }
       if (files.materialsImage?.[0]?.buffer) {
         const up = await uploadBufferToCloudinary(
-          files.materialsImage[0].buffer
+          files.materialsImage[0].buffer,
+          {
+            folder: resolveMediaFolder("about"),
+          }
         );
         doc.materialsImage = shapeImageResult(up);
       } else if (directMaterials) {

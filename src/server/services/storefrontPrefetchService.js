@@ -53,6 +53,7 @@ function toPlainMedia(media) {
     ? {
         url: media.url,
         publicId: media.publicId,
+        posterUrl: media.posterUrl || null,
         width: media.width,
         height: media.height,
         format: media.format,

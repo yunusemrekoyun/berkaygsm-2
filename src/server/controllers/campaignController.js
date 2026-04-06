@@ -9,7 +9,7 @@ import {
   deleteFromCloudinary,
 } from "../utils/cloudinaryUpload.js";
 import { extractSingleAsset } from "../utils/uploadPayload.js";
-import { configureCloudinary } from "../config/cloudinary.js";
+import { resolveMediaFolder } from "../media/config.js";
 import { shapeProduct } from "../utils/productHelpers.js";
 import {
   fetchActiveDiscounts,
@@ -116,12 +116,7 @@ async function fetchDiscounts(ids) {
 }
 
 function resolveUploadFolder() {
-  const instance = configureCloudinary();
-  const base = (instance.uploadFolder || "berkaygsm").replace(
-    /\/+$/,
-    ""
-  );
-  return `${base}/campaigns`;
+  return resolveMediaFolder("campaigns");
 }
 
 async function uploadImage(file, bodyImage = null) {
