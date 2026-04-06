@@ -53,7 +53,7 @@ export default function MediaResourceTable({
             >
               <td className="px-4 py-3" data-label="Medya">
                 <div className="flex items-center gap-3">
-                  {resource.secureUrl ? (
+                  {resource.secureUrl && resource.resourceType === "image" ? (
                     <AppImage
                       src={resource.secureUrl}
                       alt={resource.publicId}

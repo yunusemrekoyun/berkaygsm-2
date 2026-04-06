@@ -1,40 +1,18 @@
 import cloudinary, { configureCloudinary } from "../config/cloudinary.js";
+import { DEFAULT_ALLOWED_FORMATS, resolveScopeConfig } from "../media/constants.js";
+import { resolveScopedFolder } from "../media/config.js";
+import {
+  deleteMediaResource,
+  getMediaProviderName,
+  getMediaUsage,
+  listMediaResources,
+} from "../media/provider.js";
 import { uploadBufferToCloudinary } from "../utils/cloudinaryUpload.js";
 
 configureCloudinary();
 
-const DEFAULT_ALLOWED_FORMATS = {
-  image: ["jpg", "jpeg", "png", "webp", "avif", "gif"],
-  video: ["mp4", "webm", "mov", "m4v"],
-};
-
-const UPLOAD_SCOPES = {
-  products: { folder: "products", adminOnly: true, resourceTypes: ["image", "video"] },
-  sets: { folder: "sets", adminOnly: true, resourceTypes: ["image", "video"] },
-  categories: { folder: "categories", adminOnly: true, resourceTypes: ["image"] },
-  campaigns: { folder: "campaigns", adminOnly: true, resourceTypes: ["image"] },
-  heroes: { folder: "heroes", adminOnly: true, resourceTypes: ["image", "video"] },
-  about: { folder: "about", adminOnly: true, resourceTypes: ["image"] },
-  contact: { folder: "contact", adminOnly: true, resourceTypes: ["image"] },
-  media: { folder: "media", adminOnly: true, resourceTypes: ["image", "video"] },
-  avatars: {
-    folder: "avatars",
-    adminOnly: false,
-    resourceTypes: ["image"],
-    allowClientSignature: false,
-  },
-};
-
-function resolveScopeConfig(scope) {
-  const normalized = String(scope || "media").toLowerCase();
-  return UPLOAD_SCOPES[normalized] || null;
-}
-
 function resolveFolder(scopeConfig) {
-  const instance = configureCloudinary();
-  const base = (instance.uploadFolder || "berkaygsm").replace(/\/+$/, "");
-  const suffix = scopeConfig?.folder ? `/${scopeConfig.folder}` : "";
-  return `${base}${suffix}`;
+  return resolveScopedFolder(scopeConfig?.folder || "");
 }
 
 function resolveAllowedFormats(scopeConfig, resourceType) {
@@ -63,6 +41,12 @@ function buildSignedUploadParams({ scopeConfig, resourceType, timestamp, folder 
 
 export async function createUploadSignature(req, res) {
   try {
+    if (getMediaProviderName() !== "cloudinary") {
+      return res.status(410).json({
+        message: "Aktif medya sürücüsü istemci imzalı yüklemeyi desteklemiyor",
+      });
+    }
+
     const scopeConfig = resolveScopeConfig(req.body?.scope);
     if (!scopeConfig) {
       return res.status(400).json({ message: "Geçersiz yükleme kapsamı" });
@@ -78,9 +62,7 @@ export async function createUploadSignature(req, res) {
     const apiKey = process.env.CLOUDINARY_API_KEY;
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
     if (!cloudName || !apiKey || !apiSecret) {
-      return res
-        .status(500)
-        .json({ message: "Cloudinary yapılandırılmamış" });
+      return res.status(500).json({ message: "Cloudinary yapılandırılmamış" });
     }
 
     const requestedType = String(req.body?.resourceType || "image").toLowerCase();
@@ -97,10 +79,7 @@ export async function createUploadSignature(req, res) {
       timestamp,
       folder,
     });
-    const signature = cloudinary.utils.api_sign_request(
-      params,
-      apiSecret
-    );
+    const signature = cloudinary.utils.api_sign_request(params, apiSecret);
 
     res.json({
       signature,
@@ -119,38 +98,8 @@ export async function createUploadSignature(req, res) {
 
 export async function getCloudinaryUsage(req, res) {
   try {
-    const usage = await cloudinary.api.usage();
-    const storage = usage.storage || {};
-    const bandwidth = usage.bandwidth || {};
-
-    res.json({
-      usage: {
-        plan: usage.plan,
-        lastUpdated: usage.last_updated,
-        storage: {
-          usedBytes: storage.usage || storage.used || 0,
-          limitBytes: storage.limit || storage.limit_usage || null,
-          usedPercent:
-            storage.used_percent != null
-              ? storage.used_percent * 100
-              : storage.usage && storage.limit
-              ? (storage.usage / storage.limit) * 100
-              : null,
-        },
-        bandwidth: {
-          usedBytes: bandwidth.usage || bandwidth.used || 0,
-          limitBytes: bandwidth.limit || bandwidth.limit_usage || null,
-          usedPercent:
-            bandwidth.used_percent != null
-              ? bandwidth.used_percent * 100
-              : bandwidth.usage && bandwidth.limit
-              ? (bandwidth.usage / bandwidth.limit) * 100
-              : null,
-        },
-        requests: usage.requests || null,
-        resourcesCount: usage.resources || usage.objects || null,
-      },
-    });
+    const usage = await getMediaUsage();
+    res.json({ usage });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -158,39 +107,15 @@ export async function getCloudinaryUsage(req, res) {
 
 export async function listCloudinaryResources(req, res) {
   try {
-    const {
-      nextCursor,
-      prefix,
-      maxResults = 50,
-      resourceType = "image",
-      type = "upload",
-    } = req.query;
-
-    const response = await cloudinary.api.resources({
-      resource_type: resourceType,
-      type,
-      prefix: prefix || undefined,
-      max_results: Math.min(Number(maxResults) || 50, 500),
-      next_cursor: nextCursor || undefined,
-      direction: "desc",
-      sort_by: "created_at",
+    const response = await listMediaResources({
+      nextCursor: req.query.nextCursor,
+      prefix: req.query.prefix,
+      maxResults: req.query.maxResults,
+      resourceType: req.query.resourceType || "image",
+      type: req.query.type || "upload",
     });
 
-    res.json({
-      resources: response.resources.map((item) => ({
-        publicId: item.public_id,
-        secureUrl: item.secure_url,
-        bytes: item.bytes,
-        format: item.format,
-        resourceType: item.resource_type,
-        type: item.type,
-        width: item.width,
-        height: item.height,
-        createdAt: item.created_at,
-        folder: item.folder,
-      })),
-      nextCursor: response.next_cursor || null,
-    });
+    res.json(response);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -204,8 +129,8 @@ export async function deleteCloudinaryResource(req, res) {
       return res.status(400).json({ message: "publicId zorunlu" });
     }
 
-    const result = await cloudinary.uploader.destroy(publicId, {
-      resource_type: resourceType,
+    const result = await deleteMediaResource(publicId, {
+      resourceType,
       invalidate: ["true", "1", "yes"].includes(String(invalidate).toLowerCase()),
     });
 
@@ -221,17 +146,26 @@ export async function uploadMediaAsset(req, res) {
       return res.status(400).json({ message: "Dosya gerekli" });
     }
 
-    const folder =
-      req.body?.folder ||
-      cloudinary.uploadFolder ||
-      "berkaygsm";
+    const scopeConfig = resolveScopeConfig(req.body?.scope);
+    if (!scopeConfig) {
+      return res.status(400).json({ message: "Geçersiz yükleme kapsamı" });
+    }
+    if (scopeConfig.adminOnly && req.userRole !== "admin") {
+      return res.status(403).json({ message: "Erişim reddedildi" });
+    }
+
     const resourceType =
       req.body?.resourceType ||
       (req.file.mimetype?.startsWith("video/") ? "video" : "image");
+    if (!(scopeConfig.resourceTypes || []).includes(resourceType)) {
+      return res.status(400).json({ message: "Bu kapsam için medya türü desteklenmiyor" });
+    }
 
     const result = await uploadBufferToCloudinary(req.file.buffer, {
-      folder,
+      folder: resolveFolder(scopeConfig),
       resource_type: resourceType,
+      mimeType: req.file.mimetype,
+      originalName: req.file.originalname,
     });
 
     res.status(201).json({
@@ -242,6 +176,7 @@ export async function uploadMediaAsset(req, res) {
         height: result.height,
         format: result.format,
         bytes: result.bytes,
+        duration: result.duration,
         resourceType: result.resource_type,
       },
     });

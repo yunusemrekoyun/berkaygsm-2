@@ -22,7 +22,7 @@ export default function MediaUsageCard({ usage, refreshing }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-[var(--color-text-admin)]">
-            Cloudinary Kullanımı
+            Medya Kullanımı
           </h2>
           <p className="text-sm text-[var(--color-text-admin-muted)]">
             Paket: {usage?.plan || "—"} • Güncelleme: {usage?.lastUpdated || "—"}

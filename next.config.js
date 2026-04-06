@@ -11,6 +11,18 @@ const turbopackAlias = {
   "react-router-dom": "./src/lib/next-router-dom.js",
 };
 
+const mediaOrigin = (() => {
+  const candidate =
+    process.env.NEXT_PUBLIC_MEDIA_BASE_URL ||
+    process.env.MEDIA_PUBLIC_BASE_URL ||
+    "https://media.ceplife.com";
+  try {
+    return new URL(candidate).origin;
+  } catch {
+    return "https://media.ceplife.com";
+  }
+})();
+
 const securityHeaders = (() => {
   const csp = [
     "default-src 'self'",
@@ -18,12 +30,12 @@ const securityHeaders = (() => {
     "form-action 'self'",
     "frame-ancestors 'self'",
     "object-src 'none'",
-    "img-src 'self' data: blob: https://res.cloudinary.com https://www.google.com https://maps.googleapis.com https://maps.gstatic.com",
-    "media-src 'self' data: blob: https://res.cloudinary.com",
+    `img-src 'self' data: blob: https://res.cloudinary.com ${mediaOrigin} https://www.google.com https://maps.googleapis.com https://maps.gstatic.com`,
+    `media-src 'self' data: blob: https://res.cloudinary.com ${mediaOrigin}`,
     "font-src 'self' data:",
     "style-src 'self' 'unsafe-inline'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
-    "connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com https://www.google.com https://maps.googleapis.com https://maps.gstatic.com https://challenges.cloudflare.com",
+    `connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com ${mediaOrigin} https://www.google.com https://maps.googleapis.com https://maps.gstatic.com https://challenges.cloudflare.com`,
     "frame-src 'self' https://www.google.com https://maps.google.com https://challenges.cloudflare.com",
     "worker-src 'self' blob:",
   ].join("; ");
@@ -64,6 +76,7 @@ const securityHeaders = (() => {
 
 const nextConfig = {
   poweredByHeader: false,
+  output: "standalone",
   experimental: {
     externalDir: true,
   },

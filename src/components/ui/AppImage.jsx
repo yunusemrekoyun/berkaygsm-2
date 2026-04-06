@@ -2,7 +2,8 @@ import Image from "next/image";
 import {
   cloudinaryImageLoader,
   isCloudinaryImageUrl,
-  optimizeCloudinaryImageUrl,
+  isManagedMediaUrl,
+  optimizeManagedImageUrl,
 } from "../../utils/cloudinaryImage.js";
 import { resolveImageSrc } from "../../utils/imageSrc.js";
 
@@ -28,13 +29,14 @@ export default function AppImage({
   const resolvedSrc = resolveImageSrc(src);
   if (!resolvedSrc) return null;
   const isCloudinary = isCloudinaryImageUrl(resolvedSrc);
-  const optimizedSrc = optimizeCloudinaryImageUrl(resolvedSrc, {
+  const isManagedMedia = isManagedMediaUrl(resolvedSrc);
+  const optimizedSrc = optimizeManagedImageUrl(resolvedSrc, {
     width: fill ? width : width,
     quality,
   });
   const imageSrc = isCloudinary ? resolvedSrc : optimizedSrc;
   const unoptimized =
-    (REMOTE_RE.test(resolvedSrc) && !isCloudinary) ||
+    (REMOTE_RE.test(resolvedSrc) && (!isCloudinary || isManagedMedia)) ||
     BLOB_RE.test(resolvedSrc) ||
     DATA_RE.test(resolvedSrc);
 

@@ -9,9 +9,8 @@ pnpm-debug.log*
 
 # Env dosyaları
 .env
+.env.local
 .env.*.local
-.env.example
-
 # Node.js bağımlılıkları
 node_modules
 
@@ -55,4 +54,3 @@ pids
 
 .eslintcache
 printer-agent/
-.env.example
