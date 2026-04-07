@@ -503,14 +503,9 @@ export default function AdminProducts() {
     await loadProducts(pagination.page);
   };
 
-  // ✅ Form’dan gelen kaydetme artık stokları ayrı kaydeder
   const handleSaveProduct = async ({ productPayload, stockLines }) => {
-    // productPayload: sadece ürün alanları (stok hariç)
-    // stockLines: [{ color, size, attributeValue, qtyOnHand }, ...]
-    const payloadWithStocks = {
-      ...productPayload,
-      stockRows: stockLines,
-    };
+    // Stok sadece syncProductStocks üzerinden yazılır (stocksApi.replace → low-stock notification tetikler)
+    const payloadWithStocks = { ...productPayload };
     let stockWarning = null;
     if (editingProduct) {
       const identifier = resolveProductIdentifier(editingProduct);

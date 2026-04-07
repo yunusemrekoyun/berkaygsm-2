@@ -9,6 +9,7 @@ import {
 } from "../utils/cloudinaryUpload.js";
 import { resolveMediaFolder } from "../media/config.js";
 import { hydrateProductsWithInventory } from "../utils/stockItemHelpers.js";
+import { maybeCreateLowStockNotification } from "../services/adminNotificationService.js";
 import {
   fetchActiveDiscounts,
   computeProductDiscountMap,
@@ -246,8 +247,31 @@ async function syncProductStockRows(productId, rawRows) {
 
   if (!docs.length) return { ok: true, count: 0 };
 
+  // Mevcut stokları önceden al — low-stock notification için gerekli
+  const existingItems = await StockItem.find(
+    { ownerModel: "Product", owner: productId },
+    { comboKey: 1, qtyOnHand: 1 }
+  ).lean();
+  const prevQtyMap = new Map(existingItems.map((s) => [s.comboKey, s.qtyOnHand]));
+
   await StockItem.deleteMany({ ownerModel: "Product", owner: productId });
   const inserted = await StockItem.insertMany(docs, { ordered: false });
+
+  // Low-stock notification — sipariş dışı stok güncellemelerinde de tetiklensin
+  const notifications = docs.map((doc) =>
+    maybeCreateLowStockNotification({
+      ownerModel: "Product",
+      owner: productId,
+      comboKey: doc.comboKey,
+      color: doc.color,
+      size: doc.size,
+      attributeValue: doc.attributeValue,
+      previousQty: prevQtyMap.get(doc.comboKey) ?? NaN,
+      qtyOnHand: doc.qtyOnHand,
+    })
+  );
+  await Promise.allSettled(notifications);
+
   return {
     ok: true,
     count: Array.isArray(inserted) ? inserted.length : 0,
