@@ -66,7 +66,7 @@ export default function SetForm({
         productId: normalizeId(entry.product?.id || entry.product?._id),
         product: entry.product,
         quantity: entry.quantity || 1,
-      }))
+      })),
     );
     setError("");
     setSubmitting(false);
@@ -80,7 +80,7 @@ export default function SetForm({
         label: p.name,
         price: p.price,
       })),
-    [products]
+    [products],
   );
 
   const handleAddExisting = () => {
@@ -92,7 +92,7 @@ export default function SetForm({
         productId: productOptions[0]?.id || "",
         product:
           products.find(
-            (p) => normalizeId(p.id || p._id) === productOptions[0]?.id
+            (p) => normalizeId(p.id || p._id) === productOptions[0]?.id,
           ) || null,
         quantity: 1,
       },
@@ -112,11 +112,11 @@ export default function SetForm({
               productId: normalizeId(productId),
               product:
                 products.find(
-                  (p) => normalizeId(p.id || p._id) === normalizeId(productId)
+                  (p) => normalizeId(p.id || p._id) === normalizeId(productId),
                 ) || null,
             }
-          : entry
-      )
+          : entry,
+      ),
     );
   };
 
@@ -124,8 +124,8 @@ export default function SetForm({
     const next = Math.max(1, Number(quantity) || 1);
     setEntries((prev) =>
       prev.map((entry) =>
-        entry.key === key ? { ...entry, quantity: next } : entry
-      )
+        entry.key === key ? { ...entry, quantity: next } : entry,
+      ),
     );
   };
 
@@ -142,7 +142,7 @@ export default function SetForm({
 
   const handleRemoveExistingImage = (publicId) => {
     setExistingImages((prev) =>
-      prev.filter((image) => image.publicId !== publicId)
+      prev.filter((image) => image.publicId !== publicId),
     );
     setRemoveImageIds((prev) => [...prev, publicId]);
   };
@@ -218,7 +218,7 @@ export default function SetForm({
             <button
               type="button"
               onClick={onDelete}
-              className="mr-auto inline-flex items-center gap-2 rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 sm:mr-auto sm:w-auto"
             >
               <Trash2 className="h-4 w-4" /> Sil
             </button>
@@ -226,7 +226,7 @@ export default function SetForm({
           <button
             type="button"
             onClick={() => onClose?.()}
-            className="rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
+            className="w-full rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] sm:w-auto"
             disabled={submitting}
           >
             İptal
@@ -234,14 +234,14 @@ export default function SetForm({
           <button
             type="submit"
             form="admin-set-form"
-            className="inline-flex items-center gap-2 rounded-full bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-60 sm:w-auto"
             disabled={submitting}
           >
             {submitting
               ? "Kaydediliyor..."
               : initialSet?.id
-              ? "Değişiklikleri kaydet"
-              : "Set oluştur"}
+                ? "Değişiklikleri kaydet"
+                : "Set oluştur"}
           </button>
         </>
       }
@@ -410,14 +410,14 @@ export default function SetForm({
                 key={entry.key}
                 className="rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] p-4 shadow-sm"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <h4 className="text-sm font-semibold text-[var(--color-text-admin)]">
                     Ürün
                   </h4>
                   <button
                     type="button"
                     onClick={() => handleRemoveEntry(entry.key)}
-                    className="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-500"
+                    className="inline-flex items-center gap-1 self-start text-xs text-red-600 hover:text-red-500 sm:self-auto"
                   >
                     <Trash2 className="h-4 w-4" /> Kaldır
                   </button>

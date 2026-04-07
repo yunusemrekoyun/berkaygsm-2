@@ -91,7 +91,7 @@ export default function ServiceRecordTable({
                   key={record.id}
                   className={record.isDeleted ? "opacity-60" : "hover:bg-[var(--color-bg-admin)]/40"}
                 >
-                  <td className="px-4 py-3 align-top">
+                  <td data-label="Takip No" className="px-4 py-3 align-top">
                     <div className="space-y-1">
                       <p className="font-semibold text-[var(--color-text-admin)]">
                         {record.trackingNo}
@@ -104,7 +104,7 @@ export default function ServiceRecordTable({
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 align-top">
+                  <td data-label="Müşteri" className="px-4 py-3 align-top">
                     <p className="font-medium text-[var(--color-text-admin)]">
                       {record.customerFullName || "—"}
                     </p>
@@ -114,7 +114,7 @@ export default function ServiceRecordTable({
                         "—"}
                     </p>
                   </td>
-                  <td className="px-4 py-3 align-top">
+                  <td data-label="Durum / Sonuç" className="px-4 py-3 align-top">
                     <div className="flex flex-col gap-1.5">
                       <Badge
                         label={workflowLabels[record.workflowStatus] || "—"}
@@ -128,7 +128,7 @@ export default function ServiceRecordTable({
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 align-top">
+                  <td data-label="Garanti" className="px-4 py-3 align-top">
                     <div className="space-y-1">
                       <Badge
                         label={record.warranty?.label || "—"}
@@ -144,7 +144,7 @@ export default function ServiceRecordTable({
                       </p>
                     </div>
                   </td>
-                  <td className="px-4 py-3 align-top">
+                  <td data-label="Tarih" className="px-4 py-3 align-top">
                     <div className="space-y-1 text-xs text-[var(--color-text-admin-muted)]">
                       <p>Alım: {formatDate(record.intakeDate)}</p>
                       <p>Tamam: {formatDate(record.completionDate)}</p>
@@ -156,8 +156,8 @@ export default function ServiceRecordTable({
                       </p>
                     </div>
                   </td>
-                  <td className="px-4 py-3 align-top">
-                    <div className="flex items-center justify-end gap-2">
+                  <td data-label="İşlemler" className="px-4 py-3 align-top">
+                    <div className="mobile-full flex flex-wrap items-center justify-end gap-2">
                       <button
                         type="button"
                         onClick={() => onEdit?.(record)}

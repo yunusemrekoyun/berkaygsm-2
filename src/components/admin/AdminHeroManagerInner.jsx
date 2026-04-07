@@ -465,8 +465,8 @@ function HeroModal({
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="absolute inset-x-0 top-0 mx-auto mt-8 w-[min(900px,92vw)] overflow-hidden rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-[var(--color-border-admin)] px-5 py-3">
+      <div className="absolute inset-x-0 bottom-0 mx-auto flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-2xl sm:bottom-auto sm:top-0 sm:mt-8 sm:w-[min(900px,92vw)] sm:rounded-2xl">
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--color-border-admin)] px-5 py-3">
           <div className="text-lg font-semibold">
             {initial ? "Hero’yu Düzenle" : "Yeni Hero"}
           </div>
@@ -478,6 +478,7 @@ function HeroModal({
           </button>
         </div>
 
+        <div className="overflow-y-auto">
         <form onSubmit={submit} className="grid gap-5 p-5 md:grid-cols-12">
           {error && (
             <div className="md:col-span-12">
@@ -683,6 +684,7 @@ function HeroModal({
             </div>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

@@ -11,7 +11,11 @@ const currency = new Intl.NumberFormat("tr-TR", {
 
 const INFTY = Number.MAX_SAFE_INTEGER;
 const displaySetStock = (stock) =>
-  Number.isFinite(stock) ? (stock >= INFTY ? "∞" : String(stock)) : "Varyantlara bağlı";
+  Number.isFinite(stock)
+    ? stock >= INFTY
+      ? "∞"
+      : String(stock)
+    : "Varyantlara bağlı";
 
 export default function SetTable({
   sets = [],
@@ -118,7 +122,10 @@ export default function SetTable({
                     {set.show ? "Görünür" : "Gizli"}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-left md:text-right" data-label="İşlemler">
+                <td
+                  className="px-4 py-3 text-left md:text-right"
+                  data-label="İşlemler"
+                >
                   <div className="mobile-full flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
                     {typeof onTranslate === "function" && (
                       <button
@@ -210,8 +217,8 @@ function StockInspectModal({ setItem, onClose }) {
   }, [setItem]);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-      <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-3 sm:grid sm:place-items-center sm:p-4">
+      <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-xl max-h-[92vh] sm:max-h-[90vh]">
         <header className="flex items-center justify-between border-b border-[var(--color-border-admin)] px-5 py-3">
           <div>
             <h3 className="font-semibold text-[var(--color-text-admin)]">
@@ -229,7 +236,7 @@ function StockInspectModal({ setItem, onClose }) {
           </button>
         </header>
 
-        <div className="max-h-[70vh] overflow-auto p-5">
+        <div className="max-h-[72vh] overflow-auto p-4 sm:max-h-[70vh] sm:p-5">
           <table className="admin-table min-w-full divide-y divide-[var(--color-border-admin)]/70 text-sm">
             <thead className="bg-[var(--color-bg-hover)]/60 text-[var(--color-text-admin-muted)]">
               <tr>
@@ -250,7 +257,9 @@ function StockInspectModal({ setItem, onClose }) {
             <tbody className="divide-y divide-[var(--color-border-admin)]/60 text-[var(--color-text-admin)]">
               {rows.map((r) => (
                 <tr key={r.key} className="hover:bg-[var(--color-bg-hover)]/40">
-                  <td className="px-3 py-2" data-label="Ürün">{r.productName}</td>
+                  <td className="px-3 py-2" data-label="Ürün">
+                    {r.productName}
+                  </td>
                   <td className="px-3 py-2" data-label="Varyant">
                     <VariantLabel
                       color={r.variant.color}
@@ -258,16 +267,28 @@ function StockInspectModal({ setItem, onClose }) {
                       attributeValue={r.variant.attributeValue}
                     />
                   </td>
-                  <td className="px-3 py-2 text-left md:text-right" data-label="Set içi adet">
+                  <td
+                    className="px-3 py-2 text-left md:text-right"
+                    data-label="Set içi adet"
+                  >
                     {r.qtyInSet}
                   </td>
-                  <td className="px-3 py-2 text-left md:text-right" data-label="Stok (Katalog)">
+                  <td
+                    className="px-3 py-2 text-left md:text-right"
+                    data-label="Stok (Katalog)"
+                  >
                     {r.stockCatalog ?? "—"}
                   </td>
-                  <td className="px-3 py-2 text-left md:text-right" data-label="Stok (Set)">
+                  <td
+                    className="px-3 py-2 text-left md:text-right"
+                    data-label="Stok (Set)"
+                  >
                     {r.stockSet ?? "—"}
                   </td>
-                  <td className="px-3 py-2 text-left md:text-right" data-label="Stok (Eski)">
+                  <td
+                    className="px-3 py-2 text-left md:text-right"
+                    data-label="Stok (Eski)"
+                  >
                     {r.stock ?? "—"}
                   </td>
                 </tr>
@@ -291,7 +312,7 @@ function VariantLabel({ color, size, attributeValue }) {
   ].filter(Boolean);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
       {info.value && (
         <span
           className="inline-block h-4 w-4 rounded-full border border-gray-300"

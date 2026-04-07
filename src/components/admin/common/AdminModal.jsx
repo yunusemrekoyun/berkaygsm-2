@@ -12,16 +12,16 @@ export default function AdminModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+    <div className="fixed inset-0 z-50 flex items-end justify-center px-3 py-3 sm:items-center sm:px-4 sm:py-6">
       <div
         className="absolute inset-0 bg-black/40"
         onClick={onClose}
         aria-hidden="true"
       />
       <div
-        className={`relative w-full ${widthClass} max-h-[90vh] overflow-hidden rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-2xl`}
+        className={`relative w-full ${widthClass} max-h-[92vh] overflow-hidden rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-2xl sm:max-h-[90vh]`}
       >
-        <header className="flex items-start justify-between border-b border-[var(--color-border-admin)] px-6 py-4">
+        <header className="flex items-start justify-between gap-3 border-b border-[var(--color-border-admin)] px-4 py-4 sm:px-6">
           <div>
             <h2 className="text-lg font-semibold text-[var(--color-text-admin)]">
               {title}
@@ -40,9 +40,11 @@ export default function AdminModal({
             <X className="h-5 w-5" />
           </button>
         </header>
-        <div className="max-h-[70vh] overflow-y-auto px-6 py-5">{children}</div>
+        <div className="max-h-[72vh] overflow-y-auto px-4 py-4 sm:max-h-[70vh] sm:px-6 sm:py-5">
+          {children}
+        </div>
         {footer && (
-          <footer className="flex items-center justify-end gap-3 border-t border-[var(--color-border-admin)] px-6 py-4">
+          <footer className="flex flex-col-reverse gap-3 border-t border-[var(--color-border-admin)] px-4 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-6">
             {footer}
           </footer>
         )}

@@ -204,7 +204,7 @@ export default function ServiceRecordForm({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
+            className="w-full rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] sm:w-auto"
             disabled={submitting}
           >
             İptal
@@ -212,7 +212,7 @@ export default function ServiceRecordForm({
           <button
             type="submit"
             form="service-record-form"
-            className="rounded-full bg-[var(--color-text-admin)] px-5 py-2 text-sm font-semibold text-[var(--color-bg-admin)] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-full bg-[var(--color-text-admin)] px-5 py-2 text-sm font-semibold text-[var(--color-bg-admin)] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             disabled={submitting}
           >
             {submitting ? "Kaydediliyor..." : isEditing ? "Kaydet" : "Kaydı Oluştur"}

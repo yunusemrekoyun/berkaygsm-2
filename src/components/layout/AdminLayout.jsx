@@ -161,8 +161,12 @@ export default function AdminLayout({ children, title, subtitle, actions }) {
           { to: "/admin/media", label: "Medya Kütüphanesi", Icon: Image },
           { to: "/admin/discounts", label: "İndirimler", Icon: Percent },
           { to: "/admin/coupons", label: "Kuponlar", Icon: TicketPercent },
-           { to: "/admin/stocks", label: "Stok Yönetimi", Icon: Boxes },
-           { to: "/admin/service-records", label: "Servis Kayıtları", Icon: Wrench },
+          { to: "/admin/stocks", label: "Stok Yönetimi", Icon: Boxes },
+          {
+            to: "/admin/service-records",
+            label: "Servis Kayıtları",
+            Icon: Wrench,
+          },
         ],
       },
       {
@@ -177,7 +181,7 @@ export default function AdminLayout({ children, title, subtitle, actions }) {
         items: [{ to: "/admin/settings", label: "Ayarlar", Icon: Settings }],
       },
     ],
-    []
+    [],
   );
 
   async function handleLogout() {
@@ -274,7 +278,7 @@ function SidebarHeader({ collapsed, onToggle }) {
       </Link>
       <button
         onClick={onToggle}
-        className="hidden md:inline-flex rounded-lg p-2 text-white/80 -translate-x-5"
+        className="hidden md:inline-flex rounded-lg p-2 text-white/80 hover:bg-white/10"
         aria-label={collapsed ? "Menüyü genişlet" : "Menüyü daralt"}
       >
         {collapsed ? (
@@ -345,7 +349,7 @@ function TopBar({ breadcrumbs, onMenuToggle, me, onLogout }) {
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--color-border-admin)]/40 bg-[var(--color-bg-card)]/95 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-none items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <button
             onClick={onMenuToggle}
             className="flex rounded-lg p-2 text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] md:hidden"
@@ -356,7 +360,7 @@ function TopBar({ breadcrumbs, onMenuToggle, me, onLogout }) {
           <Breadcrumbs items={breadcrumbs} />
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <div className="hidden lg:flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-1.5">
             <Search className="h-4 w-4 text-[var(--color-text-admin-muted)]" />
             <input
@@ -387,7 +391,9 @@ function PageHeader({ title, subtitle, actions }) {
           )}
         </div>
         {actions && (
-          <div className="flex flex-wrap items-center gap-2">{actions}</div>
+          <div className="flex w-full flex-wrap items-stretch gap-2 lg:w-auto lg:items-center lg:justify-end">
+            {actions}
+          </div>
         )}
       </div>
     </div>
@@ -476,8 +482,8 @@ function MobileDrawer({ open, onClose, menu, me, onLogout }) {
           </button>
         </div>
 
-        <div className="flex h-[calc(100%-4rem)] flex-col justify-between">
-          <div className="overflow-y-auto px-3 pb-6 pt-4 space-y-6">
+        <div className="flex h-[calc(100dvh-4rem)] min-h-0 flex-col justify-between">
+          <div className="min-h-0 overflow-y-auto px-3 pb-6 pt-4 space-y-6">
             {menu.map((section) => (
               <SidebarSection
                 key={section.label}
@@ -562,7 +568,7 @@ function UserMenu({ me, onLogout }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-xl">
+        <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-xl">
           <div className="px-4 py-3">
             <div className="text-sm font-semibold text-[var(--color-text-admin)]">
               {me?.firstName
@@ -653,8 +659,8 @@ function AdminNotificationMenu() {
             nextItems.map((item) =>
               unreadIds.includes(item.id)
                 ? { ...item, read: true, readAt }
-                : item
-            )
+                : item,
+            ),
           );
           setUnreadCount(0);
           unreadIds.forEach((id) => notifiedIdsRef.current.add(id));
@@ -669,7 +675,7 @@ function AdminNotificationMenu() {
         if (showLoader) setLoading(false);
       }
     },
-    [open, permission]
+    [open, permission],
   );
 
   useEffect(() => {
@@ -739,7 +745,7 @@ function AdminNotificationMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-[22rem] overflow-hidden rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-2xl">
+        <div className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] overflow-hidden rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-2xl">
           <div className="flex items-center justify-between border-b border-[var(--color-border-admin)]/60 px-4 py-3">
             <div>
               <div className="text-sm font-semibold text-[var(--color-text-admin)]">
@@ -758,8 +764,8 @@ function AdminNotificationMenu() {
             <div className="flex items-start gap-2 border-b border-[var(--color-border-admin)]/60 bg-[var(--color-bg-hover)]/60 px-4 py-3 text-xs text-[var(--color-text-admin-muted)]">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-accent)]" />
               <span>
-                Tarayıcı bildirimi için izin penceresi bu simgeye
-                tıkladığınızda gösterilir.
+                Tarayıcı bildirimi için izin penceresi bu simgeye tıkladığınızda
+                gösterilir.
               </span>
             </div>
           )}
@@ -846,7 +852,7 @@ function MenuLink({ to, children }) {
 function Breadcrumbs({ items = [] }) {
   if (!items.length) return null;
   return (
-    <nav className="flex items-center gap-1 text-sm text-[var(--color-text-admin-muted)]">
+    <nav className="hidden min-w-0 items-center gap-1 overflow-x-auto whitespace-nowrap text-sm text-[var(--color-text-admin-muted)] sm:flex no-scrollbar">
       {items.map((crumb, index) => {
         const last = index === items.length - 1;
         return (

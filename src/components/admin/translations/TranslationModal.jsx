@@ -144,7 +144,7 @@ export default function TranslationModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
+            className="w-full rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] sm:w-auto"
           >
             Kapat
           </button>

@@ -123,7 +123,8 @@ export default function CategoryForm({
 
   return (
     <div className="rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-sm">
-      <div className="flex items-start justify-between border-b border-[var(--color-border-admin)] px-5 py-4">
+      <div className="flex flex-col gap-3 border-b border-[var(--color-border-admin)] px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5">
+        {" "}
         <div>
           <h3 className="text-lg font-semibold text-[var(--color-text-admin)]">
             {isEditing ? "Kategoriyi Düzenle" : "Kategori Oluştur"}
@@ -134,19 +135,19 @@ export default function CategoryForm({
               : "Kataloğun herhangi bir seviyesine yeni bir kategori ekleyin."}
           </p>
         </div>
-
         {isEditing && (
           <button
             type="button"
             onClick={onCancelEdit}
-            className="rounded-full border border-[var(--color-border-admin)] px-3 py-1 text-xs font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
+            className="inline-flex w-full items-center justify-center rounded-full border border-[var(--color-border-admin)] px-3 py-2 text-xs font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] sm:w-auto sm:py-1"
           >
             Yeni oluştur
           </button>
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5 px-5 py-5">
+      <form onSubmit={handleSubmit} className="space-y-5 px-4 py-5 sm:px-5">
+        {" "}
         {loading ? (
           <div className="space-y-3">
             <div className="h-11 animate-pulse rounded-xl bg-[var(--color-bg-hover)]" />
@@ -206,7 +207,8 @@ export default function CategoryForm({
               </p>
 
               <div className="flex flex-wrap items-start gap-3">
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[var(--color-border-admin)] px-4 py-3 text-sm text-[var(--color-text-admin)] hover:border-[var(--color-text-admin)]">
+                <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--color-border-admin)] px-4 py-3 text-sm text-[var(--color-text-admin)] hover:border-[var(--color-text-admin)] sm:w-auto">
+                  {" "}
                   <Upload className="h-4 w-4" />
                   Görsel yükle
                   <input
@@ -256,30 +258,28 @@ export default function CategoryForm({
             </div>
           </>
         )}
-
         {error && (
           <div className="rounded-xl bg-[var(--color-bg-hover)] px-4 py-3 text-sm text-[var(--color-accent)]">
             {error}
           </div>
         )}
-
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3">
+        <div className="flex flex-col gap-3 pt-3 sm:flex-row sm:items-center sm:justify-between">
           {isEditing && (
             <button
               type="button"
               onClick={onDelete}
-              className="inline-flex items-center gap-2 rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 sm:w-auto"
             >
               <Trash2 className="h-4 w-4" />
               Sil
             </button>
           )}
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="flex w-full items-center gap-3 sm:ml-auto sm:w-auto">
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-60"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-60 sm:w-auto"
             >
               {submitting
                 ? "Kaydediliyor..."

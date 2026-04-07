@@ -157,7 +157,7 @@ export default function DiscountForm({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
+            className="w-full rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] sm:w-auto"
             disabled={submitting}
           >
             İptal
@@ -165,7 +165,7 @@ export default function DiscountForm({
           <button
             type="submit"
             form="discount-form"
-            className="rounded-full bg-[var(--color-accent)] px-5 py-2 text-sm font-semibold text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-60"
+            className="w-full rounded-full bg-[var(--color-accent)] px-5 py-2 text-sm font-semibold text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-60 sm:w-auto"
             disabled={submitting}
           >
             {isEditing ? "Değişiklikleri Kaydet" : "İndirim Oluştur"}

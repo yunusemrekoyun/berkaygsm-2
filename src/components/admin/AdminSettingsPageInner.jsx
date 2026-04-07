@@ -95,7 +95,7 @@ function SettingsCard({
 
       {/* İçerik */}
       <div className="flex items-center justify-between gap-3 p-4">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="grid h-12 w-12 place-items-center rounded-xl bg-[var(--color-accent)]/15 ring-1 ring-[var(--color-accent)]/30">
             {Icon ? (
               <Icon className="h-6 w-6 text-[var(--color-accent)]" />
@@ -138,15 +138,15 @@ export default function AdminSettingsPageInner() {
     () =>
       [...heroes].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0] ||
       null,
-    [heroes]
+    [heroes],
   );
 
   const topCampaign = useMemo(
     () =>
       [...campaigns].sort(
-        (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+        (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
       )[0] || null,
-    [campaigns]
+    [campaigns],
   );
 
   useEffect(() => {
