@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ImagePlus, Trash2, Upload } from "lucide-react";
 import AppImage from "../../ui/AppImage.jsx";
+
 export default function CategoryForm({
   category,
   parentOptions = [],
@@ -17,38 +18,55 @@ export default function CategoryForm({
   const [removeImage, setRemoveImage] = useState(false);
   const [previewUrl, setPreviewUrl] = useState("");
   const [error, setError] = useState("");
+
   useEffect(() => {
     setName(category?.name ?? "");
     setParent(category?.parent ?? "");
     setRemoveImage(false);
     setImageFile(null);
-    setPreviewUrl(category?.image?.url ?? "");
+    setPreviewUrl("");
     setError("");
   }, [category]);
 
   useEffect(() => {
-    if (!imageFile) return undefined;
+    if (!imageFile) {
+      setPreviewUrl("");
+      return undefined;
+    }
+
     const objectUrl = URL.createObjectURL(imageFile);
     setPreviewUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
   }, [imageFile]);
 
   const parentHelper = useMemo(() => {
-    if (!category)
+    if (!category) {
       return "Bu kategorinin nerede yer alacağını seçin (opsiyonel).";
-    if (category.level === 0)
+    }
+    if (category.level === 0) {
       return "Bu üst seviye bir kategoridir. Başka bir kök altına da yerleştirebilirsiniz.";
-    if (category.level === 1)
-      return "Bu ikinci seviye bir kategoridir. Yükseltebilir/indirebilirsiniz.";
+    }
+    if (category.level === 1) {
+      return "Bu ikinci seviye bir kategoridir. Yükseltebilir veya indirebilirsiniz.";
+    }
     return "Yaprak kategorilerin alt kategorisi olamaz.";
   }, [category]);
 
+  const existingImageSrc = category?.image?.url || "";
+  const hasExistingImage = Boolean(existingImageSrc) && !removeImage;
+  const hasNewImagePreview = Boolean(previewUrl);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
+
     if (!name.trim()) {
       setError("Kategori adı zorunludur");
       return;
     }
+
     setError("");
 
     const payload = {
@@ -56,8 +74,13 @@ export default function CategoryForm({
       parent: parent || "",
     };
 
-    if (imageFile) payload.image = imageFile;
-    if (isEditing && removeImage && !imageFile) payload.removeImage = true;
+    if (imageFile) {
+      payload.image = imageFile;
+    }
+
+    if (isEditing && removeImage && !imageFile) {
+      payload.removeImage = true;
+    }
 
     await onSubmit?.(payload);
   };
@@ -65,19 +88,36 @@ export default function CategoryForm({
   const handleImageChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
     if (!file.type.startsWith("image/")) {
       setError("Lütfen bir görsel dosyası yükleyin");
       return;
     }
+
+    setError("");
     setImageFile(file);
     setRemoveImage(false);
   };
 
-  const handleClearImage = () => {
+  const handleCancelNewFile = () => {
+    setImageFile(null);
+  };
+
+  const handleRemoveExisting = () => {
+    if (!isEditing || !category?.image) return;
     setImageFile(null);
     setPreviewUrl("");
-    if (isEditing && category?.image) {
-      setRemoveImage(true);
+    setRemoveImage(true);
+  };
+
+  const handleClearImage = () => {
+    if (hasNewImagePreview) {
+      handleCancelNewFile();
+      return;
+    }
+
+    if (hasExistingImage) {
+      handleRemoveExisting();
     }
   };
 
@@ -94,6 +134,7 @@ export default function CategoryForm({
               : "Kataloğun herhangi bir seviyesine yeni bir kategori ekleyin."}
           </p>
         </div>
+
         {isEditing && (
           <button
             type="button"
@@ -104,6 +145,7 @@ export default function CategoryForm({
           </button>
         )}
       </div>
+
       <form onSubmit={handleSubmit} className="space-y-5 px-5 py-5">
         {loading ? (
           <div className="space-y-3">
@@ -162,7 +204,8 @@ export default function CategoryForm({
                 Katalog menülerinde kullanılan, opsiyonel 1:1 kapak. PNG veya
                 JPG, en fazla 2MB.
               </p>
-              <div className="flex flex-wrap gap-3">
+
+              <div className="flex flex-wrap items-start gap-3">
                 <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[var(--color-border-admin)] px-4 py-3 text-sm text-[var(--color-text-admin)] hover:border-[var(--color-text-admin)]">
                   <Upload className="h-4 w-4" />
                   Görsel yükle
@@ -173,22 +216,21 @@ export default function CategoryForm({
                     onChange={handleImageChange}
                   />
                 </label>
-                {(previewUrl || category?.image) && (
+
+                {(hasNewImagePreview || hasExistingImage) && (
                   <div className="relative overflow-hidden rounded-xl border border-[var(--color-border-admin)]">
-                    {previewUrl ? (
-                      <AppImage
-                        src={previewUrl}
-                        alt="Önizleme"
-                        width={96}
-                        height={96}
-                        sizes="96px"
-                        className="h-24 w-24 object-cover"
-                      />
-                    ) : (
-                      <div className="grid h-24 w-24 place-items-center bg-[var(--color-bg-hover)] text-[var(--color-text-admin-muted)]">
-                        <ImagePlus className="h-6 w-6" />
-                      </div>
-                    )}
+                    <AppImage
+                      src={hasNewImagePreview ? previewUrl : existingImageSrc}
+                      alt={
+                        hasNewImagePreview
+                          ? "Yeni görsel önizleme"
+                          : category?.name || "Kategori görseli"
+                      }
+                      width={96}
+                      height={96}
+                      sizes="96px"
+                      className="h-24 w-24 object-cover"
+                    />
                     <button
                       type="button"
                       onClick={handleClearImage}
@@ -198,21 +240,13 @@ export default function CategoryForm({
                     </button>
                   </div>
                 )}
-                {isEditing &&
-                  category?.image &&
-                  !previewUrl &&
-                  !removeImage && (
-                    <div className="overflow-hidden rounded-xl border border-[var(--color-border-admin)]">
-                      <AppImage
-                        src={category.image.url}
-                        alt={category.name}
-                        width={96}
-                        height={96}
-                        sizes="96px"
-                        className="h-24 w-24 object-cover"
-                      />
-                    </div>
-                  )}
+
+                {!hasNewImagePreview && !hasExistingImage && (
+                  <div className="grid h-24 w-24 place-items-center rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-hover)] text-[var(--color-text-admin-muted)]">
+                    <ImagePlus className="h-6 w-6" />
+                  </div>
+                )}
+
                 {removeImage && !imageFile && (
                   <span className="inline-flex items-center rounded-full bg-[var(--color-bg-hover)] px-3 py-1 text-xs font-semibold text-[var(--color-text-admin)]">
                     Görsel kaldırılacak
@@ -240,6 +274,7 @@ export default function CategoryForm({
               Sil
             </button>
           )}
+
           <div className="ml-auto flex items-center gap-3">
             <button
               type="submit"

@@ -1,15 +1,16 @@
-// src/components/categories/CategoryItem.jsx
 import { Link } from "react-router-dom";
 import AppImage from "../ui/AppImage.jsx";
 
 const placeholderImage = "/cat-1.jpg";
 
 export default function CategoryItem({ title, image, to = "#" }) {
+  const safeSrc = image?.url || image || placeholderImage;
+
   return (
     <Link to={to} className="group block">
       <div className="glass-surface overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
         <AppImage
-          src={image || placeholderImage}
+          src={safeSrc}
           alt={title}
           width={1400}
           height={1000}
