@@ -1,8 +1,21 @@
 import mongoose from "mongoose";
+import { revalidatePath } from "next/cache";
 import StockItem from "../models/StockItem.js";
 import Product from "../models/Product.js";
 import SetModel from "../models/Set.js";
 import { maybeCreateLowStockNotification } from "../services/adminNotificationService.js";
+
+async function revalidateOwnerCache(ownerModel, owner) {
+  if (ownerModel !== "Product") return;
+  try {
+    const product = await Product.findById(owner).select("slug").lean();
+    if (product?.slug) {
+      revalidatePath(`/product/${product.slug}`);
+    }
+  } catch {
+    // cache bust non-critical
+  }
+}
 
 const isId = (s) => typeof s === "string" && /^[0-9a-fA-F]{24}$/.test(s);
 
@@ -209,6 +222,7 @@ export async function upsertStock(req, res) {
       previousQty,
       qtyOnHand: found.qtyOnHand,
     });
+    await revalidateOwnerCache(found.ownerModel, String(found.owner));
     const populated = await found.populate([
       { path: "owner", model: found.ownerModel },
       { path: "components.product", model: "Product" },
@@ -255,6 +269,7 @@ export async function updateStock(req, res) {
       previousQty,
       qtyOnHand: stock.qtyOnHand,
     });
+    await revalidateOwnerCache(stock.ownerModel, String(stock.owner));
     const populated = await stock.populate([
       { path: "owner", model: stock.ownerModel },
       { path: "components.product", model: "Product" },
@@ -355,6 +370,7 @@ export async function syncOwnerStocks(req, res) {
         });
       }
       await session.commitTransaction();
+      await revalidateOwnerCache(ownerModel, owner);
       res.json({
         ok: true,
         count: Array.isArray(inserted) ? inserted.length : 0,
@@ -421,6 +437,7 @@ export async function syncOwnerStocks(req, res) {
           qtyOnHand: row.qtyOnHand,
         });
       }
+      await revalidateOwnerCache(ownerModel, owner);
       res.json({ ok: true, count: docs.length });
     } catch (err) {
       if (err?.code === 11000 && err?.keyPattern?.sku)
