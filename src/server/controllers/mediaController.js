@@ -115,7 +115,7 @@ export async function listCloudinaryResources(req, res) {
       nextCursor: req.query.nextCursor,
       prefix: req.query.prefix,
       maxResults: req.query.maxResults,
-      resourceType: req.query.resourceType || "image",
+      resourceType: req.query.resourceType || "all",
       type: req.query.type || "upload",
     });
 

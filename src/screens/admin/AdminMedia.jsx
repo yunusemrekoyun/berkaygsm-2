@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { RefreshCw, Search } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { RefreshCw } from "lucide-react";
 import { mediaApi } from "../../api/media";
 import MediaUsageCard, {
   MediaUsageSkeleton,
@@ -7,6 +7,25 @@ import MediaUsageCard, {
 import MediaResourceTable from "../../components/admin/media/MediaResourceTable";
 import AlertBanner from "../../components/ui/AlertBanner.jsx";
 import { useConfirm } from "../../components/ui/ConfirmDialog.jsx";
+
+const FOLDERS = [
+  { value: "", label: "Tümü" },
+  { value: "products", label: "Ürünler" },
+  { value: "sets", label: "Setler" },
+  { value: "categories", label: "Kategoriler" },
+  { value: "campaigns", label: "Kampanyalar" },
+  { value: "heroes", label: "Hero" },
+  { value: "about", label: "Hakkımızda" },
+  { value: "contact", label: "İletişim" },
+  { value: "media", label: "Genel Medya" },
+  { value: "avatars", label: "Avatarlar" },
+];
+
+const RESOURCE_TYPES = [
+  { value: "all", label: "Tümü" },
+  { value: "image", label: "Görsel" },
+  { value: "video", label: "Video" },
+];
 
 export default function AdminMedia() {
   const confirm = useConfirm();
@@ -17,17 +36,42 @@ export default function AdminMedia() {
   const [resourcesLoading, setResourcesLoading] = useState(false);
   const [nextCursor, setNextCursor] = useState(null);
   const [banner, setBanner] = useState(null);
-  const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 400);
+  const [activeFolder, setActiveFolder] = useState("");
+  const [activeType, setActiveType] = useState("all");
 
   useEffect(() => {
     fetchUsage();
   }, []);
 
-  useEffect(() => {
-    fetchResources(true);
+  const fetchResources = useCallback(
+    async (reset = false, folder = activeFolder, type = activeType, cursor = nextCursor) => {
+      setResourcesLoading(true);
+      try {
+        const data = await mediaApi.list({
+          prefix: folder || undefined,
+          resourceType: type,
+          maxResults: 50,
+          nextCursor: reset ? undefined : cursor || undefined,
+        });
+        setNextCursor(data.nextCursor);
+        setResources((prev) =>
+          reset ? data.resources : [...prev, ...data.resources]
+        );
+      } catch (error) {
+        setBanner({ variant: "danger", message: extractMessage(error) });
+      } finally {
+        setResourcesLoading(false);
+      }
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch]);
+    []
+  );
+
+  useEffect(() => {
+    setNextCursor(null);
+    fetchResources(true, activeFolder, activeType, null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFolder, activeType]);
 
   const fetchUsage = async (isManual = false) => {
     if (isManual) setRefreshingUsage(true);
@@ -37,7 +81,7 @@ export default function AdminMedia() {
       setUsage({
         ...data,
         lastUpdated: data?.lastUpdated
-          ? new Date(data.lastUpdated).toLocaleDateString()
+          ? new Date(data.lastUpdated).toLocaleString("tr-TR")
           : "—",
       });
     } catch (error) {
@@ -48,29 +92,10 @@ export default function AdminMedia() {
     }
   };
 
-  const fetchResources = async (reset = false) => {
-    setResourcesLoading(true);
-    try {
-      const data = await mediaApi.list({
-        prefix: debouncedSearch || undefined,
-        maxResults: 50,
-        nextCursor: reset ? undefined : nextCursor || undefined,
-      });
-      setNextCursor(data.nextCursor);
-      setResources((prev) =>
-        reset ? data.resources : [...prev, ...data.resources]
-      );
-    } catch (error) {
-      setBanner({ variant: "danger", message: extractMessage(error) });
-    } finally {
-      setResourcesLoading(false);
-    }
-  };
-
   const handleDelete = async (resource) => {
     const ok = await confirm({
       title: "Varlığı sil",
-      description: `“${resource.publicId}” varlığı silinsin mi? Bu işlem geri alınamaz.`,
+      description: `"${resource.publicId}" diskten silinsin mi? Bu işlem geri alınamaz.`,
       confirmText: "Sil",
       tone: "danger",
     });
@@ -81,7 +106,7 @@ export default function AdminMedia() {
         prev.filter((item) => item.publicId !== resource.publicId)
       );
       await fetchUsage(true);
-      setBanner({ variant: "warning", message: "Varlık kaldırıldı" });
+      setBanner({ variant: "warning", message: "Varlık silindi" });
     } catch (error) {
       setBanner({ variant: "danger", message: extractMessage(error) });
     }
@@ -95,7 +120,7 @@ export default function AdminMedia() {
             Medya Kütüphanesi
           </h1>
           <p className="text-sm text-[var(--color-text-admin-muted)]">
-            Aktif medya sürücüsünü takip edin ve yüklenen varlıkları yönetin.
+            VPS diskindeki medya dosyalarını klasöre göre görüntüleyin ve yönetin.
           </p>
         </div>
         <button
@@ -112,19 +137,45 @@ export default function AdminMedia() {
         <MediaUsageCard usage={usage} refreshing={refreshingUsage} />
       )}
 
-      <div className="grid gap-4 rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] p-4 shadow-sm md:grid-cols-3">
-        <label className="md:col-span-1 flex items-center gap-2 rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2.5">
-          <Search className="h-4 w-4 text-[var(--color-text-admin-muted)]" />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Public ID veya klasöre göre filtrele"
-            className="w-full border-0 bg-transparent text-sm text-[var(--color-text-admin)] outline-none"
-          />
-        </label>
-        <div className="md:col-span-2 flex items-center justify-end text-xs text-[var(--color-text-admin-muted)]">
-          {resources.length} varlık gösteriliyor
+      {/* Klasör sekmeleri */}
+      <div className="overflow-x-auto">
+        <div className="flex gap-1 min-w-max rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] p-1.5 shadow-sm">
+          {FOLDERS.map((folder) => (
+            <button
+              key={folder.value}
+              onClick={() => setActiveFolder(folder.value)}
+              className={`rounded-xl px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap ${
+                activeFolder === folder.value
+                  ? "bg-[var(--color-primary)] text-white shadow-sm"
+                  : "text-[var(--color-text-admin-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-admin)]"
+              }`}
+            >
+              {folder.label}
+            </button>
+          ))}
         </div>
+      </div>
+
+      {/* Tür filtresi + sayaç */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex gap-1 rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] p-1">
+          {RESOURCE_TYPES.map((type) => (
+            <button
+              key={type.value}
+              onClick={() => setActiveType(type.value)}
+              className={`rounded-lg px-3 py-1 text-sm font-medium transition-colors ${
+                activeType === type.value
+                  ? "bg-[var(--color-bg-hover)] text-[var(--color-text-admin)] shadow-sm"
+                  : "text-[var(--color-text-admin-muted)] hover:text-[var(--color-text-admin)]"
+              }`}
+            >
+              {type.label}
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-[var(--color-text-admin-muted)]">
+          {resources.length} varlık gösteriliyor
+        </span>
       </div>
 
       {banner && (
@@ -139,22 +190,11 @@ export default function AdminMedia() {
         resources={resources}
         loading={resourcesLoading}
         onDelete={handleDelete}
-        onLoadMore={() => fetchResources(false)}
+        onLoadMore={() => fetchResources(false, activeFolder, activeType, nextCursor)}
         hasMore={Boolean(nextCursor)}
       />
     </section>
   );
-}
-
-function useDebounce(value, delay = 400) {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
-  return debounced;
 }
 
 function extractMessage(error) {
@@ -163,8 +203,7 @@ function extractMessage(error) {
     try {
       const parsed = JSON.parse(error.message);
       if (parsed?.message) return parsed.message;
-    } catch (e) {
-      console.error(e);
+    } catch {
       /* ignore */
     }
     return error.message;
