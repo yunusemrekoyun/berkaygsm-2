@@ -57,6 +57,7 @@ export default function AdminCampaignLayout() {
   const [banner, setBanner] = useState(null);
   const [, setDraggingId] = useState(null);
   const [dragOverSlot, setDragOverSlot] = useState(null);
+  const [selectedCampaignId, setSelectedCampaignId] = useState(null);
 
   useEffect(() => {
     loadData(adminLang);
@@ -216,6 +217,15 @@ export default function AdminCampaignLayout() {
     [assignments, campaignMap, persistAssignments, saving]
   );
 
+  const handleSlotTap = useCallback(
+    async (slotId) => {
+      if (!selectedCampaignId || saving) return;
+      setSelectedCampaignId(null);
+      await handleDropToSlot(slotId, selectedCampaignId);
+    },
+    [handleDropToSlot, saving, selectedCampaignId]
+  );
+
   const handleRemove = useCallback(
     async (campaignId) => {
       if (!campaignId || saving) return;
@@ -269,8 +279,8 @@ export default function AdminCampaignLayout() {
 
   return (
     <section className="space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <header className="space-y-2">
+        <div className="flex flex-wrap items-center gap-3">
           <Link
             to="/admin/campaigns"
             className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] px-3 py-1 text-xs font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
@@ -283,9 +293,10 @@ export default function AdminCampaignLayout() {
             Yerleşim
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-[var(--color-text-admin-muted)]">
-          Kampanyaları ana sayfa sıralamasını yansıtmak için ızgaraya sürükleyin.
-        </div>
+        <p className="text-xs text-[var(--color-text-admin-muted)]">
+          <span className="hidden sm:inline">Kampanyaları ana sayfa sıralamasını yansıtmak için ızgaraya sürükleyin.</span>
+          <span className="sm:hidden">Kampanyayı seçip slota dokunarak atayın.</span>
+        </p>
       </header>
 
       {banner && (
@@ -328,18 +339,22 @@ export default function AdminCampaignLayout() {
               </button>
             </div>
 
-            <div className="mt-4 grid auto-rows-[220px] grid-cols-1 gap-4 md:grid-cols-4 md:grid-rows-2 md:auto-rows-[210px]">
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:auto-rows-[210px] md:grid-cols-4 md:grid-rows-2">
               {assignedCards.map(({ slot, campaign }) => {
                 const isOver = dragOverSlot === slot.id;
+                const isTapTarget = !!selectedCampaignId && !campaign;
                 return (
                   <div
                     key={slot.id}
                     onDragOver={(event) => onSlotDragOver(event, slot.id)}
                     onDrop={(event) => onSlotDrop(event, slot.id)}
-                    className={`relative overflow-hidden rounded-2xl border-2 border-dashed transition ${
-                      isOver
-                        ? "border-[var(--color-text-admin)] bg-[var(--color-bg-admin)]"
-                        : "border-[var(--color-border-admin)] bg-[var(--color-bg-admin)]/50"
+                    onClick={() => isTapTarget && handleSlotTap(slot.id)}
+                    className={`relative min-h-[160px] overflow-hidden rounded-2xl border-2 border-dashed transition md:min-h-0 ${
+                      isTapTarget
+                        ? "cursor-pointer border-[var(--color-text-admin)] bg-[var(--color-bg-admin)] ring-2 ring-[var(--color-text-admin)]/30"
+                        : isOver
+                          ? "border-[var(--color-text-admin)] bg-[var(--color-bg-admin)]"
+                          : "border-[var(--color-border-admin)] bg-[var(--color-bg-admin)]/50"
                     } ${slot.className}`}
                   >
                     {campaign ? (
@@ -351,11 +366,13 @@ export default function AdminCampaignLayout() {
                         disabled={saving}
                       />
                     ) : (
-                      <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center text-[var(--color-text-admin-muted)]">
+                      <div className="flex h-full flex-col items-center justify-center gap-3 px-4 py-6 text-center text-[var(--color-text-admin-muted)] md:py-0">
                         <Square className="h-8 w-8" />
                         <div className="text-sm font-semibold">{slot.label}</div>
                         <p className="text-xs">{slot.description}</p>
-                        <p className="text-[11px] uppercase">Kampanyayı buraya bırak</p>
+                        <p className="text-[11px] uppercase">
+                          {isTapTarget ? "Buraya ata" : <span className="hidden sm:inline">Buraya bırak</span>}
+                        </p>
                       </div>
                     )}
                     <div className="pointer-events-none absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-[var(--color-border-admin)] bg-[var(--color-bg-card)]/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-admin-muted)]">
@@ -389,6 +406,18 @@ export default function AdminCampaignLayout() {
               )}
             </div>
 
+            {selectedCampaignId && (
+              <p className="mt-3 rounded-xl bg-[var(--color-bg-admin)] px-3 py-2 text-xs text-[var(--color-text-admin-muted)] sm:hidden">
+                Seçildi — yukarıdan bir slota dokunarak atayın.{" "}
+                <button
+                  type="button"
+                  className="font-semibold text-[var(--color-text-admin)] underline"
+                  onClick={() => setSelectedCampaignId(null)}
+                >
+                  İptal
+                </button>
+              </p>
+            )}
             <ul className="mt-3 space-y-3">
               {availableCampaigns.length === 0 ? (
                 <li className="rounded-xl border border-dashed border-[var(--color-border-admin)] px-4 py-6 text-center text-xs text-[var(--color-text-admin-muted)]">
@@ -402,6 +431,12 @@ export default function AdminCampaignLayout() {
                       onDragStart={() => handleDragStart(campaign.id)}
                       onDragEnd={handleDragEnd}
                       disabled={saving}
+                      selected={selectedCampaignId === campaign.id}
+                      onTap={() =>
+                        setSelectedCampaignId((prev) =>
+                          prev === campaign.id ? null : campaign.id
+                        )
+                      }
                     />
                   </li>
                 ))
@@ -455,7 +490,7 @@ function SlotCampaignCard({ campaign, onRemove, onDragStart, onDragEnd, disabled
   );
 }
 
-function AvailableCampaignCard({ campaign, onDragStart, onDragEnd, disabled }) {
+function AvailableCampaignCard({ campaign, onDragStart, onDragEnd, disabled, selected, onTap }) {
   return (
     <div
       draggable={!disabled}
@@ -464,9 +499,12 @@ function AvailableCampaignCard({ campaign, onDragStart, onDragEnd, disabled }) {
         onDragStart?.();
       }}
       onDragEnd={onDragEnd}
-      className={`flex items-start gap-3 rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-admin)] px-3 py-3 text-sm transition ${
-        disabled ? "opacity-60" : "cursor-move hover:bg-[var(--color-bg-card)]"
-      }`}
+      onClick={onTap}
+      className={`flex items-start gap-3 rounded-2xl border px-3 py-3 text-sm transition ${
+        selected
+          ? "border-[var(--color-text-admin)] bg-[var(--color-bg-card)] ring-2 ring-[var(--color-text-admin)]/20"
+          : "border-[var(--color-border-admin)] bg-[var(--color-bg-admin)]"
+      } ${disabled ? "opacity-60" : "cursor-pointer sm:cursor-move hover:bg-[var(--color-bg-card)]"}`}
     >
       <div className="mt-1">
         <Megaphone className="h-4 w-4 text-[var(--color-text-admin-muted)]" />
