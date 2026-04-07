@@ -55,7 +55,11 @@ function buildAssetId(buffer, folder, originalName = "") {
     .slice(0, 24);
 }
 
-function resolveExtension({ originalName = "", mimeType = "", resourceType = "image" } = {}) {
+function resolveExtension({
+  originalName = "",
+  mimeType = "",
+  resourceType = "image",
+} = {}) {
   const fromMime = MIME_EXTENSION_MAP[String(mimeType || "").toLowerCase()];
   if (fromMime) return fromMime;
   const parsed = path.extname(String(originalName || "")).toLowerCase();
@@ -64,7 +68,10 @@ function resolveExtension({ originalName = "", mimeType = "", resourceType = "im
 }
 
 function buildAssetDirectory(publicId) {
-  return path.join(getMediaRootDir(), ...String(publicId).split("/").filter(Boolean));
+  return path.join(
+    getMediaRootDir(),
+    ...String(publicId).split("/").filter(Boolean),
+  );
 }
 
 function encodeSegments(value) {
@@ -88,9 +95,10 @@ function extractFolder(publicId = "") {
 }
 
 function resolveAssetTarget(buffer, options = {}) {
-  const explicitPublicId = normalizeFolder(
-    options.publicId || options.public_id || ""
-  );
+  const rawExplicitPublicId = options.publicId || options.public_id || "";
+  const explicitPublicId = rawExplicitPublicId
+    ? normalizeFolder(rawExplicitPublicId)
+    : "";
 
   if (explicitPublicId) {
     return {
@@ -99,7 +107,7 @@ function resolveAssetTarget(buffer, options = {}) {
     };
   }
 
-  const folder = normalizeFolder(options.folder);
+  const folder = normalizeFolder(options.folder || "media");
   const assetId = buildAssetId(buffer, folder, options.originalName);
 
   return {
@@ -109,9 +117,11 @@ function resolveAssetTarget(buffer, options = {}) {
 }
 
 function normalizeResource(resource = {}) {
-  const secureUrl = resource.secureUrl || resource.secure_url || resource.url || "";
+  const secureUrl =
+    resource.secureUrl || resource.secure_url || resource.url || "";
   const publicId = resource.publicId || resource.public_id || "";
-  const resourceType = resource.resourceType || resource.resource_type || "image";
+  const resourceType =
+    resource.resourceType || resource.resource_type || "image";
   return {
     url: secureUrl,
     secureUrl,
@@ -128,7 +138,8 @@ function normalizeResource(resource = {}) {
     resourceType,
     resource_type: resourceType,
     folder: resource.folder || extractFolder(publicId),
-    createdAt: resource.createdAt || resource.created_at || new Date().toISOString(),
+    createdAt:
+      resource.createdAt || resource.created_at || new Date().toISOString(),
     type: "upload",
   };
 }
@@ -182,8 +193,8 @@ function runBinary(command, args = []) {
         new Error(
           `${command} exited with code ${code}${
             stderr ? `: ${stderr.trim()}` : ""
-          }`
-        )
+          }`,
+        ),
       );
     });
   });
@@ -214,7 +225,7 @@ async function probeVideoFile(filePath) {
   const parsed = JSON.parse(stdout || "{}");
   const streams = Array.isArray(parsed.streams) ? parsed.streams : [];
   const videoStream = streams.find(
-    (stream) => String(stream?.codec_type || "").toLowerCase() === "video"
+    (stream) => String(stream?.codec_type || "").toLowerCase() === "video",
   );
 
   return {
@@ -304,7 +315,7 @@ async function buildImageAsset(buffer, options = {}) {
         .webp({ quality })
         .toFile(path.join(assetDir, filename));
       variants[name] = buildPublicUrl(publicId, filename);
-    })
+    }),
   );
 
   variants.original = buildPublicUrl(publicId, originalFilename);
@@ -395,9 +406,7 @@ async function buildVideoAsset(buffer, options = {}) {
         posterSourcePath,
       ]);
 
-      await sharp(posterSourcePath)
-        .webp({ quality: 82 })
-        .toFile(posterPath);
+      await sharp(posterSourcePath).webp({ quality: 82 }).toFile(posterPath);
 
       posterUrl = buildPublicUrl(publicId, VIDEO_POSTER_FILENAME);
     } catch {
@@ -462,7 +471,7 @@ async function collectResources() {
     metaFiles.map(async (filePath) => {
       const meta = await loadJson(filePath);
       return normalizeResource(meta);
-    })
+    }),
   );
 
   return records.sort((left, right) => {
@@ -504,8 +513,12 @@ async function listResources({
   maxResults = 50,
   resourceType = "image",
 } = {}) {
-  const normalizedPrefix = String(prefix || "").trim().toLowerCase();
-  const normalizedType = String(resourceType || "image").trim().toLowerCase();
+  const normalizedPrefix = String(prefix || "")
+    .trim()
+    .toLowerCase();
+  const normalizedType = String(resourceType || "image")
+    .trim()
+    .toLowerCase();
   const resources = await collectResources();
   const filtered = resources.filter((resource) => {
     const matchesType =
@@ -515,8 +528,12 @@ async function listResources({
     if (!matchesType) return false;
     if (!normalizedPrefix) return true;
     return (
-      String(resource.publicId || "").toLowerCase().includes(normalizedPrefix) ||
-      String(resource.folder || "").toLowerCase().includes(normalizedPrefix)
+      String(resource.publicId || "")
+        .toLowerCase()
+        .includes(normalizedPrefix) ||
+      String(resource.folder || "")
+        .toLowerCase()
+        .includes(normalizedPrefix)
     );
   });
 
