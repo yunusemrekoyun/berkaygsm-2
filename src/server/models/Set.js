@@ -1,6 +1,17 @@
 import mongoose from "mongoose";
 import slugify from "slugify";
 
+function toSlug(text) {
+  const tr = String(text || "")
+    .replace(/ğ/g, "g").replace(/Ğ/g, "g")
+    .replace(/ş/g, "s").replace(/Ş/g, "s")
+    .replace(/ı/g, "i").replace(/İ/g, "i")
+    .replace(/ö/g, "o").replace(/Ö/g, "o")
+    .replace(/ü/g, "u").replace(/Ü/g, "u")
+    .replace(/ç/g, "c").replace(/Ç/g, "c");
+  return slugify(tr, { lower: true, strict: true });
+}
+
 const SetImageSchema = new mongoose.Schema(
   {
     url: { type: String, required: true },
@@ -68,7 +79,7 @@ SetSchema.index({ name: 1 }, { unique: true });
 SetSchema.pre("validate", async function (next) {
   if (this.isModified("name") || !this.slug) {
     const base =
-      slugify(this.name || "", { lower: true, strict: true }) || "set";
+      toSlug(this.name) || "set";
     let s = base;
     let k = 1;
     while (
