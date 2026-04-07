@@ -37,12 +37,13 @@ function resolveId(value) {
   if (typeof value === "string") return value;
   if (value._id) {
     const resolved =
-      typeof value._id.toString === "function" ? value._id.toString() : value._id;
+      typeof value._id.toString === "function"
+        ? value._id.toString()
+        : value._id;
     if (resolved) return String(resolved);
   }
   if (value.id) {
-    const resolved =
-      typeof value.id === "function" ? value.id() : value.id;
+    const resolved = typeof value.id === "function" ? value.id() : value.id;
     if (resolved) return String(resolved);
   }
   return null;
@@ -112,12 +113,11 @@ function formatCategoryTree(categories = [], lang = DEFAULT_LANG) {
 
   return sortChildren(roots);
 }
-
 function mapCategoryItems(tree = []) {
   return tree.map((node) => ({
     id: node.id,
     title: node.name,
-    image: node.image?.url || null,
+    image: node.image || null,
     to: `/shop?category=${encodeURIComponent(node.id)}`,
   }));
 }
@@ -129,7 +129,7 @@ function shapeHeroSlide(hero, lang = DEFAULT_LANG) {
   let computedLink = "/shop";
   if (hero.target?.type === "CATEGORIES" && hero.target?.categories?.length) {
     computedLink = `/shop?category=${encodeURIComponent(
-      String(hero.target.categories[0])
+      String(hero.target.categories[0]),
     )}`;
   }
 
@@ -145,11 +145,11 @@ function shapeHeroSlide(hero, lang = DEFAULT_LANG) {
           duration: localized.video.duration,
         }
       : hero.video
-      ? {
-          ...toPlainMedia(hero.video),
-          duration: hero.video.duration,
-        }
-      : null,
+        ? {
+            ...toPlainMedia(hero.video),
+            duration: hero.video.duration,
+          }
+        : null,
     computedLink,
     isActive: !!hero.isActive,
     sortOrder: Number(hero.sortOrder || 0),
@@ -181,7 +181,7 @@ function shapeCampaignPreview(campaign, lang = DEFAULT_LANG) {
 function shapeCatalogProductCard(
   product,
   lang = DEFAULT_LANG,
-  discount = null
+  discount = null,
 ) {
   const localized = resolveTranslation(product, lang);
   if (product.category && typeof product.category === "object") {
@@ -213,7 +213,7 @@ function shapeHomeSet(setDoc, lang = DEFAULT_LANG, discountMap = new Map()) {
   const basePrice = Number(localized.price ?? setDoc.price ?? 0) || 0;
   const { finalPrice, discount } = applyDiscount(
     basePrice,
-    discountMap.get(id) || null
+    discountMap.get(id) || null,
   );
 
   return {
@@ -271,42 +271,56 @@ const getCachedCategoryTree = unstable_cache(
     return fetchCategoryTreeData(normalizedLang);
   },
   ["storefront-category-tree"],
-  { revalidate: CATEGORY_REVALIDATE_SECONDS }
+  {
+    revalidate: CATEGORY_REVALIDATE_SECONDS,
+    tags: ["storefront-category-tree"],
+  },
 );
-
 const getCachedHomePageData = unstable_cache(
   async (lang = DEFAULT_LANG) => {
     const normalizedLang = normalizeLang(lang);
     await connectDB();
 
-    const [heroes, categoryTree, products, sets, campaigns, reviews, discounts] =
-      await Promise.all([
-        Hero.find({ isActive: true }).sort({ sortOrder: 1, createdAt: -1 }).lean(),
-        getCachedCategoryTree(normalizedLang),
-        Product.find({ isActive: true, listedInCatalog: true })
-          .sort({ createdAt: -1 })
-          .limit(6)
-          .populate("category")
-          .lean(),
-        SetModel.find({ show: true })
-          .sort({ createdAt: -1 })
-          .populate({ path: "products.product", populate: { path: "category" } })
-          .lean(),
-        Campaign.find({ isActive: true })
-          .sort({ sortOrder: 1, createdAt: -1 })
-          .limit(4)
-          .lean(),
-        Review.find({ approved: true })
-          .sort({ rating: -1, createdAt: -1 })
-          .limit(3)
-          .populate([
-            { path: "user", select: "firstName lastName email" },
-            { path: "product", select: "name slug" },
-            { path: "set", select: "name slug" },
-          ])
-          .lean(),
-        fetchActiveDiscounts(),
-      ]);
+    const [
+      heroes,
+      categoryTree,
+      products,
+      sets,
+      campaigns,
+      reviews,
+      discounts,
+    ] = await Promise.all([
+      Hero.find({ isActive: true })
+        .sort({ sortOrder: 1, createdAt: -1 })
+        .lean(),
+      getCachedCategoryTree(normalizedLang),
+      Product.find({ isActive: true, listedInCatalog: true })
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .populate("category")
+        .lean(),
+      SetModel.find({ show: true })
+        .sort({ createdAt: -1 })
+        .populate({
+          path: "products.product",
+          populate: { path: "category" },
+        })
+        .lean(),
+      Campaign.find({ isActive: true })
+        .sort({ sortOrder: 1, createdAt: -1 })
+        .limit(4)
+        .lean(),
+      Review.find({ approved: true })
+        .sort({ rating: -1, createdAt: -1 })
+        .limit(3)
+        .populate([
+          { path: "user", select: "firstName lastName email" },
+          { path: "product", select: "name slug" },
+          { path: "set", select: "name slug" },
+        ])
+        .lean(),
+      fetchActiveDiscounts(),
+    ]);
 
     await hydrateProductsWithInventory(products);
 
@@ -321,15 +335,11 @@ const getCachedHomePageData = unstable_cache(
     const productDiscountMap = computeProductDiscountMap(discounts, products);
     const setDiscountMap = mapDiscountsToSets(
       discounts,
-      sets.map((setDoc) => resolveId(setDoc)).filter(Boolean)
+      sets.map((setDoc) => resolveId(setDoc)).filter(Boolean),
     );
 
     const userIds = Array.from(
-      new Set(
-        reviews
-          .map((review) => resolveId(review.user))
-          .filter(Boolean)
-      )
+      new Set(reviews.map((review) => resolveId(review.user)).filter(Boolean)),
     );
 
     const detailRows =
@@ -351,7 +361,7 @@ const getCachedHomePageData = unstable_cache(
             height: detail.avatar.height,
             format: detail.avatar.format,
           },
-        ])
+        ]),
     );
 
     return toClientSafe({
@@ -359,22 +369,28 @@ const getCachedHomePageData = unstable_cache(
       featuredProducts: products.map((product) => {
         const localized = resolveTranslation(product, normalizedLang);
         if (product.category && typeof product.category === "object") {
-          localized.category = resolveTranslation(product.category, normalizedLang);
+          localized.category = resolveTranslation(
+            product.category,
+            normalizedLang,
+          );
         }
         return shapeProduct(localized, {
           discount: productDiscountMap.get(resolveId(product)) || null,
         });
       }),
       sets: sets.map((setDoc) =>
-        shapeHomeSet(setDoc, normalizedLang, setDiscountMap)
+        shapeHomeSet(setDoc, normalizedLang, setDiscountMap),
       ),
       campaigns: campaigns.map((campaign) =>
-        shapeCampaignPreview(campaign, normalizedLang)
+        shapeCampaignPreview(campaign, normalizedLang),
       ),
       homeReviews: reviews.map((review) => {
         const userId = resolveId(review.user);
         const firstName = review.user?.firstName || "";
-        const lastName = review.user?.lastName ? ` ${review.user.lastName}` : "";
+        const lastName = review.user?.lastName
+          ? ` ${review.user.lastName}`
+          : "";
+
         return {
           name: `${firstName}${lastName}`.trim() || "Müşteri",
           quote: review.body || review.title || "",
@@ -386,7 +402,10 @@ const getCachedHomePageData = unstable_cache(
     });
   },
   ["storefront-home-page"],
-  { revalidate: HOME_REVALIDATE_SECONDS }
+  {
+    revalidate: HOME_REVALIDATE_SECONDS,
+    tags: ["storefront-home-page"],
+  },
 );
 
 const getCachedShopPageData = unstable_cache(
@@ -401,7 +420,8 @@ const getCachedShopPageData = unstable_cache(
         .limit(200)
         .populate({
           path: "category",
-          select: "name slug ancestors image level parent sortOrder translations",
+          select:
+            "name slug ancestors image level parent sortOrder translations",
         })
         .lean(),
       fetchActiveDiscounts(),
@@ -415,13 +435,13 @@ const getCachedShopPageData = unstable_cache(
         shapeCatalogProductCard(
           product,
           normalizedLang,
-          productDiscountMap.get(resolveId(product)) || null
-        )
+          productDiscountMap.get(resolveId(product)) || null,
+        ),
       ),
     });
   },
   ["storefront-shop-page"],
-  { revalidate: SHOP_REVALIDATE_SECONDS }
+  { revalidate: SHOP_REVALIDATE_SECONDS },
 );
 
 const getCachedProductPageData = unstable_cache(
@@ -449,7 +469,10 @@ const getCachedProductPageData = unstable_cache(
     const productDiscountMap = computeProductDiscountMap(discounts, [product]);
     const localizedProduct = resolveTranslation(product, normalizedLang);
     if (product.category && typeof product.category === "object") {
-      localizedProduct.category = resolveTranslation(product.category, normalizedLang);
+      localizedProduct.category = resolveTranslation(
+        product.category,
+        normalizedLang,
+      );
     }
 
     const categoryId = resolveId(product.category);
@@ -466,18 +489,22 @@ const getCachedProductPageData = unstable_cache(
         .limit(8)
         .populate({
           path: "category",
-          select: "name slug ancestors image level parent sortOrder translations",
+          select:
+            "name slug ancestors image level parent sortOrder translations",
         })
         .lean();
 
-      const relatedDiscountMap = computeProductDiscountMap(discounts, relatedProducts);
+      const relatedDiscountMap = computeProductDiscountMap(
+        discounts,
+        relatedProducts,
+      );
       similar = relatedProducts
         .map((relatedProduct) =>
           shapeCatalogProductCard(
             relatedProduct,
             normalizedLang,
-            relatedDiscountMap.get(resolveId(relatedProduct)) || null
-          )
+            relatedDiscountMap.get(resolveId(relatedProduct)) || null,
+          ),
         )
         .filter((item) => item.slug !== localizedProduct.slug)
         .slice(0, 4);
@@ -491,7 +518,7 @@ const getCachedProductPageData = unstable_cache(
     });
   },
   ["storefront-product-page"],
-  { revalidate: PRODUCT_REVALIDATE_SECONDS }
+  { revalidate: PRODUCT_REVALIDATE_SECONDS },
 );
 
 export async function getStorefrontCategoryTree(lang = DEFAULT_LANG) {

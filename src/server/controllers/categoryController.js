@@ -1,3 +1,4 @@
+import { revalidateTag } from "next/cache";
 import Category from "../models/Category.js";
 import Product from "../models/Product.js";
 import {
@@ -73,7 +74,7 @@ const shapeCategory = (
   sourceDoc,
   localizedDoc,
   { includeTranslations = false } = {},
-  translations = null
+  translations = null,
 ) => {
   if (!localizedDoc && !sourceDoc) return null;
 
@@ -91,8 +92,8 @@ const shapeCategory = (
     ancestors: Array.isArray(sourceDoc?.ancestors)
       ? sourceDoc.ancestors.map((a) => String(a))
       : Array.isArray(plain.ancestors)
-      ? plain.ancestors.map((a) => String(a))
-      : [],
+        ? plain.ancestors.map((a) => String(a))
+        : [],
     image: toPlainImage(sourceDoc?.image ?? plain.image),
     sortOrder: Number(sourceDoc?.sortOrder ?? plain.sortOrder ?? 0),
     createdAt: sourceDoc?.createdAt ?? plain.createdAt,
@@ -148,7 +149,10 @@ function applyCategoryTrTranslation(doc, translation = {}) {
     doc.name = translation.name;
   }
 }
-
+function revalidateStorefrontCategoryCaches() {
+  revalidateTag("storefront-category-tree");
+  revalidateTag("storefront-home-page");
+}
 // -------------------- controllers --------------------
 
 export async function createCategory(req, res) {
@@ -208,15 +212,15 @@ export async function createCategory(req, res) {
       category,
       incomingTranslations,
       buildCategoryTrTranslation,
-      applyCategoryTrTranslation
+      applyCategoryTrTranslation,
     );
 
     await category.save();
-
+    revalidateStorefrontCategoryCaches();
     const localized = resolveTranslation(category, lang);
     const translations = composeResponseTranslations(
       category,
-      buildCategoryTrTranslation
+      buildCategoryTrTranslation,
     );
 
     res.status(201).json({
@@ -224,7 +228,7 @@ export async function createCategory(req, res) {
         category,
         localized,
         { includeTranslations: true },
-        translations
+        translations,
       ),
     });
   } catch (error) {
@@ -260,13 +264,13 @@ export async function listCategories(req, res) {
         const localized = resolveTranslation(categoryDoc, lang);
         const translations = composeResponseTranslations(
           categoryDoc,
-          buildCategoryTrTranslation
+          buildCategoryTrTranslation,
         );
         return shapeCategory(
           categoryDoc,
           localized,
           { includeTranslations: true },
-          translations
+          translations,
         );
       }),
     });
@@ -290,7 +294,7 @@ export async function getCategory(req, res) {
     const localized = resolveTranslation(category, lang);
     const translations = composeResponseTranslations(
       category,
-      buildCategoryTrTranslation
+      buildCategoryTrTranslation,
     );
 
     res.json({
@@ -298,7 +302,7 @@ export async function getCategory(req, res) {
         category,
         localized,
         { includeTranslations: true },
-        translations
+        translations,
       ),
     });
   } catch (error) {
@@ -365,7 +369,9 @@ export async function updateCategory(req, res) {
         }
         category.parent = parentDoc._id;
         if (previousParentId !== String(parentDoc._id)) {
-          category.sortOrder = await resolveNextCategorySortOrder(parentDoc._id);
+          category.sortOrder = await resolveNextCategorySortOrder(
+            parentDoc._id,
+          );
         }
       }
     }
@@ -413,15 +419,15 @@ export async function updateCategory(req, res) {
       category,
       incomingTranslations,
       buildCategoryTrTranslation,
-      applyCategoryTrTranslation
+      applyCategoryTrTranslation,
     );
 
     await category.save();
-
+    revalidateStorefrontCategoryCaches();
     const localized = resolveTranslation(category, lang);
     const translations = composeResponseTranslations(
       category,
-      buildCategoryTrTranslation
+      buildCategoryTrTranslation,
     );
 
     res.json({
@@ -429,7 +435,7 @@ export async function updateCategory(req, res) {
         category,
         localized,
         { includeTranslations: true },
-        translations
+        translations,
       ),
     });
   } catch (error) {
@@ -467,6 +473,7 @@ export async function deleteCategory(req, res) {
     }
 
     await Category.findByIdAndDelete(category._id);
+    revalidateStorefrontCategoryCaches();
     res.json({ ok: true });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -476,7 +483,9 @@ export async function deleteCategory(req, res) {
 export async function reorderCategories(req, res) {
   try {
     const parent =
-      req.body?.parent === undefined || req.body?.parent === null || req.body?.parent === ""
+      req.body?.parent === undefined ||
+      req.body?.parent === null ||
+      req.body?.parent === ""
         ? null
         : String(req.body.parent);
     const orderedIds = Array.isArray(req.body?.orderedIds)
@@ -502,9 +511,9 @@ export async function reorderCategories(req, res) {
     });
 
     if (hasInvalidParent) {
-      return res
-        .status(400)
-        .json({ message: "Sadece ayni ust kategori altindaki kayitlar siralanabilir" });
+      return res.status(400).json({
+        message: "Sadece ayni ust kategori altindaki kayitlar siralanabilir",
+      });
     }
 
     await Category.bulkWrite(
@@ -513,8 +522,9 @@ export async function reorderCategories(req, res) {
           filter: { _id: id },
           update: { $set: { sortOrder: index } },
         },
-      }))
+      })),
     );
+    revalidateStorefrontCategoryCaches();
 
     res.json({ ok: true });
   } catch (error) {
