@@ -1,27 +1,26 @@
-// src/components/admin/stocks/StockManagerPanel.jsx
 import { useEffect, useMemo, useState } from "react";
 import { stocksApi } from "../../../api/stocks.js";
 import { setApi } from "../../../api/sets.js";
 import ColorBadge from "../common/ColorBadge.jsx";
-import { X, Plus, Minus, Trash2, PlusCircle } from "lucide-react";
+import { X, Plus, Minus, Trash2, PlusCircle, AlertTriangle } from "lucide-react";
+
+const LOW_STOCK = 3;
 
 export default function StockManagerPanel({
   open,
-  ownerModel, // "Product" | "Set"
-  ownerId, // ObjectId
+  ownerModel,
+  ownerId,
   ownerName = "",
   onClose,
 }) {
-  // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState([]);
-  const [addingOpen, setAddingOpen] = useState(false); // ← yeni: “Varyant Ekle” panelini aç/kapa
-  const [addForm, setAddForm] = useState(() =>
-    emptyAddForm(ownerModel, ownerId)
-  );
+  const [dirty, setDirty] = useState(false);
+  const [addingOpen, setAddingOpen] = useState(false);
+  const [addForm, setAddForm] = useState(() => emptyAddForm(ownerModel, ownerId));
   const [savingAll, setSavingAll] = useState(false);
 
-  const themeCard = {
+  const card = {
     borderColor: "var(--color-border-admin)",
     background: "var(--color-bg-card)",
     color: "var(--color-text-admin)",
@@ -30,6 +29,7 @@ export default function StockManagerPanel({
   useEffect(() => {
     if (!open || !ownerModel || !ownerId) return;
     setAddingOpen(false);
+    setDirty(false);
     setAddForm(emptyAddForm(ownerModel, ownerId));
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -46,40 +46,28 @@ export default function StockManagerPanel({
           : Array.isArray(data?.items)
           ? data.items
           : [];
-        const nextRows = list.map((row) => ({
-          ...row,
-          rowId:
-            row._id ||
-            [
-              row.owner || ownerId,
-              row.color || "",
-              row.size || "",
-              row.attributeValue || "",
-            ].join("|"),
-        }));
-        setRows(nextRows);
+        setRows(
+          list.map((row) => ({
+            ...row,
+            rowId:
+              row._id ||
+              [row.owner || ownerId, row.color || "", row.size || "", row.attributeValue || ""].join("|"),
+          }))
+        );
       } else if (ownerModel === "Set") {
         const setDoc = await setApi.get(ownerId, undefined, { auth: true });
         const nextRows = [];
         (setDoc?.products || []).forEach((entry) => {
           const product = entry?.product || {};
-          const productId =
-            product.id || product._id?.toString?.() || product._id || "";
+          const productId = product.id || product._id?.toString?.() || product._id || "";
           const productName = product.name || "Ürün";
           const qtyInSet = Math.max(1, Number(entry?.quantity) || 1);
-          const inventory = Array.isArray(product.inventory)
-            ? product.inventory
-            : [];
+          const inventory = Array.isArray(product.inventory) ? product.inventory : [];
           if (!inventory.length) {
-            const rowId = `${productId || "p"}::default`;
             nextRows.push({
-              rowId,
-              productId,
-              productName,
-              qtyInSet,
-              color: null,
-              size: null,
-              attributeValue: null,
+              rowId: `${productId || "p"}::default`,
+              productId, productName, qtyInSet,
+              color: null, size: null, attributeValue: null,
               qtyOnHand: Number(product.totalStock || 0),
               sku: product.sku || "",
               isActive: product.isActive ?? true,
@@ -95,12 +83,9 @@ export default function StockManagerPanel({
               (norm(inv.size) || "").toLowerCase(),
               (norm(inv.attributeValue) || "").toLowerCase(),
             ].join("||");
-            const rowId = `${productId || "p"}::${key || "default"}`;
             nextRows.push({
-              rowId,
-              productId,
-              productName,
-              qtyInSet,
+              rowId: `${productId || "p"}::${key || "default"}`,
+              productId, productName, qtyInSet,
               color: inv.color ?? null,
               size: inv.size ?? null,
               attributeValue: inv.attributeValue ?? null,
@@ -125,9 +110,9 @@ export default function StockManagerPanel({
     }
   }
 
-  // --------- Inline edit helpers ----------
   function patchRowLocal(id, patch) {
     setRows((prev) => prev.map((r) => (r.rowId === id ? { ...r, ...patch } : r)));
+    setDirty(true);
   }
 
   async function persistRow(r) {
@@ -175,18 +160,6 @@ export default function StockManagerPanel({
     return false;
   }
 
-  async function saveRow(r) {
-    try {
-      const shouldReload = await persistRow(r);
-      if (shouldReload) {
-        await load();
-      }
-    } catch (e) {
-      console.error(e);
-      alert(e?.message || "Güncelleme başarısız.");
-    }
-  }
-
   async function saveAllRows() {
     if (!rows.length || savingAll) return;
     setSavingAll(true);
@@ -201,16 +174,11 @@ export default function StockManagerPanel({
         errors.push(e?.message || "Kaydedilemedi");
       }
     }
-    if (shouldReload) {
-      await load();
-    }
+    if (shouldReload) await load();
     setSavingAll(false);
+    setDirty(false);
     if (errors.length) {
-      alert(
-        `Bazı satırlar kaydedilemedi:\n${errors
-          .slice(0, 5)
-          .join("\n")}${errors.length > 5 ? "\n..." : ""}`
-      );
+      alert(`Bazı satırlar kaydedilemedi:\n${errors.slice(0, 5).join("\n")}${errors.length > 5 ? "\n..." : ""}`);
     }
   }
 
@@ -226,7 +194,6 @@ export default function StockManagerPanel({
     }
   }
 
-  // --------- Yeni varyant ekleme (opsiyonel) ----------
   async function addNewVariant() {
     if (ownerModel !== "Product") return;
     try {
@@ -251,325 +218,278 @@ export default function StockManagerPanel({
     }
   }
 
-  const total = useMemo(
-    () =>
-      rows.reduce((acc, r) => acc + Math.max(0, Number(r.qtyOnHand || 0)), 0),
+  const totalQty = useMemo(
+    () => rows.reduce((acc, r) => acc + Math.max(0, Number(r.qtyOnHand || 0)), 0),
+    [rows]
+  );
+  const lowCount = useMemo(
+    () => rows.filter((r) => Number(r.qtyOnHand || 0) <= LOW_STOCK).length,
     [rows]
   );
 
-  const emptyMessage =
-    ownerModel === "Product"
-      ? "Bu öğe için tanımlı stok yok. İstersen yeni varyant ekleyebilirsin."
-      : "Bu setteki ürünler için kayıtlı stok bilgisi bulunamadı.";
-
   return (
-    <div
-      className={`fixed inset-0 z-[90] ${open ? "" : "pointer-events-none"}`}
-    >
+    <div className={`fixed inset-0 z-[90] ${open ? "" : "pointer-events-none"}`}>
+      {/* Backdrop */}
       <div
-        className={`absolute inset-0 bg-black/40 transition-opacity ${
-          open ? "opacity-100" : "opacity-0"
-        }`}
+        className={`absolute inset-0 bg-black/40 transition-opacity ${open ? "opacity-100" : "opacity-0"}`}
         onClick={onClose}
       />
+
+      {/* Panel */}
       <aside
-        className={`absolute right-0 top-0 h-full w-[95%] max-w-[860px] transform border-l shadow-xl transition-transform duration-300 ${
+        className={`absolute right-0 top-0 flex h-full w-[95%] max-w-[680px] flex-col border-l shadow-xl transition-transform duration-300 ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
-        style={themeCard}
+        style={card}
       >
-        {/* header */}
+        {/* Header */}
         <div
-          className="flex items-center justify-between border-b px-4 py-3"
+          className="flex shrink-0 items-center justify-between border-b px-4 py-3"
           style={{ borderColor: "var(--color-border-admin)" }}
         >
-          <div>
-            <div className="text-sm opacity-70">
-              {ownerModel === "Product" ? "Ürün" : "Set"}
-            </div>
-            <div className="text-base font-semibold">
-              {ownerName || ownerId}
-            </div>
-            <div className="text-xs opacity-60">Toplam stok: {total}</div>
+          <div className="min-w-0">
+            <div className="text-xs opacity-50">{ownerModel === "Product" ? "Ürün" : "Set"}</div>
+            <div className="truncate font-semibold">{ownerName || ownerId}</div>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={saveAllRows}
-              disabled={savingAll || !rows.length}
-              className="rounded-lg px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
-              style={{ background: "var(--color-accent)" }}
-            >
-              {savingAll ? "Kaydediliyor…" : "Tümünü Kaydet"}
-            </button>
+
+          <div className="ml-4 flex shrink-0 items-center gap-3">
+            {/* Özet */}
+            <div className="flex items-center gap-2 text-sm">
+              <span className="opacity-60">
+                Toplam: <b className="opacity-100">{totalQty}</b>
+              </span>
+              {lowCount > 0 && (
+                <span className="flex items-center gap-1 text-xs font-medium text-amber-500">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {lowCount} az stok
+                </span>
+              )}
+            </div>
+
+            {/* Kaydet */}
+            <div className="relative">
+              <button
+                onClick={saveAllRows}
+                disabled={savingAll || !rows.length}
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                style={{ background: "var(--color-accent)" }}
+              >
+                {savingAll ? "Kaydediliyor…" : "Kaydet"}
+              </button>
+              {dirty && !savingAll && (
+                <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-amber-400" />
+              )}
+            </div>
+
             <button
               onClick={onClose}
-              className="rounded-lg border p-2"
-              style={{
-                borderColor: "var(--color-border-admin)",
-                background: "var(--color-bg-card)",
-              }}
+              className="rounded-lg border p-1.5"
+              style={card}
             >
               <X className="h-5 w-5" />
             </button>
           </div>
         </div>
 
-        {/* body */}
-        <div className="flex h-[calc(100%-3.5rem)] flex-col gap-4 p-4 overflow-y-auto">
-          {/* MEVCUT STOKLAR — inline düzenleme */}
-          <div className="rounded-xl border" style={themeCard}>
-            <div
-              className="border-b px-3 py-2 text-sm font-semibold"
-              style={{ borderColor: "var(--color-border-admin)" }}
-            >
-              Mevcut Stoklar
-            </div>
-
-            <div
-              className="divide-y"
-              style={{ borderColor: "var(--color-border-admin)" }}
-            >
-              {rows.map((r) => {
-                const activeId = `active-${r._id || r.rowId}`;
-                return (
-                  <div
-                    key={r.rowId || r._id}
-                    className="grid gap-3 px-3 py-3 md:grid-cols-12 md:items-center"
-                  >
-                  {/* varyant bilgisi */}
-                  <div className="md:col-span-5 space-y-1">
-                    {ownerModel === "Set" && (
-                      <div className="flex items-baseline gap-2 text-sm font-semibold text-[var(--color-text-admin)]">
-                        <span>{r.productName || "Ürün"}</span>
-                        <span className="text-xs font-normal text-[var(--color-text-admin-muted)]">
-                          × {Math.max(1, Number(r.qtyInSet || 1))}
-                        </span>
-                      </div>
-                    )}
-                    <VariantPills
-                      color={r.color}
-                      size={r.size}
-                      attributeValue={r.attributeValue}
-                    />
-                    <div className="text-xs text-[var(--color-text-admin-muted)]">
-                      SKU: {r.sku || "-"}
-                    </div>
-                    {r.note ? (
-                      <div className="text-xs text-[var(--color-text-admin-muted)]">
-                        Not: {r.note}
-                      </div>
-                    ) : null}
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {loading ? (
+            <div className="py-12 text-center text-sm opacity-50">Yükleniyor…</div>
+          ) : (
+            <>
+              {/* Stok satırları */}
+              <div className="overflow-hidden rounded-xl border" style={card}>
+                {rows.length === 0 ? (
+                  <div className="py-10 text-center text-sm opacity-50">
+                    {ownerModel === "Product"
+                      ? "Stok tanımlı değil. Aşağıdan yeni varyant ekleyebilirsin."
+                      : "Bu setteki ürünler için stok bilgisi bulunamadı."}
                   </div>
+                ) : (
+                  <div className="divide-y" style={{ borderColor: "var(--color-border-admin)" }}>
+                    {rows.map((r) => {
+                      const qty = Number(r.qtyOnHand || 0);
+                      const isLow = qty > 0 && qty <= LOW_STOCK;
+                      const isEmpty = qty === 0;
+                      return (
+                        <div
+                          key={r.rowId || r._id}
+                          className="flex items-center gap-3 px-3 py-2.5"
+                        >
+                          {/* Stok seviye göstergesi */}
+                          <div
+                            className={`h-2 w-2 shrink-0 rounded-full ${
+                              isEmpty ? "bg-red-500" : isLow ? "bg-amber-400" : "bg-emerald-400"
+                            }`}
+                            title={isEmpty ? "Stok yok" : isLow ? "Az stok" : "Yeterli stok"}
+                          />
 
-                  {/* miktar */}
-                  <div className="md:col-span-3">
-                    <label className="text-xs opacity-70">Miktar</label>
-                    <div className="mt-1 flex items-center gap-2">
-                      <button
-                        onClick={() =>
-                          patchRowLocal(r.rowId, {
-                            qtyOnHand: Math.max(
-                              0,
-                              Number(r.qtyOnHand || 0) - 1
-                            ),
-                          })
-                        }
-                        className="rounded-lg border p-1"
-                        title="-1"
-                        style={{
-                          borderColor: "var(--color-border-admin)",
-                          background: "var(--color-bg-card)",
-                        }}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <input
-                        type="number"
-                        value={r.qtyOnHand ?? 0}
-                        onChange={(e) =>
-                          patchRowLocal(r.rowId, { qtyOnHand: e.target.value })
-                        }
-                        className="w-24 rounded-xl border px-3 py-2 text-sm"
-                        style={{
-                          borderColor: "var(--color-border-admin)",
-                          background: "var(--color-surface-light)",
-                        }}
-                      />
-                      <button
-                        onClick={() =>
-                          patchRowLocal(r.rowId, {
-                            qtyOnHand: Number(r.qtyOnHand || 0) + 1,
-                          })
-                        }
-                        className="rounded-lg border p-1"
-                        title="+1"
-                        style={{
-                          borderColor: "var(--color-border-admin)",
-                          background: "var(--color-bg-card)",
-                        }}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    </div>
+                          {/* Varyant bilgisi */}
+                          <div className="flex-1 min-w-0">
+                            {ownerModel === "Set" && (
+                              <div className="truncate text-xs font-medium opacity-70 mb-0.5">
+                                {r.productName}
+                                {r.qtyInSet > 1 && (
+                                  <span className="opacity-60"> ×{r.qtyInSet}</span>
+                                )}
+                              </div>
+                            )}
+                            <VariantPills
+                              color={r.color}
+                              size={r.size}
+                              attributeValue={r.attributeValue}
+                            />
+                            {r.sku && (
+                              <div className="mt-0.5 text-xs opacity-40">SKU: {r.sku}</div>
+                            )}
+                          </div>
+
+                          {/* Miktar stepper */}
+                          <div className="flex shrink-0 items-center gap-1">
+                            <button
+                              onClick={() =>
+                                patchRowLocal(r.rowId, {
+                                  qtyOnHand: Math.max(0, qty - 1),
+                                })
+                              }
+                              className="rounded-md border p-1 transition-colors hover:bg-[var(--color-bg-hover)]"
+                              style={{ borderColor: "var(--color-border-admin)" }}
+                            >
+                              <Minus className="h-3.5 w-3.5" />
+                            </button>
+                            <input
+                              type="number"
+                              value={r.qtyOnHand ?? 0}
+                              onChange={(e) =>
+                                patchRowLocal(r.rowId, { qtyOnHand: e.target.value })
+                              }
+                              className="w-14 rounded-lg border px-2 py-1 text-center text-sm"
+                              style={{
+                                borderColor: isLow || isEmpty
+                                  ? "#f59e0b"
+                                  : "var(--color-border-admin)",
+                                background: "var(--color-surface-light)",
+                                color: "var(--color-text-admin)",
+                              }}
+                            />
+                            <button
+                              onClick={() =>
+                                patchRowLocal(r.rowId, { qtyOnHand: qty + 1 })
+                              }
+                              className="rounded-md border p-1 transition-colors hover:bg-[var(--color-bg-hover)]"
+                              style={{ borderColor: "var(--color-border-admin)" }}
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+
+                          {/* Aktif toggle */}
+                          <label
+                            className="relative inline-flex shrink-0 cursor-pointer items-center"
+                            title={r.isActive ? "Aktif" : "Pasif"}
+                          >
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={!!r.isActive}
+                              onChange={(e) =>
+                                patchRowLocal(r.rowId, { isActive: e.target.checked })
+                              }
+                            />
+                            <div
+                              className="h-5 w-9 rounded-full bg-gray-300 transition-colors peer-checked:bg-[var(--color-accent)]
+                              after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full
+                              after:bg-white after:shadow after:transition-all peer-checked:after:translate-x-4"
+                            />
+                          </label>
+
+                          {/* Sil */}
+                          {ownerModel === "Product" && (
+                            <button
+                              onClick={() => removeRow(r._id)}
+                              className="shrink-0 rounded-lg p-1.5 text-red-500 opacity-60 transition-opacity hover:opacity-100"
+                              title="Sil"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-
-                  {/* aktif + not */}
-                  <div className="md:col-span-3">
-                    <label className="text-xs opacity-70 block mb-1">
-                      Durum
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        id={activeId}
-                        type="checkbox"
-                        checked={!!r.isActive}
-                        onChange={(e) =>
-                          patchRowLocal(r.rowId, {
-                            isActive: e.target.checked,
-                          })
-                        }
-                      />
-                      <label htmlFor={activeId} className="text-sm">
-                        Aktif
-                      </label>
-                    </div>
-                    <TextArea
-                      label="Not"
-                      value={r.note || ""}
-                      onChange={(v) => patchRowLocal(r.rowId, { note: v })}
-                    />
-                  </div>
-
-                  {/* aksiyonlar */}
-                  <div className="md:col-span-1 flex md:block items-center gap-2 justify-end">
-                    <button
-                      onClick={() => saveRow(r)}
-                      className="rounded-xl px-3 py-2 text-sm font-medium text-white"
-                      style={{ background: "var(--color-accent)" }}
-                    >
-                      Kaydet
-                    </button>
-                    {ownerModel === "Product" && (
-                      <button
-                        onClick={() => removeRow(r._id)}
-                        className="rounded-xl border px-3 py-2 text-sm ml-2 md:ml-0 md:mt-2"
-                        style={{
-                          borderColor: "var(--color-border-admin)",
-                          background: "var(--color-bg-card)",
-                        }}
-                        title="Sil"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </button>
-                    )}
-                  </div>
-                  </div>
-                );
-              })}
-
-              {rows.length === 0 && (
-                <div className="px-3 py-8 text-center text-sm opacity-70">
-                  {emptyMessage}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {ownerModel === "Product" && (
-            <div className="rounded-xl border" style={themeCard}>
-              <div
-                className="flex items-center justify-between border-b px-3 py-2"
-                style={{ borderColor: "var(--color-border-admin)" }}
-              >
-                <div className="text-sm font-semibold">
-                  Yeni Varyant Ekle (opsiyonel)
-                </div>
-                <button
-                  onClick={() => setAddingOpen((s) => !s)}
-                  className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm"
-                  style={{
-                    borderColor: "var(--color-border-admin)",
-                    background: "var(--color-bg-hover)",
-                  }}
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  {addingOpen ? "Kapat" : "Aç"}
-                </button>
+                )}
               </div>
 
-              {addingOpen && (
-                <div className="p-3 space-y-3">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <TextInput
-                      label="Renk"
-                      value={addForm.color}
-                      onChange={(v) => setAddForm((f) => ({ ...f, color: v }))}
-                    />
-                    <TextInput
-                      label="Beden"
-                      value={addForm.size}
-                      onChange={(v) => setAddForm((f) => ({ ...f, size: v }))}
-                    />
-                    <TextInput
-                      label="Özellik"
-                      value={addForm.attributeValue}
-                      onChange={(v) =>
-                        setAddForm((f) => ({ ...f, attributeValue: v }))
-                      }
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <TextInput
-                      label="Miktar"
-                      type="number"
-                      value={addForm.qtyOnHand}
-                      onChange={(v) =>
-                        setAddForm((f) => ({ ...f, qtyOnHand: v }))
-                      }
-                    />
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="isActive"
-                        type="checkbox"
-                        checked={!!addForm.isActive}
-                        onChange={(e) =>
-                          setAddForm((f) => ({
-                            ...f,
-                            isActive: e.target.checked,
-                          }))
-                        }
-                      />
-                      <label htmlFor="isActive" className="text-sm">
-                        Aktif
-                      </label>
-                    </div>
-                  </div>
-
-                  <TextArea
-                    label="Not"
-                    value={addForm.note}
-                    onChange={(v) => setAddForm((f) => ({ ...f, note: v }))}
-                  />
-
-                  <div className="flex justify-end">
+              {/* Yeni varyant ekle (yalnızca Product) */}
+              {ownerModel === "Product" && (
+                <>
+                  {!addingOpen ? (
                     <button
-                      onClick={addNewVariant}
-                      className="rounded-xl px-4 py-2 text-sm font-medium text-white"
-                      style={{ background: "var(--color-accent)" }}
+                      onClick={() => setAddingOpen(true)}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-3 text-sm opacity-50 transition-opacity hover:opacity-100"
+                      style={{ borderColor: "var(--color-border-admin)" }}
                     >
-                      Varyantı Ekle
+                      <PlusCircle className="h-4 w-4" />
+                      Yeni Varyant Ekle
                     </button>
-                  </div>
-                </div>
+                  ) : (
+                    <div className="rounded-xl border p-4 space-y-3" style={card}>
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-medium">Yeni Varyant</div>
+                        <button
+                          onClick={() => setAddingOpen(false)}
+                          className="opacity-50 hover:opacity-100"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3">
+                        <TextInput
+                          label="Renk"
+                          value={addForm.color}
+                          onChange={(v) => setAddForm((f) => ({ ...f, color: v }))}
+                        />
+                        <TextInput
+                          label="Beden"
+                          value={addForm.size}
+                          onChange={(v) => setAddForm((f) => ({ ...f, size: v }))}
+                        />
+                        <TextInput
+                          label="Özellik"
+                          value={addForm.attributeValue}
+                          onChange={(v) => setAddForm((f) => ({ ...f, attributeValue: v }))}
+                        />
+                      </div>
+
+                      <div className="flex items-end gap-3">
+                        <TextInput
+                          label="Miktar"
+                          type="number"
+                          value={addForm.qtyOnHand}
+                          onChange={(v) => setAddForm((f) => ({ ...f, qtyOnHand: v }))}
+                        />
+                        <button
+                          onClick={addNewVariant}
+                          className="rounded-xl px-4 py-2 text-sm font-medium text-white"
+                          style={{ background: "var(--color-accent)" }}
+                        >
+                          Ekle
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
-            </div>
+            </>
           )}
         </div>
       </aside>
     </div>
   );
 }
+
+// --- Helpers ---
 
 function emptyAddForm(ownerModel, owner) {
   return {
@@ -578,7 +498,6 @@ function emptyAddForm(ownerModel, owner) {
     color: "",
     size: "",
     attributeValue: "",
-    components: [],
     qtyOnHand: 0,
     isActive: true,
     note: "",
@@ -594,28 +513,9 @@ function norm(v) {
 function TextInput({ label, value, onChange, type = "text" }) {
   return (
     <div className="flex flex-col gap-1">
-      {label && <label className="text-xs opacity-70">{label}</label>}
+      {label && <label className="text-xs opacity-60">{label}</label>}
       <input
         type={type}
-        value={value}
-        onChange={(e) => onChange?.(e.target.value)}
-        className="w-full rounded-xl border px-3 py-2 text-sm"
-        style={{
-          borderColor: "var(--color-border-admin)",
-          background: "var(--color-surface-light)",
-          color: "var(--color-text-admin)",
-        }}
-      />
-    </div>
-  );
-}
-
-function TextArea({ label, value, onChange }) {
-  return (
-    <div className="flex flex-col gap-1">
-      {label && <label className="text-xs opacity-70">{label}</label>}
-      <textarea
-        rows={3}
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         className="w-full rounded-xl border px-3 py-2 text-sm"
@@ -633,13 +533,12 @@ function VariantPills({ color, size, attributeValue }) {
   const chips = [];
   if (color) chips.push(<ColorBadge key="color" value={color} />);
   if (size) chips.push(<VariantBadge key="size" label="Beden" value={size} />);
-  if (attributeValue)
-    chips.push(<VariantBadge key="attr" value={attributeValue} />);
+  if (attributeValue) chips.push(<VariantBadge key="attr" value={attributeValue} />);
 
   if (!chips.length) {
     return (
       <span className="inline-flex items-center rounded-full border border-[var(--color-border-admin)]/60 bg-[var(--color-surface-light)] px-2 py-1 text-xs font-medium text-[var(--color-text-admin-muted)]">
-        Varsayılan varyant
+        Varsayılan
       </span>
     );
   }
@@ -651,9 +550,9 @@ function VariantBadge({ label, value }) {
   if (!value) return null;
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border-admin)]/60 bg-[var(--color-surface-light)] px-2 py-1 text-xs font-medium text-[var(--color-text-admin)]">
-      {label ? (
+      {label && (
         <span className="text-[var(--color-text-admin-muted)]">{label}:</span>
-      ) : null}
+      )}
       <span>{value}</span>
     </span>
   );
