@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AdminModal from "../common/AdminModal";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Search } from "lucide-react";
 import { DEFAULT_LANG } from "../../../constants/lang.js";
 import AppImage from "../../ui/AppImage.jsx";
 
@@ -15,7 +15,7 @@ const uid = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
 
-/* 🔧 Buffer ObjectId -> String ObjectId çevirici */
+/* Buffer ObjectId -> String ObjectId */
 const normalizeId = (raw) => {
   if (!raw) return "";
   if (typeof raw === "string") return raw;
@@ -36,12 +36,14 @@ export default function SetForm({
   onDelete,
   initialSet,
   products = [],
+  categories = [],
   contentLang = DEFAULT_LANG,
 }) {
   const languageLabel = (contentLang || DEFAULT_LANG).toUpperCase();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [categoryId, setCategoryId] = useState("");
   const [show, setShow] = useState(true);
   const [existingImages, setExistingImages] = useState([]);
   const [newImages, setNewImages] = useState([]);
@@ -50,12 +52,19 @@ export default function SetForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  /* 🧩 Form açıldığında initial değerleri yükle */
+  /* Form açıldığında initial değerleri yükle */
   useEffect(() => {
     if (!open) return;
     setName(initialSet?.name ?? "");
     setDescription(initialSet?.description ?? "");
     setPrice(initialSet?.price != null ? String(initialSet.price) : "");
+    setCategoryId(
+      normalizeId(
+        initialSet?.category?.id ||
+          initialSet?.category?._id ||
+          initialSet?.category
+      ) || ""
+    );
     setShow(initialSet?.show ?? true);
     setExistingImages(initialSet?.images || []);
     setNewImages([]);
@@ -66,13 +75,13 @@ export default function SetForm({
         productId: normalizeId(entry.product?.id || entry.product?._id),
         product: entry.product,
         quantity: entry.quantity || 1,
-      })),
+      }))
     );
     setError("");
     setSubmitting(false);
   }, [initialSet, open]);
 
-  /* 🧩 Product listesi (id normalize edilerek) */
+  /* Product listesi (id normalize edilerek) */
   const productOptions = useMemo(
     () =>
       products.map((p) => ({
@@ -80,22 +89,13 @@ export default function SetForm({
         label: p.name,
         price: p.price,
       })),
-    [products],
+    [products]
   );
 
-  const handleAddExisting = () => {
-    if (!productOptions.length) return;
+  const handleAddEntry = () => {
     setEntries((prev) => [
       ...prev,
-      {
-        key: uid(),
-        productId: productOptions[0]?.id || "",
-        product:
-          products.find(
-            (p) => normalizeId(p.id || p._id) === productOptions[0]?.id,
-          ) || null,
-        quantity: 1,
-      },
+      { key: uid(), productId: "", product: null, quantity: 1 },
     ]);
   };
 
@@ -103,7 +103,7 @@ export default function SetForm({
     setEntries((prev) => prev.filter((entry) => entry.key !== key));
   };
 
-  const handleExistingChange = (key, productId) => {
+  const handleProductChange = (key, productId) => {
     setEntries((prev) =>
       prev.map((entry) =>
         entry.key === key
@@ -112,11 +112,11 @@ export default function SetForm({
               productId: normalizeId(productId),
               product:
                 products.find(
-                  (p) => normalizeId(p.id || p._id) === normalizeId(productId),
+                  (p) => normalizeId(p.id || p._id) === normalizeId(productId)
                 ) || null,
             }
-          : entry,
-      ),
+          : entry
+      )
     );
   };
 
@@ -124,12 +124,12 @@ export default function SetForm({
     const next = Math.max(1, Number(quantity) || 1);
     setEntries((prev) =>
       prev.map((entry) =>
-        entry.key === key ? { ...entry, quantity: next } : entry,
-      ),
+        entry.key === key ? { ...entry, quantity: next } : entry
+      )
     );
   };
 
-  // 📸 Görsel işlemleri
+  // Görsel işlemleri
   const handleImageUpload = (event) => {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
@@ -142,7 +142,7 @@ export default function SetForm({
 
   const handleRemoveExistingImage = (publicId) => {
     setExistingImages((prev) =>
-      prev.filter((image) => image.publicId !== publicId),
+      prev.filter((image) => image.publicId !== publicId)
     );
     setRemoveImageIds((prev) => [...prev, publicId]);
   };
@@ -162,7 +162,6 @@ export default function SetForm({
     });
   };
 
-  /* 🧾 Backend'e gönderilecek ürün listesi */
   const composedSetProducts = () =>
     entries.map((entry) => ({
       productId: normalizeId(entry.productId),
@@ -184,12 +183,17 @@ export default function SetForm({
       setError("Sete en az bir ürün ekleyin");
       return;
     }
+    if (entries.some((e) => !e.productId)) {
+      setError("Tüm satırlarda ürün seçilmelidir");
+      return;
+    }
     setSubmitting(true);
     try {
       const payload = {
         name: name.trim(),
         description: description.trim(),
         price: numericPrice,
+        categoryId: categoryId || undefined,
         show,
         products: composedSetProducts(),
         images: newImages.map((image) => image.file),
@@ -288,6 +292,24 @@ export default function SetForm({
                 {currency.format(Number(price) || 0)}
               </span>
             )}
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
+              Kategori
+            </span>
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2.5 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
+            >
+              <option value="">— Kategori seçin —</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="md:col-span-2 block">
@@ -392,59 +414,45 @@ export default function SetForm({
                 Mevcut kataloğunuzdan ürün seçin.
               </p>
             </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleAddExisting}
-                disabled={!productOptions.length}
-                className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border-admin)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] disabled:opacity-60"
-              >
-                <Plus className="h-4 w-4" /> Ürün ekle
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleAddEntry}
+              disabled={!productOptions.length}
+              className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border-admin)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] disabled:opacity-60"
+            >
+              <Plus className="h-4 w-4" /> Ürün ekle
+            </button>
           </header>
 
-          <div className="mt-4 space-y-4">
+          <div className="mt-4 space-y-3">
             {entries.map((entry) => (
               <div
                 key={entry.key}
                 className="rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] p-4 shadow-sm"
               >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <h4 className="text-sm font-semibold text-[var(--color-text-admin)]">
-                    Ürün
-                  </h4>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-medium text-[var(--color-text-admin-muted)]">
+                    Ürün {entries.indexOf(entry) + 1}
+                  </span>
                   <button
                     type="button"
                     onClick={() => handleRemoveEntry(entry.key)}
-                    className="inline-flex items-center gap-1 self-start text-xs text-red-600 hover:text-red-500 sm:self-auto"
+                    className="inline-flex items-center gap-1 text-xs text-red-500 hover:text-red-600"
                   >
-                    <Trash2 className="h-4 w-4" /> Kaldır
+                    <Trash2 className="h-3.5 w-3.5" /> Kaldır
                   </button>
                 </div>
 
-                <div className="mt-3 grid gap-3 md:grid-cols-3">
-                  <label className="block md:col-span-2">
-                    <span className="mb-1 block text-xs font-medium text-[var(--color-text-admin-muted)]">
-                      Ürün
-                    </span>
-                    <select
-                      value={entry.productId || ""}
-                      onChange={(e) =>
-                        handleExistingChange(entry.key, e.target.value)
-                      }
-                      className="w-full rounded-lg border border-[var(--color-border-admin)] bg-white px-3 py-2 text-sm text-[var(--color-text-admin)]"
-                    >
-                      {productOptions.map((o) => (
-                        <option key={o.id} value={o.id}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                <div className="mt-2 grid gap-3 sm:grid-cols-[1fr_auto]">
+                  <ProductCombobox
+                    value={entry.productId}
+                    options={productOptions}
+                    onChange={(id) => handleProductChange(entry.key, id)}
+                    autoFocus={!entry.productId}
+                  />
 
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-[var(--color-text-admin-muted)]">
+                  <label className="flex items-center gap-2">
+                    <span className="shrink-0 text-xs text-[var(--color-text-admin-muted)]">
                       Adet
                     </span>
                     <input
@@ -454,12 +462,18 @@ export default function SetForm({
                       onChange={(e) =>
                         handleQuantityChange(entry.key, e.target.value)
                       }
-                      className="w-full rounded-lg border border-[var(--color-border-admin)] bg-white px-3 py-2 text-sm text-[var(--color-text-admin)]"
+                      className="w-20 rounded-lg border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-2 py-2 text-center text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)]"
                     />
                   </label>
                 </div>
               </div>
             ))}
+
+            {entries.length === 0 && (
+              <div className="rounded-xl border border-dashed border-[var(--color-border-admin)] px-4 py-6 text-center text-sm text-[var(--color-text-admin-muted)]">
+                Henüz ürün eklenmedi. &ldquo;Ürün ekle&rdquo; ile başlayın.
+              </div>
+            )}
           </div>
         </section>
 
@@ -470,5 +484,141 @@ export default function SetForm({
         )}
       </form>
     </AdminModal>
+  );
+}
+
+/* ─────────────────────────── ProductCombobox ─────────────────────────── */
+
+function ProductCombobox({ value, options, onChange, autoFocus = false }) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(autoFocus);
+  const containerRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const selected = options.find((o) => o.id === value) || null;
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options.slice(0, 60);
+    return options
+      .filter((o) => o.label.toLowerCase().includes(q))
+      .slice(0, 60);
+  }, [query, options]);
+
+  /* Dışarı tıklayınca kapat */
+  useEffect(() => {
+    const handler = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+        setQuery("");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  /* autoFocus: yeni satır eklenince dropdown açık gelsin */
+  useEffect(() => {
+    if (autoFocus && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [autoFocus]);
+
+  const handleSelect = (id) => {
+    onChange(id);
+    setOpen(false);
+    setQuery("");
+  };
+
+  const handleInputChange = (e) => {
+    setQuery(e.target.value);
+    if (!open) setOpen(true);
+  };
+
+  const handleFocus = () => {
+    setQuery("");
+    setOpen(true);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Escape") {
+      setOpen(false);
+      setQuery("");
+    }
+  };
+
+  const displayValue = open ? query : (selected?.label ?? "");
+  const placeholder = open ? "Ürün adı yazın…" : "Ürün seçin…";
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div
+        className={`flex items-center gap-2 rounded-xl border bg-[var(--color-bg-card)] px-3 py-2 transition-colors ${
+          open
+            ? "border-[var(--color-text-admin)]"
+            : "border-[var(--color-border-admin)]"
+        }`}
+      >
+        <Search className="h-3.5 w-3.5 shrink-0 opacity-40" />
+        <input
+          ref={inputRef}
+          type="text"
+          value={displayValue}
+          onChange={handleInputChange}
+          onFocus={handleFocus}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          className="min-w-0 flex-1 bg-transparent text-sm text-[var(--color-text-admin)] outline-none"
+        />
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => {
+            setOpen((v) => !v);
+            if (!open) {
+              setQuery("");
+              inputRef.current?.focus();
+            }
+          }}
+          className="shrink-0 opacity-40 hover:opacity-70"
+        >
+          <ChevronDown
+            className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
+          />
+        </button>
+      </div>
+
+      {open && (
+        <ul className="absolute left-0 right-0 top-full z-30 mt-1 max-h-52 overflow-y-auto rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-lg">
+          {filtered.length === 0 ? (
+            <li className="px-4 py-3 text-sm text-[var(--color-text-admin-muted)]">
+              Sonuç bulunamadı
+            </li>
+          ) : (
+            filtered.map((o) => (
+              <li key={o.id}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleSelect(o.id)}
+                  className={`flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-bg-hover)] ${
+                    o.id === value
+                      ? "font-semibold text-[var(--color-text-admin)]"
+                      : "text-[var(--color-text-admin)]"
+                  }`}
+                >
+                  <span className="truncate">{o.label}</span>
+                  {o.price != null && (
+                    <span className="shrink-0 text-xs text-[var(--color-text-admin-muted)]">
+                      {currency.format(o.price)}
+                    </span>
+                  )}
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+      )}
+    </div>
   );
 }

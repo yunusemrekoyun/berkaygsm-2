@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { productApi } from "../../api/products.js";
-import { setApi } from "../../api/sets.js";
-import { Package2, Layers, Search, ChevronRight } from "lucide-react";
+import { Package2, Search, ChevronRight } from "lucide-react";
 import StockManagerPanel from "../../components/admin/stocks/StockManagerPanel.jsx";
 
 const PAGE_SIZE = 20;
 
 export default function AdminStocks() {
-  const [tab, setTab] = useState("products");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [items, setItems] = useState([]);
@@ -19,17 +17,10 @@ export default function AdminStocks() {
 
   async function load() {
     try {
-      if (tab === "products") {
-        const data = await productApi.list({ page, limit: PAGE_SIZE, search: query || undefined });
-        const rows = Array.isArray(data?.products) ? data.products : Array.isArray(data) ? data : [];
-        setItems(rows);
-        setTotal(Number(data?.pagination?.total ?? rows.length));
-      } else {
-        const data = await setApi.list({ page, limit: PAGE_SIZE, search: query || undefined });
-        const rows = Array.isArray(data) ? data : Array.isArray(data?.sets) ? data.sets : [];
-        setItems(rows);
-        setTotal(Number(data?.pagination?.total ?? rows.length));
-      }
+      const data = await productApi.list({ page, limit: PAGE_SIZE, search: query || undefined });
+      const rows = Array.isArray(data?.products) ? data.products : Array.isArray(data) ? data : [];
+      setItems(rows);
+      setTotal(Number(data?.pagination?.total ?? rows.length));
     } catch (e) {
       console.error(e);
       setItems([]);
@@ -40,10 +31,10 @@ export default function AdminStocks() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, page]);
+  }, [page]);
 
-  function openPanel(model, id, name) {
-    setPanelOwner({ model, id, name });
+  function openPanel(id, name) {
+    setPanelOwner({ model: "Product", id, name });
     setPanelOpen(true);
   }
 
@@ -53,11 +44,6 @@ export default function AdminStocks() {
     color: "var(--color-text-admin)",
   };
 
-  const TABS = [
-    { key: "products", label: "Ürünler", Icon: Package2 },
-    { key: "sets", label: "Setler", Icon: Layers },
-  ];
-
   return (
     <>
       {/* Header */}
@@ -65,27 +51,9 @@ export default function AdminStocks() {
         className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border p-3 sm:p-4"
         style={card}
       >
-        {/* Tabs */}
-        <div
-          className="flex gap-1 rounded-xl p-1"
-          style={{ background: "var(--color-surface-light)" }}
-        >
-          {TABS.map(({ key, label, Icon }) => (
-            <button
-              key={key}
-              onClick={() => { setTab(key); setPage(1); }}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-                tab === key ? "shadow-sm" : "opacity-50 hover:opacity-80"
-              }`}
-              style={{
-                background: tab === key ? "var(--color-bg-card)" : "transparent",
-                color: "var(--color-text-admin)",
-              }}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 text-sm font-medium opacity-70">
+          <Package2 className="h-4 w-4" />
+          Ürün Stokları
         </div>
 
         {/* Search */}
@@ -96,7 +64,7 @@ export default function AdminStocks() {
           <Search className="h-4 w-4 opacity-50" />
           <input
             className="w-full bg-transparent text-sm outline-none sm:w-52"
-            placeholder={tab === "products" ? "Ürün ara…" : "Set ara…"}
+            placeholder="Ürün ara…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -113,13 +81,12 @@ export default function AdminStocks() {
             <div className="py-16 text-center text-sm opacity-50">Kayıt bulunamadı.</div>
           ) : (
             items.map((it) => {
-              const model = tab === "products" ? "Product" : "Set";
               const name = it?.name || it?.title || it?.slug || it?._id;
               const ownerId = it?._id || it?.id || null;
               return (
                 <button
                   key={ownerId || it.slug}
-                  onClick={() => openPanel(model, ownerId, name)}
+                  onClick={() => openPanel(ownerId, name)}
                   disabled={!ownerId}
                   className="w-full flex items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-[var(--color-bg-hover)] disabled:opacity-40"
                   style={{ color: "var(--color-text-admin)" }}
@@ -128,10 +95,7 @@ export default function AdminStocks() {
                     className="shrink-0 rounded-lg p-2"
                     style={{ background: "var(--color-surface-light)" }}
                   >
-                    {tab === "products"
-                      ? <Package2 className="h-4 w-4 opacity-60" />
-                      : <Layers className="h-4 w-4 opacity-60" />
-                    }
+                    <Package2 className="h-4 w-4 opacity-60" />
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -140,11 +104,8 @@ export default function AdminStocks() {
                       {"price" in it && (
                         <span>{Number(it.price || 0).toLocaleString("tr-TR")} ₺</span>
                       )}
-                      {tab === "products" && it?.category?.name && (
+                      {it?.category?.name && (
                         <span>{it.category.name}</span>
-                      )}
-                      {tab === "sets" && (
-                        <span>{(it?.products || []).length} parça</span>
                       )}
                     </div>
                   </div>

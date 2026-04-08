@@ -72,6 +72,9 @@ async function buildSetFormData(payload = {}) {
   if (payload.price !== undefined) form.append("price", String(payload.price));
   if (payload.show !== undefined)
     form.append("show", payload.show ? "true" : "false");
+  if (payload.sku !== undefined) form.append("sku", payload.sku || "");
+  if (payload.categoryId !== undefined)
+    form.append("categoryId", payload.categoryId || "");
 
   if (payload.products) {
     // sadece { productId, quantity } listesi

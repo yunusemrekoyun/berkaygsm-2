@@ -1,6 +1,8 @@
 import Set from "../models/Set.js";
 import Product from "../models/Product.js";
+import StockItem from "../models/StockItem.js";
 import { hydrateProductsWithInventory } from "../utils/stockItemHelpers.js";
+import { revalidatePath } from "next/cache";
 import {
   uploadBufferToCloudinary,
   deleteFromCloudinary,
@@ -197,6 +199,7 @@ export async function createSet(req, res) {
       show = true,
       products = [],
       sku,
+      categoryId,
     } = req.body;
     if (!name || price == null)
       return res.status(400).json({ message: "Ad ve fiyat gerekli" });
@@ -220,6 +223,7 @@ export async function createSet(req, res) {
       images,
       products: setProducts,
       sku: sku ? String(sku).trim().toUpperCase() : undefined,
+      category: isId(categoryId) ? categoryId : null,
     });
 
     const incomingTranslations = pickLocalizedPayload(req.body);
@@ -232,12 +236,16 @@ export async function createSet(req, res) {
 
     await doc.save();
 
-    await doc.populate({ path: "products.product" });
+    await doc.populate([
+      { path: "category", select: "name slug" },
+      { path: "products.product" },
+    ]);
     const componentProducts = doc.products
       .map((entry) => entry?.product)
       .filter(Boolean);
     await hydrateProductsWithInventory(componentProducts);
     doc.set("stock", null, { strict: false });
+    revalidatePath("/");
     res.status(201).json({ set: presentSet(doc, lang) });
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.sku)
@@ -267,6 +275,7 @@ export async function listSets(req, res) {
     const sets = await Set.find(filter)
       .sort({ createdAt: -1 })
       .limit(limit)
+      .populate({ path: "category", select: "name slug" })
       .populate({
         path: "products.product",
         select: "name slug category translations",
@@ -309,7 +318,10 @@ export async function getSet(req, res) {
       ? await Set.findById(idOrSlug)
       : await Set.findOne({ slug: idOrSlug });
     if (!set) return res.status(404).json({ message: "Set bulunamadı" });
-    await set.populate({ path: "products.product" });
+    await set.populate([
+      { path: "category", select: "name slug" },
+      { path: "products.product" },
+    ]);
     const componentProducts = set.products
       .map((entry) => entry?.product)
       .filter(Boolean);
@@ -339,6 +351,7 @@ export async function updateSet(req, res) {
       show,
       products,
       sku,
+      categoryId,
       removeImagePublicIds,
     } = req.body;
 
@@ -381,6 +394,8 @@ export async function updateSet(req, res) {
     if (sku !== undefined)
       set.sku = sku ? String(sku).trim().toUpperCase() : undefined;
 
+    if (categoryId !== undefined)
+      set.category = isId(categoryId) ? categoryId : null;
     if (products !== undefined) set.products = await parseSetProducts(products);
 
     if (removeImagePublicIds) {
@@ -440,12 +455,16 @@ export async function updateSet(req, res) {
     );
 
     await set.save();
-    await set.populate({ path: "products.product" });
+    await set.populate([
+      { path: "category", select: "name slug" },
+      { path: "products.product" },
+    ]);
     const componentProducts = set.products
       .map((entry) => entry?.product)
       .filter(Boolean);
     await hydrateProductsWithInventory(componentProducts);
     set.set("stock", null, { strict: false });
+    revalidatePath("/");
     const setDiscountMap = await buildSetDiscountMap([set]);
     const discount = setDiscountMap.get(resolveSetId(set)) || null;
     res.json({ set: presentSet(set, lang, { discount }) });
@@ -471,7 +490,9 @@ export async function deleteSet(req, res) {
           .map((pid) => deleteFromCloudinary(pid, "image"))
       );
     }
+    await StockItem.deleteMany({ ownerModel: "Set", owner: set._id });
     await set.deleteOne();
+    revalidatePath("/");
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ message: err.message || "Delete failed" });

@@ -43,6 +43,7 @@ import {
   deriveOrderAccountingState,
   shouldOrderHaveAccountingEffects,
 } from "../utils/orderAccounting.js";
+import { revalidatePath } from "next/cache";
 
 const PAYMENT_CURRENCY = (
   process.env.PAYMENT_CURRENCY ||
@@ -1421,6 +1422,30 @@ async function finalizeOrder(prepared, options = {}) {
   }
 }
 
+// Sipariş sonrası stoğu değişen ürünlerin sayfa cache'ini temizle.
+// Sadece SSR cache kullanan /product/[slug] için gerekli.
+// Set sayfaları client-side render, revalidation gereksiz.
+async function revalidateOrderProductPages(order) {
+  try {
+    const productIds = Array.from(
+      new Set(
+        (order?.accounting?.stockUsage || [])
+          .map((u) => u?.productId)
+          .filter(Boolean)
+      )
+    );
+    if (!productIds.length) return;
+    const products = await Product.find({ _id: { $in: productIds } })
+      .select("slug")
+      .lean();
+    for (const p of products) {
+      if (p?.slug) revalidatePath(`/product/${p.slug}`);
+    }
+  } catch {
+    // cache bust kritik değil, sipariş başarıyla oluşturuldu
+  }
+}
+
 /**
  * POST /api/orders
  * Body: {
@@ -1507,6 +1532,7 @@ export async function createOrder(req, res) {
       await Promise.allSettled([
         sendOrderCustomerEmail({ order, user: customer }),
         sendOrderAdminEmail({ order, user: customer }),
+        revalidateOrderProductPages(order),
       ]);
     }
 

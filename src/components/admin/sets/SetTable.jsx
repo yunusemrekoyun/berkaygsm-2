@@ -58,6 +58,7 @@ export default function SetTable({
           <thead className="bg-[var(--color-bg-hover)]/60 text-[var(--color-text-admin-muted)]">
             <tr>
               <th className="px-4 py-3 text-left font-medium">Set</th>
+              <th className="px-4 py-3 text-left font-medium">Kategori</th>
               <th className="px-4 py-3 text-left font-medium">Fiyat</th>
               <th className="px-4 py-3 text-left font-medium">Stok</th>
               <th className="px-4 py-3 text-left font-medium">Görünürlük</th>
@@ -90,6 +91,11 @@ export default function SetTable({
                       </div>
                     </div>
                   </div>
+                </td>
+                <td className="px-4 py-3" data-label="Kategori">
+                  <span className="text-xs text-[var(--color-text-admin-muted)]">
+                    {set.category?.name || "—"}
+                  </span>
                 </td>
                 <td className="px-4 py-3" data-label="Fiyat">
                   {currency.format(set.price || 0)}

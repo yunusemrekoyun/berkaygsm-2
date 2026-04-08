@@ -52,6 +52,11 @@ const SetSchema = new mongoose.Schema(
     images: { type: [SetImageSchema], default: [] },
     show: { type: Boolean, default: true },
     products: { type: [SetProductSchema], default: [] },
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      default: null,
+    },
     sku: {
       type: String,
       unique: true,
@@ -76,10 +81,19 @@ const SetSchema = new mongoose.Schema(
 
 SetSchema.index({ name: 1 }, { unique: true });
 
+const SKU_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+function randSku(len = 6) {
+  return (
+    "SET-" +
+    Array.from({ length: len }, () =>
+      SKU_CHARS[Math.floor(Math.random() * SKU_CHARS.length)]
+    ).join("")
+  );
+}
+
 SetSchema.pre("validate", async function (next) {
   if (this.isModified("name") || !this.slug) {
-    const base =
-      toSlug(this.name) || "set";
+    const base = toSlug(this.name) || "set";
     let s = base;
     let k = 1;
     while (
@@ -89,7 +103,24 @@ SetSchema.pre("validate", async function (next) {
     }
     this.slug = s;
   }
-  if (this.sku) this.sku = this.sku.trim().toUpperCase() || undefined;
+  if (this.sku) {
+    this.sku = this.sku.trim().toUpperCase() || undefined;
+  }
+  if (!this.sku) {
+    let candidate = randSku();
+    let attempts = 0;
+    while (
+      attempts < 10 &&
+      (await mongoose.models.Set.exists({
+        sku: candidate,
+        _id: { $ne: this._id },
+      }))
+    ) {
+      candidate = randSku();
+      attempts++;
+    }
+    this.sku = candidate;
+  }
   next();
 });
 

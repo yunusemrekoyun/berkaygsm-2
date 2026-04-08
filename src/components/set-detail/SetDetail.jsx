@@ -22,13 +22,37 @@ export default function SetDetail({ setDoc }) {
   const favoriteAddLabel = favoritesCopy.add || "Favorilere ekle";
   const favoriteRemoveLabel = favoritesCopy.remove || "Favorilerden çıkar";
 
-  // setDoc olmasa da güvenli hesaplama
+  // maxStock: set içindeki ürünlerin en iyi varyant seçimiyle kaç set yapılabileceği.
+  // Her ürün için "en yüksek stoklu varyant / set içi adeti" alınır, minimum olan setin üst sınırıdır.
   const maxStock = useMemo(() => {
-    if (setDoc?.stock === null || setDoc?.stock === undefined) return Infinity;
-    const s = Number(setDoc?.stock);
-    if (!Number.isFinite(s)) return Infinity;
-    return Math.max(0, s);
-  }, [setDoc?.stock]);
+    // Explicit override (ileride gerekirse kullanılır)
+    if (setDoc?.stock !== null && setDoc?.stock !== undefined) {
+      const s = Number(setDoc?.stock);
+      if (Number.isFinite(s) && s >= 0) return s;
+    }
+    const products = Array.isArray(setDoc?.products) ? setDoc.products : [];
+    if (!products.length) return Infinity;
+
+    let minPossible = Infinity;
+    for (const entry of products) {
+      const p = entry?.product || entry || {};
+      const qtyInSet = Math.max(1, Number(entry?.quantity) || 1);
+      const inventory = Array.isArray(p.inventory) ? p.inventory : [];
+      if (!inventory.length) continue;
+
+      // Bu ürünün herhangi bir varyantından en fazla kaç set çıkar?
+      const bestVariantQty = inventory.reduce((best, inv) => {
+        const n = Number(inv?.stockSet);
+        const qty = Number.isFinite(n) && n >= 0 ? n : Math.max(0, Number(inv?.stock) || 0);
+        return Math.max(best, qty);
+      }, 0);
+
+      const setsFromProduct = Math.floor(bestVariantQty / qtyInSet);
+      if (setsFromProduct < minPossible) minPossible = setsFromProduct;
+    }
+
+    return Number.isFinite(minPossible) ? minPossible : Infinity;
+  }, [setDoc?.products, setDoc?.stock]);
 
   const cartQtyForSet = useMemo(() => {
     if (!setDoc?.id) return 0;
