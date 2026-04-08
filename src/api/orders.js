@@ -7,30 +7,16 @@ export const orderApi = {
     items,
     couponCode = null,
     note = null,
-    paymentSimulation = null,
-    paymentMethod = null,
-    paymentProvider = null,
   }) {
     const body = { addressId, items, couponCode };
     if (addressSnapshot) body.addressSnapshot = addressSnapshot;
     if (note) body.note = note;
-    if (paymentSimulation) body.paymentSimulation = paymentSimulation;
-    if (paymentMethod) body.paymentMethod = paymentMethod;
-    if (paymentProvider) body.paymentProvider = paymentProvider;
     const data = await http("/orders", {
       method: "POST",
       auth: true,
       body,
     });
     return data.order;
-  },
-  async createPaytr(payload) {
-    const data = await http("/orders/paytr/create", {
-      method: "POST",
-      auth: true,
-      body: payload,
-    });
-    return data;
   },
   async mine() {
     const data = await http("/orders/mine", { auth: true });

@@ -14,6 +14,7 @@ import {
   buildOrderPrintModel,
   formatOrderDateTime,
 } from "./orderPrintTemplate.js";
+import { formatPaymentMethodLabel } from "../../utils/paymentLabels.js";
 
 const ORDER_STATUS_LABELS = {
   pending: "Beklemede",
@@ -31,10 +32,7 @@ const PAYMENT_STATUS_LABELS = {
 };
 
 const PAYMENT_METHOD_LABELS = {
-  checkout_simulation: "Sipariş Simülasyonu",
-  gateway_simulation: "Sipariş Simülasyonu",
-  simulation: "Sipariş Simülasyonu",
-  paytr: "PayTR",
+  online: "Online Ödeme",
   cod: "Kapıda Ödeme",
   card: "Kredi Kartı",
 };
@@ -62,7 +60,7 @@ function cls(...parts) {
 function formatPaymentMethod(method) {
   const normalized = String(method || "").trim().toLowerCase();
   if (!normalized) return "-";
-  return PAYMENT_METHOD_LABELS[normalized] || normalized.toUpperCase();
+  return PAYMENT_METHOD_LABELS[normalized] || formatPaymentMethodLabel(normalized);
 }
 
 function buildPaymentLabel(order) {

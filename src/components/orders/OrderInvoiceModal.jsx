@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { orderApi } from "../../api/orders";
 import { formatOrderDateTime } from "./orderPrintTemplate.js";
+import { formatPaymentMethodLabel } from "../../utils/paymentLabels.js";
 
 const VAT_RATE = 0.2;
 
@@ -36,10 +37,7 @@ const PAYMENT_STATUS_LABELS = {
 };
 
 const PAYMENT_METHOD_LABELS = {
-  checkout_simulation: "Sipariş Simülasyonu",
-  gateway_simulation: "Sipariş Simülasyonu",
-  simulation: "Sipariş Simülasyonu",
-  paytr: "PayTR",
+  online: "Online Ödeme",
   cod: "Kapıda Ödeme",
   card: "Kredi Kartı",
 };
@@ -80,7 +78,7 @@ function firstFilled(...values) {
 function formatPaymentMethod(method) {
   const normalized = String(method || "").trim().toLowerCase();
   if (!normalized) return "—";
-  return PAYMENT_METHOD_LABELS[normalized] || normalized.toUpperCase();
+  return PAYMENT_METHOD_LABELS[normalized] || formatPaymentMethodLabel(normalized);
 }
 
 function formatStatus(status, labels) {

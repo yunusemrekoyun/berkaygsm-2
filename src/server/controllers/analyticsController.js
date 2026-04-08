@@ -8,6 +8,7 @@ import {
   normalizeComparableHost,
   parseReferrerMeta,
 } from "../../utils/visitAttribution.js";
+import { formatPaymentMethodLabel } from "../../utils/paymentLabels.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MIN_DAYS = 7;
@@ -16,10 +17,7 @@ const DEFAULT_DAYS = 30;
 
 const PAYMENT_METHOD_LABELS = {
   cod: "Kapıda Ödeme",
-  paytr: "PayTR",
-  checkout_simulation: "Sipariş Simülasyonu",
-  gateway_simulation: "Sipariş Simülasyonu",
-  simulation: "Sipariş Simülasyonu",
+  online: "Online Ödeme",
   card: "Kredi Kartı",
   bank: "Banka Havalesi",
   transfer: "Banka Havalesi",
@@ -28,12 +26,11 @@ const PAYMENT_METHOD_LABELS = {
 
 const PAYMENT_COLORS = {
   "Kapıda Ödeme": "var(--color-primary)",
-  PayTR: "var(--color-accent)",
-  "Sipariş Simülasyonu": "var(--color-secondary)",
-  "Ödeme Simülasyonu": "var(--color-secondary)",
+  "Online Ödeme": "var(--color-accent)",
   "Kredi Kartı": "var(--color-secondary)",
   "Banka Havalesi": "var(--color-surface)",
   Diğer: "var(--color-contact-bg)",
+  "Geçmiş ödeme kaydı": "var(--color-text-admin-muted)",
 };
 
 const STATUS_ORDER = ["pending", "paid", "shipped", "completed", "cancelled"];
@@ -129,13 +126,7 @@ function normalizePaymentMethod(value) {
   const normalized = String(value || "other").trim().toLowerCase();
   if (!normalized) return "Diğer";
   if (PAYMENT_METHOD_LABELS[normalized]) return PAYMENT_METHOD_LABELS[normalized];
-  if (normalized.includes("paytr")) return "PayTR";
-  if (normalized.includes("card")) return "Kredi Kartı";
-  if (normalized.includes("bank") || normalized.includes("transfer")) {
-    return "Banka Havalesi";
-  }
-  if (normalized.includes("cod")) return "Kapıda Ödeme";
-  return "Diğer";
+  return formatPaymentMethodLabel(normalized);
 }
 
 function parseCountry(value) {

@@ -1,5 +1,6 @@
 import Set from "../models/Set.js";
 import Product from "../models/Product.js";
+import Category from "../models/Category.js";
 import StockItem from "../models/StockItem.js";
 import { hydrateProductsWithInventory } from "../utils/stockItemHelpers.js";
 import { revalidatePath } from "next/cache";
@@ -37,6 +38,14 @@ function parseBool(value, fallback = false) {
 const resolveSetFolder = () => {
   return resolveMediaFolder("sets");
 };
+
+function revalidateSetPaths(...slugs) {
+  revalidatePath("/");
+  revalidatePath("/sets");
+  slugs
+    .filter(Boolean)
+    .forEach((slug) => revalidatePath(`/set/${slug}`));
+}
 
 async function uploadImages(files = []) {
   if (!Array.isArray(files) || !files.length) return [];
@@ -87,6 +96,23 @@ async function parseSetProducts(value) {
     });
   }
   return out;
+}
+
+async function resolveCategoryId(value) {
+  if (value === undefined) return undefined;
+  if (value === null || String(value).trim() === "") return null;
+
+  const categoryId = String(value).trim();
+  if (!isId(categoryId)) {
+    throw new Error("Geçersiz kategori");
+  }
+
+  const exists = await Category.exists({ _id: categoryId });
+  if (!exists) {
+    throw new Error("Kategori bulunamadı");
+  }
+
+  return categoryId;
 }
 
 function buildSetTrTranslation(doc) {
@@ -214,6 +240,7 @@ export async function createSet(req, res) {
     );
     const images = [...directImages, ...uploadedImages];
     const setProducts = await parseSetProducts(products);
+    const resolvedCategoryId = await resolveCategoryId(categoryId);
 
     const doc = new Set({
       name: String(name).trim(),
@@ -223,7 +250,7 @@ export async function createSet(req, res) {
       images,
       products: setProducts,
       sku: sku ? String(sku).trim().toUpperCase() : undefined,
-      category: isId(categoryId) ? categoryId : null,
+      category: resolvedCategoryId ?? null,
     });
 
     const incomingTranslations = pickLocalizedPayload(req.body);
@@ -245,7 +272,7 @@ export async function createSet(req, res) {
       .filter(Boolean);
     await hydrateProductsWithInventory(componentProducts);
     doc.set("stock", null, { strict: false });
-    revalidatePath("/");
+    revalidateSetPaths(doc.slug);
     res.status(201).json({ set: presentSet(doc, lang) });
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.sku)
@@ -343,6 +370,7 @@ export async function updateSet(req, res) {
       ? await Set.findById(idOrSlug)
       : await Set.findOne({ slug: idOrSlug });
     if (!set) return res.status(404).json({ message: "Set bulunamadı" });
+    const previousSlug = set.slug;
 
     const {
       name,
@@ -394,8 +422,9 @@ export async function updateSet(req, res) {
     if (sku !== undefined)
       set.sku = sku ? String(sku).trim().toUpperCase() : undefined;
 
-    if (categoryId !== undefined)
-      set.category = isId(categoryId) ? categoryId : null;
+    if (categoryId !== undefined) {
+      set.category = await resolveCategoryId(categoryId);
+    }
     if (products !== undefined) set.products = await parseSetProducts(products);
 
     if (removeImagePublicIds) {
@@ -464,7 +493,7 @@ export async function updateSet(req, res) {
       .filter(Boolean);
     await hydrateProductsWithInventory(componentProducts);
     set.set("stock", null, { strict: false });
-    revalidatePath("/");
+    revalidateSetPaths(previousSlug, set.slug);
     const setDiscountMap = await buildSetDiscountMap([set]);
     const discount = setDiscountMap.get(resolveSetId(set)) || null;
     res.json({ set: presentSet(set, lang, { discount }) });
@@ -492,7 +521,7 @@ export async function deleteSet(req, res) {
     }
     await StockItem.deleteMany({ ownerModel: "Set", owner: set._id });
     await set.deleteOne();
-    revalidatePath("/");
+    revalidateSetPaths(set.slug);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ message: err.message || "Delete failed" });

@@ -1,22 +1,12 @@
 // src/pages/CheckoutPage.jsx
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BreadCrumb from "../components/shop/BreadCrumb";
 import AlertBanner from "../components/ui/AlertBanner.jsx";
 import LoadingOverlay from "../components/ui/LoadingOverlay.jsx";
 import { useCart } from "../hooks/useCart";
 import { userDetailsApi } from "../api/userDetails";
-import { orderApi } from "../api/orders";
 import { getAccessToken, refreshAccessToken } from "../api/client";
-
-const SIMULATION_PAYMENT_METHOD = "checkout_simulation";
-const SIMULATION_PAYMENT_PROVIDER = "simulation";
-
-const PAYMENT_OPTIONS = {
-  SIMULATE_SUCCESS: "simulate_success",
-  SIMULATE_FAILURE: "simulate_failure",
-  PAYTR: "paytr",
-};
 
 function parseError(error) {
   if (!error) return { message: "", status: null };
@@ -75,8 +65,6 @@ export default function CheckoutPage() {
     couponDiscount = 0,
     pricing = {},
     shipping: shippingInfo = {},
-    clearCart = () => {},
-    clearCoupon = () => {},
   } = cart;
 
   useEffect(() => {
@@ -221,28 +209,13 @@ export default function CheckoutPage() {
       ? Number(total)
       : derivedTotal;
 
-  const orderPlacedRef = useRef(false);
-
   const [addresses, setAddresses] = useState([]);
   const [addressId, setAddressId] = useState("");
   const [loading, setLoading] = useState(true);
-  const [placing, setPlacing] = useState(false);
   const [banner, setBanner] = useState(null);
-  const [paymentOption, setPaymentOption] = useState(
-    PAYMENT_OPTIONS.SIMULATE_SUCCESS
-  );
-  const [orderNote, setOrderNote] = useState("");
-  const placeOrderLabel = placing
-    ? "Sipariş işleniyor..."
-    : paymentOption === PAYMENT_OPTIONS.SIMULATE_FAILURE
-      ? "Başarısız sipariş simülasyonunu kaydet"
-      : paymentOption === PAYMENT_OPTIONS.PAYTR
-        ? "PayTR ile devam et"
-        : "Başarılı sipariş simülasyonunu kaydet";
 
   const hasItems = checkoutItems.length > 0;
   const hasAddress = Boolean(addressId);
-  const canPlaceOrder = hasAddress && hasItems && !placing && authChecked;
 
   useEffect(() => {
     if (!authChecked) return;
@@ -290,7 +263,6 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!authChecked) return;
-    if (orderPlacedRef.current) return;
     if (!loading && lines.length === 0) {
       navigate("/cart", { replace: true });
     }
@@ -309,96 +281,6 @@ export default function CheckoutPage() {
       </section>
     );
   }
-
-  const placeOrder = async () => {
-    if (!hasAddress) {
-      setBanner({
-        variant: "warning",
-        message: "Sipariş vermeden önce teslimat adresi ekleyin.",
-      });
-      return;
-    }
-    if (!hasItems) {
-      setBanner({
-        variant: "warning",
-        message: "Sepetiniz boş.",
-      });
-      return;
-    }
-
-    try {
-      setPlacing(true);
-      const note = orderNote.trim() || null;
-      const couponCode = couponApplicable ? coupon?.code || null : null;
-
-      if (paymentOption === PAYMENT_OPTIONS.PAYTR) {
-        const paytrResult = await orderApi.createPaytr({
-          addressId,
-          items: checkoutItems,
-          couponCode,
-          note,
-        });
-
-        setBanner({
-          variant: "warning",
-          message:
-            paytrResult?.message ||
-            "PayTR seçeneği hazırlandı ancak henüz kullanıma açılmadı.",
-        });
-        return;
-      }
-
-      const simulationMode =
-        paymentOption === PAYMENT_OPTIONS.SIMULATE_FAILURE
-          ? "failure"
-          : "success";
-      const order = await orderApi.create({
-        addressId,
-        items: checkoutItems,
-        couponCode,
-        note,
-        paymentMethod: SIMULATION_PAYMENT_METHOD,
-        paymentProvider: SIMULATION_PAYMENT_PROVIDER,
-        paymentSimulation: simulationMode,
-      });
-
-      const paymentStatus = String(order?.payment?.status || "").toLowerCase();
-      const failedSimulation = paymentStatus === "failed";
-
-      orderPlacedRef.current = true;
-      if (!failedSimulation) {
-        clearCart();
-        clearCoupon();
-      }
-
-      navigate(
-        `/checkout/success?order=${order.id}&result=${
-          failedSimulation ? "failure" : "success"
-        }`,
-        { replace: true }
-      );
-    } catch (error) {
-      const { status, message } = parseError(error);
-      if (status === 401) {
-        navigate(`/account?view=login&redirect=/checkout`, { replace: true });
-        return;
-      }
-      if (paymentOption === PAYMENT_OPTIONS.PAYTR) {
-        setBanner({
-          variant: "warning",
-          message:
-            message || "PayTR seçeneği henüz etkin değil. Şimdilik simülasyon kullanın.",
-        });
-        return;
-      }
-      setBanner({
-        variant: "danger",
-        message: `Sipariş başarısız: ${message || "Beklenmeyen hata"}`,
-      });
-    } finally {
-      setPlacing(false);
-    }
-  };
 
   return (
     <section className="store-page bg-surface-light/60">
@@ -538,99 +420,31 @@ export default function CheckoutPage() {
               )}
 
               <div className="glass-surface-soft mt-4 rounded-xl border border-border bg-surface p-4 text-sm">
-                <p className="font-semibold text-primary">Ödeme seçeneği</p>
-                <p className="mt-1 text-xs text-secondary">
-                  Simülasyon seçenekleri sipariş kaydını doğrudan oluşturur.
-                  PayTR seçeneği ise altyapı netleşene kadar hazır bekler.
+                <p className="font-semibold text-primary">
+                  Ödeme entegrasyonu yenileniyor
                 </p>
-                <div className="mt-3 space-y-2">
-                  <label
-                    className={`flex items-start gap-3 rounded-xl border px-3 py-3 transition ${
-                      paymentOption === PAYMENT_OPTIONS.SIMULATE_SUCCESS
-                        ? "border-accent bg-sky-50/80 text-primary"
-                        : "border-border bg-white/70 text-secondary"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment-option"
-                      value={PAYMENT_OPTIONS.SIMULATE_SUCCESS}
-                      checked={paymentOption === PAYMENT_OPTIONS.SIMULATE_SUCCESS}
-                      onChange={() => setPaymentOption(PAYMENT_OPTIONS.SIMULATE_SUCCESS)}
-                      className="mt-1"
-                    />
-                    <span>Siparişi başarılı simüle et</span>
-                  </label>
-                  <label
-                    className={`flex items-start gap-3 rounded-xl border px-3 py-3 transition ${
-                      paymentOption === PAYMENT_OPTIONS.SIMULATE_FAILURE
-                        ? "border-accent bg-sky-50/80 text-primary"
-                        : "border-border bg-white/70 text-secondary"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment-option"
-                      value={PAYMENT_OPTIONS.SIMULATE_FAILURE}
-                      checked={paymentOption === PAYMENT_OPTIONS.SIMULATE_FAILURE}
-                      onChange={() => setPaymentOption(PAYMENT_OPTIONS.SIMULATE_FAILURE)}
-                      className="mt-1"
-                    />
-                    <span>Siparişi başarısız simüle et</span>
-                  </label>
-                  <label
-                    className={`flex items-start gap-3 rounded-xl border px-3 py-3 transition ${
-                      paymentOption === PAYMENT_OPTIONS.PAYTR
-                        ? "border-accent bg-sky-50/80 text-primary"
-                        : "border-border bg-white/70 text-secondary"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment-option"
-                      value={PAYMENT_OPTIONS.PAYTR}
-                      checked={paymentOption === PAYMENT_OPTIONS.PAYTR}
-                      onChange={() => setPaymentOption(PAYMENT_OPTIONS.PAYTR)}
-                      className="mt-1"
-                    />
-                    <span>PayTR ile öde</span>
-                  </label>
+                <p className="mt-1 text-xs text-secondary">
+                  Iyzico kurulumu öncesi eski ödeme akışı tamamen devre dışı
+                  bırakıldı. Bu ekranda adres ve sepet kontrolü yapılabilir ama
+                  sipariş oluşturulmaz.
+                </p>
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs text-amber-800">
+                  Ödeme altyapısı hazır olduğunda checkout yeniden açılacak.
                 </div>
               </div>
 
-              <div className="mt-4">
-                <label
-                  htmlFor="order-note"
-                  className="mb-2 block text-sm font-medium text-primary"
-                >
-                  Sipariş notu
-                </label>
-                <textarea
-                  id="order-note"
-                  value={orderNote}
-                  onChange={(event) => setOrderNote(event.target.value)}
-                  rows={4}
-                  maxLength={1000}
-                  className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm text-primary outline-none transition focus:border-accent"
-                  placeholder="Kargo veya paketleme için ek notunuz varsa buraya yazın."
-                />
-              </div>
-
               <div className="relative">
-                <LoadingOverlay show={placing} />
+                <LoadingOverlay show={false} />
                 <button
-                  disabled={!canPlaceOrder || placing}
-                  className="mt-5 w-full rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
-                  onClick={placeOrder}
+                  disabled
+                  className="mt-5 w-full rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {placeOrderLabel}
+                  Ödeme entegrasyonu hazırlanıyor
                 </button>
               </div>
 
               <p className="mt-3 text-xs text-secondary">
-                {paymentOption === PAYMENT_OPTIONS.PAYTR
-                  ? "PayTR seçeneği şimdilik sadece hazır bekler; sipariş kaydı açmaz."
-                  : "Başarısız simülasyonda sipariş denemesi kaydedilir, stok düşülmez ve sepet temizlenmez."}
+                Iyzico kurulumu tamamlanana kadar checkout kapalı kalacak.
               </p>
             </div>
           </div>
@@ -649,11 +463,10 @@ export default function CheckoutPage() {
               </p>
             </div>
             <button
-              disabled={!canPlaceOrder || placing}
-              className="shrink-0 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
-              onClick={placeOrder}
+              disabled
+              className="shrink-0 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {placing ? "İşleniyor..." : "Siparişi tamamla"}
+              Ödeme hazırlanıyor
             </button>
           </div>
           {!hasAddress && (

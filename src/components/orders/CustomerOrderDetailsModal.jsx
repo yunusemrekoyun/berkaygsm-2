@@ -14,6 +14,7 @@ import {
   OFFICIAL_PHONE,
   OFFICIAL_SUPPORT_EMAIL,
 } from "../../config/siteContact.js";
+import { formatPaymentMethodLabel } from "../../utils/paymentLabels.js";
 
 const ORDER_STATUS_META = {
   pending: {
@@ -51,10 +52,7 @@ const PAYMENT_STATUS_LABELS = {
 };
 
 const PAYMENT_METHOD_LABELS = {
-  checkout_simulation: "Sipariş Simülasyonu",
-  gateway_simulation: "Sipariş Simülasyonu",
-  simulation: "Sipariş Simülasyonu",
-  paytr: "PayTR",
+  online: "Online Ödeme",
   cod: "Kapıda Ödeme",
   card: "Kredi Kartı",
 };
@@ -83,7 +81,7 @@ function formatDate(value) {
 function paymentLabel(order) {
   const methodKey = String(order?.payment?.method || "").trim().toLowerCase();
   const method =
-    PAYMENT_METHOD_LABELS[methodKey] || (methodKey ? methodKey.toUpperCase() : "-");
+    PAYMENT_METHOD_LABELS[methodKey] || formatPaymentMethodLabel(methodKey);
   const status =
     PAYMENT_STATUS_LABELS[String(order?.payment?.status || "").toLowerCase()] || "";
   return status ? `${method} • ${status}` : method;

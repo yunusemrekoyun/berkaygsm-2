@@ -7,7 +7,6 @@ export default function SuccessPage() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const orderId = searchParams.get("order");
-  const result = searchParams.get("result");
   const [order, setOrder] = useState(null);
 
   useEffect(() => {
@@ -27,11 +26,10 @@ export default function SuccessPage() {
   }, [orderId]);
 
   const paymentFailed =
-    String(order?.payment?.status || "").toLowerCase() === "failed" ||
-    result === "failure";
+    String(order?.payment?.status || "").toLowerCase() === "failed";
   const heading = paymentFailed ? "Ödeme tamamlanamadı" : "Teşekkürler!";
   const message = paymentFailed
-    ? "Ödeme başarısız simüle edildi. Sipariş denemesi kaydedildi."
+    ? "Ödeme tamamlanamadı. Sipariş durumunu hesabınızdan kontrol edebilirsiniz."
     : "Siparişiniz başarıyla oluşturuldu.";
 
   return (
@@ -93,7 +91,7 @@ export default function SuccessPage() {
               to={paymentFailed ? "/checkout" : "/"}
               className="glass-chip rounded-full border border-border px-4 py-2 text-sm text-primary hover:bg-surface-hover"
             >
-              {paymentFailed ? "Ödemeyi yeniden dene" : "Alışverişe devam et"}
+              {paymentFailed ? "Checkout sayfasına dön" : "Alışverişe devam et"}
             </Link>
             <Link
               to="/account?tab=Orders"

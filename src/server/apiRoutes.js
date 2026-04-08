@@ -91,9 +91,6 @@ import {
   updateOrderStatus,
 } from "./controllers/orderController.js";
 import {
-  createPaytrCheckout,
-} from "./controllers/paymentController.js";
-import {
   listHeroes,
   createHero,
   getHero,
@@ -195,7 +192,6 @@ import { requireRole } from "./middleware/roles.js";
 import { validateBody } from "./middleware/validate.js";
 import {
   orderCreateSchema,
-  paytrCreateSchema,
   printJobClaimSchema,
   printJobCompleteSchema,
   printJobFailSchema,
@@ -408,11 +404,6 @@ export const routes = [
   route("POST", ["user-details", "favorites", "toggle"], [requireAuth, toggleFavorite]),
 
   // orders
-  route(
-    "POST",
-    ["orders", "paytr", "create"],
-    [requireAuth, validateBody(paytrCreateSchema), createPaytrCheckout]
-  ),
   route(
     "POST",
     ["orders"],

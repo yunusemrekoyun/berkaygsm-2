@@ -151,28 +151,12 @@ const orderCreateBaseSchema = z.object({
   items: orderItemsSchema,
   couponCode: optionalTrimmed(z.string().max(120)),
   note: optionalTrimmed(z.string().max(1000)),
-  paymentMethod: optionalTrimmed(z.string().max(64)),
-  paymentProvider: optionalTrimmed(z.string().max(64)),
-  paymentSimulation: z.enum(["success", "failure"]).optional(),
 });
 
 export const orderCreateSchema = orderCreateBaseSchema.refine(
   (data) => data.addressId || data.addressSnapshot,
   "addressId veya addressSnapshot zorunlu"
 );
-
-export const paytrCreateSchema = orderCreateBaseSchema
-  .pick({
-    addressId: true,
-    addressSnapshot: true,
-    items: true,
-    couponCode: true,
-    note: true,
-  })
-  .refine(
-    (data) => Boolean(data.addressId || data.addressSnapshot),
-    "addressId veya addressSnapshot zorunlu"
-  );
 
 export const printJobClaimSchema = z.object({
   agentId: optionalTrimmed(z.string().max(120)).optional(),

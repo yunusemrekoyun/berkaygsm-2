@@ -7,10 +7,10 @@ import {
 } from "./orderAccounting.js";
 
 describe("orderAccounting", () => {
-  it("marks success simulation orders as accounted when explicit flags are absent", () => {
+  it("marks successful paid orders as accounted when explicit flags are absent", () => {
     const state = deriveOrderAccountingState({
       status: "paid",
-      payment: { status: "success", simulation: "success" },
+      payment: { status: "success" },
       coupon: { code: "WELCOME10" },
     });
 
@@ -18,10 +18,10 @@ describe("orderAccounting", () => {
     expect(state.couponConsumed).toBe(true);
   });
 
-  it("keeps failure simulation orders unaccounted even if status was later changed", () => {
+  it("keeps failed payments unaccounted even if the order status later changed", () => {
     const state = deriveOrderAccountingState({
       status: "paid",
-      payment: { status: "success", simulation: "failure" },
+      payment: { status: "failed" },
       coupon: { code: "WELCOME10" },
     });
 
@@ -32,7 +32,7 @@ describe("orderAccounting", () => {
   it("prefers explicit accounting flags when available", () => {
     const state = deriveOrderAccountingState({
       status: "cancelled",
-      payment: { status: "failed", simulation: "success" },
+      payment: { status: "failed" },
       accounting: { stockApplied: false, couponConsumed: false },
       coupon: { code: "WELCOME10" },
     });

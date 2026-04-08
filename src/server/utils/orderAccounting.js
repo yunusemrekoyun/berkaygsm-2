@@ -29,28 +29,19 @@ export function deriveOrderAccountingState(order = {}) {
     order?.accounting && typeof order.accounting === "object"
       ? order.accounting
       : {};
-  const paymentSimulation = toLower(order?.payment?.simulation);
   const shouldApply = shouldOrderHaveAccountingEffects(order);
   const hasCoupon = Boolean(order?.coupon?.couponId || order?.coupon?.code);
 
   const stockApplied =
     typeof explicit.stockApplied === "boolean"
       ? explicit.stockApplied
-      : paymentSimulation === "success"
-      ? true
-      : paymentSimulation === "failure"
-      ? false
       : shouldApply;
 
   const couponConsumed =
     typeof explicit.couponConsumed === "boolean"
       ? explicit.couponConsumed
       : hasCoupon
-      ? paymentSimulation === "success"
-        ? true
-        : paymentSimulation === "failure"
-        ? false
-        : shouldApply
+      ? shouldApply
       : false;
 
   return {

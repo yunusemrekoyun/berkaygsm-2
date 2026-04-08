@@ -137,7 +137,7 @@ const PayerSchema = new mongoose.Schema(
 
 const PaymentSchema = new mongoose.Schema(
   {
-    method: { type: String, default: "checkout_simulation" }, // ödeme şekli
+    method: { type: String, default: "online" }, // ödeme şekli
     provider: { type: String, default: null },
     txnId: { type: String, default: "" },
     processorOrderId: { type: String, default: "" },
@@ -146,11 +146,6 @@ const PaymentSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "success", "failed", "refunded"],
       default: "pending",
-    },
-    simulation: {
-      type: String,
-      enum: ["success", "failure", null],
-      default: null,
     },
     currency: { type: String, default: null },
     amount: { type: Number, default: 0 },

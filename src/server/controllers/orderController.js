@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import Order from "../models/Order.js";
-import User from "../models/User.js";
 import UserDetails from "../models/UserDetails.js";
 import Product from "../models/Product.js";
 import SetModel from "../models/Set.js";
@@ -33,8 +32,6 @@ import {
 } from "../services/printJobService.js";
 import { maybeCreateLowStockNotification } from "../services/adminNotificationService.js";
 import {
-  sendOrderAdminEmail,
-  sendOrderCustomerEmail,
   sendOrderShippedEmail,
 } from "../services/emailService.js";
 import {
@@ -43,15 +40,8 @@ import {
   deriveOrderAccountingState,
   shouldOrderHaveAccountingEffects,
 } from "../utils/orderAccounting.js";
-import { revalidatePath } from "next/cache";
 
-const PAYMENT_CURRENCY = (
-  process.env.PAYMENT_CURRENCY ||
-  process.env.PAYTR_CURRENCY ||
-  "TRY"
-).toUpperCase();
-const SIMULATION_PAYMENT_METHOD = "checkout_simulation";
-const SIMULATION_PAYMENT_PROVIDER = "simulation";
+const PAYMENT_CURRENCY = (process.env.PAYMENT_CURRENCY || "TRY").toUpperCase();
 
 function generateOrderNumber() {
   const now = new Date();
@@ -396,6 +386,75 @@ function buildProductStockComboKey(variant = {}) {
   return `p|${normalize(variant.color) || ""}|${normalize(variant.size) || ""}|${
     normalize(variant.attribute) || ""
   }`;
+}
+
+function resolveExpectedSetSelections(setDoc) {
+  return (Array.isArray(setDoc?.products) ? setDoc.products : []).map(
+    (entry, index) => ({
+      index,
+      productId:
+        entry?.product?._id?.toString?.() ||
+        entry?.product?.id?.toString?.() ||
+        entry?.product?.toString?.() ||
+        null,
+      qtyInSet: Math.max(1, Number(entry?.quantity || 1) || 1),
+      productName: entry?.product?.name || "",
+    })
+  );
+}
+
+function validateSetSelections(setDoc, rawSelections = []) {
+  const expectedSelections = resolveExpectedSetSelections(setDoc);
+  if (!expectedSelections.length) {
+    fail(400, "Set içeriği boş olduğu için siparişe eklenemez", {
+      setId: String(setDoc?._id || ""),
+    });
+  }
+
+  if (rawSelections.length !== expectedSelections.length) {
+    fail(400, "Set içeriği seçimleri eksik veya geçersiz", {
+      setId: String(setDoc?._id || ""),
+      expectedCount: expectedSelections.length,
+      receivedCount: rawSelections.length,
+    });
+  }
+
+  return expectedSelections.map((expected, index) => {
+    const selection = rawSelections[index];
+    const receivedProductId = String(selection?.productId || "").trim();
+
+    if (!receivedProductId || receivedProductId !== expected.productId) {
+      fail(400, "Set seçimi set tanımıyla eşleşmiyor", {
+        setId: String(setDoc?._id || ""),
+        index,
+        expectedProductId: expected.productId,
+        receivedProductId: receivedProductId || null,
+      });
+    }
+
+    const receivedQtyInSet = Math.max(
+      1,
+      Number(selection?.qtyInSet || 1) || 1
+    );
+    if (receivedQtyInSet !== expected.qtyInSet) {
+      fail(400, "Set ürün adedi set tanımıyla eşleşmiyor", {
+        setId: String(setDoc?._id || ""),
+        index,
+        productId: expected.productId,
+        expectedQtyInSet: expected.qtyInSet,
+        receivedQtyInSet,
+      });
+    }
+
+    return {
+      productId: expected.productId,
+      productName: expected.productName,
+      qtyInSet: expected.qtyInSet,
+      color: selection?.color ?? null,
+      size: selection?.size ?? null,
+      attribute: selection?.attribute ?? null,
+    };
+  });
 }
 
 function buildStockUsageSnapshot(stockUsage = new Map()) {
@@ -818,12 +877,15 @@ async function buildOrderPreparation({
 
       const discount = setDiscountMap.get(String(s._id)) || null;
 
-      const normalizedSelections = rawSelections.map((sel) => ({
-        productId: String(sel.productId),
-        color: sel.color ?? null,
-        size: sel.size ?? null,
-        attribute: sel.attribute ?? null,
-        qtyInSet: Math.max(1, Number(sel.qtyInSet || 1)),
+      const normalizedSelections = validateSetSelections(
+        s,
+        rawSelections
+      ).map((selection) => ({
+        productId: String(selection.productId),
+        color: selection.color ?? null,
+        size: selection.size ?? null,
+        attribute: selection.attribute ?? null,
+        qtyInSet: selection.qtyInSet,
       }));
 
       const multiplier = qty;
@@ -1288,16 +1350,12 @@ async function finalizeOrder(prepared, options = {}) {
 
   if (options.paymentOverride) {
     payment = {
-      method: options.paymentOverride.method || SIMULATION_PAYMENT_METHOD,
+      method: options.paymentOverride.method || "online",
       provider: options.paymentOverride.provider || null,
       txnId: options.paymentOverride.txnId || "",
       processorOrderId: options.paymentOverride.processorOrderId || "",
       paidAt: options.paymentOverride.paidAt || null,
       status: options.paymentOverride.status || "pending",
-      simulation:
-        options.paymentOverride.simulation !== undefined
-          ? options.paymentOverride.simulation
-          : null,
       currency:
         options.paymentOverride.currency ||
         options.currency ||
@@ -1306,40 +1364,22 @@ async function finalizeOrder(prepared, options = {}) {
       payer: options.paymentOverride.payer || null,
     };
   } else {
-    const simulation = options.simulation || null;
-    const method = options.paymentMethod || SIMULATION_PAYMENT_METHOD;
+    const method = options.paymentMethod || "online";
     const provider = options.paymentProvider || null;
-    if (simulation === "success") {
-      payment = {
-        method,
-        provider,
-        status: "success",
-        simulation: "success",
-        paidAt: new Date(),
-        currency: options.currency || PAYMENT_CURRENCY,
-        amount: total,
-      };
-      status = "paid";
-    } else if (simulation === "failure") {
-      payment = {
-        method,
-        provider,
-        status: "failed",
-        simulation: "failure",
-        currency: options.currency || PAYMENT_CURRENCY,
-        amount: total,
-      };
-      status = options.statusOverride || "cancelled";
-    } else {
-      payment = {
-        method,
-        provider,
-        status: "pending",
-        simulation,
-        currency: options.currency || PAYMENT_CURRENCY,
-        amount: total,
-      };
-    }
+    const paymentStatus = options.paymentStatus || "pending";
+    payment = {
+      method,
+      provider,
+      status: paymentStatus,
+      paidAt:
+        paymentStatus === "success" ? options.paidAt || new Date() : null,
+      currency: options.currency || PAYMENT_CURRENCY,
+      amount: total,
+    };
+    status =
+      paymentStatus === "success"
+        ? options.statusOverride || "paid"
+        : options.statusOverride || "pending";
   }
 
   const orderPayload = {
@@ -1422,30 +1462,6 @@ async function finalizeOrder(prepared, options = {}) {
   }
 }
 
-// Sipariş sonrası stoğu değişen ürünlerin sayfa cache'ini temizle.
-// Sadece SSR cache kullanan /product/[slug] için gerekli.
-// Set sayfaları client-side render, revalidation gereksiz.
-async function revalidateOrderProductPages(order) {
-  try {
-    const productIds = Array.from(
-      new Set(
-        (order?.accounting?.stockUsage || [])
-          .map((u) => u?.productId)
-          .filter(Boolean)
-      )
-    );
-    if (!productIds.length) return;
-    const products = await Product.find({ _id: { $in: productIds } })
-      .select("slug")
-      .lean();
-    for (const p of products) {
-      if (p?.slug) revalidatePath(`/product/${p.slug}`);
-    }
-  } catch {
-    // cache bust kritik değil, sipariş başarıyla oluşturuldu
-  }
-}
-
 /**
  * POST /api/orders
  * Body: {
@@ -1463,80 +1479,11 @@ async function revalidateOrderProductPages(order) {
  */
 export async function createOrder(req, res) {
   try {
-    const userId = req.userId;
-    const {
-      addressId,
-      addressSnapshot = null,
-      items = [],
-      couponCode = null,
-      note = null,
-      paymentMethod = null,
-      paymentProvider = null,
-      paymentSimulation = null,
-    } = req.body || {};
-
-    const { details } = await buildOrderPreparation({
-      userId,
-      addressId,
-      addressSnapshot,
-      items,
-      couponCode,
+    return res.status(503).json({
+      code: "PAYMENT_NOT_CONFIGURED",
+      message:
+        "Online ödeme altyapısı şu anda yeniden yapılandırılıyor. Sipariş oluşturma geçici olarak kapalı.",
     });
-
-    const normalizedSimulation =
-      typeof paymentSimulation === "string"
-        ? paymentSimulation.trim().toLowerCase()
-        : "";
-    const simulationMode =
-      normalizedSimulation === "success" || normalizedSimulation === "failure"
-        ? normalizedSimulation
-        : null;
-    if (!simulationMode) {
-      fail(
-        400,
-        "Doğrudan sipariş oluşturma kapalı. Simülasyon akışını veya ödeme sağlayıcısını kullanın."
-      );
-    }
-    const normalizedMethod =
-      typeof paymentMethod === "string" && paymentMethod.trim()
-        ? paymentMethod.trim().toLowerCase()
-        : SIMULATION_PAYMENT_METHOD;
-    const normalizedProvider =
-      typeof paymentProvider === "string" && paymentProvider.trim()
-        ? paymentProvider.trim().toLowerCase()
-        : SIMULATION_PAYMENT_PROVIDER;
-    if (normalizedMethod === "paytr" || normalizedProvider === "paytr") {
-      fail(400, "PayTR ödemesi için /orders/paytr/create endpointini kullanın.");
-    }
-
-    const order = await runInMongoTransaction((session) =>
-      finalizeOrder(details, {
-        userId,
-        currency: PAYMENT_CURRENCY,
-        note,
-        paymentMethod: normalizedMethod,
-        paymentProvider: normalizedProvider,
-        simulation: simulationMode,
-        applyStockDeductions: simulationMode !== "failure",
-        statusOverride: simulationMode === "failure" ? "cancelled" : undefined,
-        session,
-      })
-    );
-
-    if (order && order.status !== "cancelled" && order.payment?.status !== "failed") {
-      const customer = await User.findById(userId)
-        .select("firstName lastName email phone")
-        .lean()
-        .catch(() => null);
-
-      await Promise.allSettled([
-        sendOrderCustomerEmail({ order, user: customer }),
-        sendOrderAdminEmail({ order, user: customer }),
-        revalidateOrderProductPages(order),
-      ]);
-    }
-
-    res.status(201).json({ order: shapeOrder(order) });
   } catch (err) {
     if (err.status) {
       const payload = { message: err.message || "İstek başarısız" };
@@ -1581,8 +1528,6 @@ export {
   normalizeCode,
   roundCurrency,
   PAYMENT_CURRENCY,
-  SIMULATION_PAYMENT_METHOD,
-  SIMULATION_PAYMENT_PROVIDER,
   runInMongoTransaction,
 };
 
@@ -1904,7 +1849,7 @@ export async function updateOrderStatus(req, res) {
       }
 
       if (paymentMethod !== undefined) {
-        order.payment.method = String(paymentMethod) || SIMULATION_PAYMENT_METHOD;
+        order.payment.method = String(paymentMethod) || "online";
       }
 
       if (paymentTxnId !== undefined) {

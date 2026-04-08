@@ -10,6 +10,7 @@ pnpm-debug.log*
 # Env dosyaları
 .env
 .env.local
+.env.prod
 .env.*.local
 # Node.js bağımlılıkları
 node_modules
