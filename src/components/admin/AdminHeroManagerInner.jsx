@@ -24,6 +24,7 @@ import {
 } from "../../constants/lang.js";
 import HeroTranslationModal from "./hero/HeroTranslationModal.jsx";
 import AppImage from "../ui/AppImage.jsx";
+import { resolveImageSrc } from "../../utils/imageSrc.js";
 
 /* ----- Liste + Modal tetik ----- */
 export default function AdminHeroManagerInner() {
@@ -266,8 +267,8 @@ export default function AdminHeroManagerInner() {
               ) : h.video ? (
                 <video
                   className="h-full w-full object-cover"
-                  src={h.video.url}
-                  poster={h.video.posterUrl || undefined}
+                  src={resolveImageSrc(h.video.url) || undefined}
+                  poster={resolveImageSrc(h.video.posterUrl) || undefined}
                   muted
                   playsInline
                   autoPlay
@@ -419,8 +420,8 @@ function HeroModal({
 
   const mediaPreview = useMemo(() => {
     if (file) return URL.createObjectURL(file);
-    if (initial?.image?.url) return initial.image.url;
-    if (initial?.video?.url) return initial.video.url;
+    if (initial?.image?.url) return resolveImageSrc(initial.image.url);
+    if (initial?.video?.url) return resolveImageSrc(initial.video.url);
     return null;
   }, [file, initial]);
 
@@ -636,7 +637,9 @@ function HeroModal({
                   ) : initialHasVideo ? (
                     <video
                       src={mediaPreview}
-                      poster={initial?.video?.posterUrl || undefined}
+                      poster={
+                        resolveImageSrc(initial?.video?.posterUrl) || undefined
+                      }
                       className="h-full w-full object-cover"
                       controls
                     />

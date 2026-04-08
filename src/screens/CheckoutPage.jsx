@@ -1,12 +1,14 @@
 // src/pages/CheckoutPage.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Info } from "lucide-react";
 import BreadCrumb from "../components/shop/BreadCrumb";
 import AlertBanner from "../components/ui/AlertBanner.jsx";
 import LoadingOverlay from "../components/ui/LoadingOverlay.jsx";
 import { useCart } from "../hooks/useCart";
 import { userDetailsApi } from "../api/userDetails";
 import { getAccessToken, refreshAccessToken } from "../api/client";
+import { paymentApi } from "../api/payments";
 
 function parseError(error) {
   if (!error) return { message: "", status: null };
@@ -115,8 +117,9 @@ export default function CheckoutPage() {
 
           const qty = Math.max(
             1,
-            Number(it.qty ?? it.quantity ?? it.count ?? it.amount ?? it.q ?? 1) ||
-              1
+            Number(
+              it.qty ?? it.quantity ?? it.count ?? it.amount ?? it.q ?? 1,
+            ) || 1,
           );
 
           if (kind === "set") {
@@ -150,20 +153,24 @@ export default function CheckoutPage() {
             color: it.color ?? it.variant?.color ?? it.selectedColor ?? null,
             size: it.size ?? it.variant?.size ?? null,
             attribute:
-              it.attribute ?? it.variant?.attribute ?? it.attributeValue ?? null,
+              it.attribute ??
+              it.variant?.attribute ??
+              it.attributeValue ??
+              null,
           };
 
           return { kind, id, qty, variant };
         })
         .filter(Boolean),
-    [itemsRaw]
+    [itemsRaw],
   );
 
   const lines = useMemo(
     () =>
       itemsRaw.map((it) => {
         const qty =
-          Number(it.qty ?? it.quantity ?? it.count ?? it.amount ?? it.q ?? 1) || 1;
+          Number(it.qty ?? it.quantity ?? it.count ?? it.amount ?? it.q ?? 1) ||
+          1;
 
         const unitPrice =
           Number(
@@ -172,7 +179,7 @@ export default function CheckoutPage() {
               it.unit_price ??
               it.product?.price ??
               it.set?.price ??
-              0
+              0,
           ) || 0;
 
         const name =
@@ -186,23 +193,28 @@ export default function CheckoutPage() {
             Number(it?.pricing?.lineTotalBeforeCoupon) || unitPrice * qty,
         };
       }),
-    [itemsRaw]
+    [itemsRaw],
   );
 
   const computedSubtotal = useMemo(
     () => lines.reduce((s, l) => s + Number(l.lineTotal || 0), 0),
-    [lines]
+    [lines],
   );
   const subtotal = Number(subTotal ?? computedSubtotal) || 0;
   const shippingFee = Number(shippingInfo?.fee ?? 0) || 0;
   const shippingName = shippingInfo?.name || "Kargo";
   const normalizedCouponDiscount = Number(couponDiscount) || 0;
-  const standardDiscountAmount = Number(pricing?.standardDiscountAmount || 0) || 0;
-  const stackedDiscountAmount = Number(pricing?.stackedDiscountAmount || 0) || 0;
+  const standardDiscountAmount =
+    Number(pricing?.standardDiscountAmount || 0) || 0;
+  const stackedDiscountAmount =
+    Number(pricing?.stackedDiscountAmount || 0) || 0;
   const couponApplicable = coupon
-    ? couponApplicableRaw ?? subtotal >= Number(coupon.minSubtotal || 0)
+    ? (couponApplicableRaw ?? subtotal >= Number(coupon.minSubtotal || 0))
     : false;
-  const derivedTotal = Math.max(0, subtotal + shippingFee - normalizedCouponDiscount);
+  const derivedTotal = Math.max(
+    0,
+    subtotal + shippingFee - normalizedCouponDiscount,
+  );
   const totalDue = Number.isFinite(Number(grandTotal))
     ? Number(grandTotal)
     : Number.isFinite(Number(total))
@@ -213,9 +225,43 @@ export default function CheckoutPage() {
   const [addressId, setAddressId] = useState("");
   const [loading, setLoading] = useState(true);
   const [banner, setBanner] = useState(null);
+  const [identityNumber, setIdentityNumber] = useState("");
+  const [identityInfoOpen, setIdentityInfoOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const identityInfoRef = useRef(null);
 
   const hasItems = checkoutItems.length > 0;
   const hasAddress = Boolean(addressId);
+
+  async function handleCheckout() {
+    if (!hasItems || !hasAddress || submitting) return;
+    try {
+      setSubmitting(true);
+      setBanner(null);
+      const response = await paymentApi.initializeIyzicoCheckout({
+        addressId,
+        items: checkoutItems,
+        couponCode: coupon?.code || null,
+        identityNumber: identityNumber.trim() || null,
+      });
+
+      const checkoutUrl = String(response?.payment?.checkoutUrl || "").trim();
+      if (!checkoutUrl) {
+        throw new Error("Iyzico ödeme sayfası alınamadı");
+      }
+
+      if (typeof window !== "undefined") {
+        window.location.assign(checkoutUrl);
+      }
+    } catch (error) {
+      const { message } = parseError(error);
+      setBanner({
+        variant: "danger",
+        message: message || "Ödeme sayfası başlatılamadı.",
+      });
+      setSubmitting(false);
+    }
+  }
 
   useEffect(() => {
     if (!authChecked) return;
@@ -234,7 +280,7 @@ export default function CheckoutPage() {
               : {
                   variant: "warning",
                   message: "Sipariş vermeden önce teslimat adresi ekleyin.",
-                }
+                },
           );
         } else {
           setBanner((prev) => (prev?.variant === "warning" ? null : prev));
@@ -268,6 +314,30 @@ export default function CheckoutPage() {
     }
   }, [authChecked, lines.length, loading, navigate]);
 
+  useEffect(() => {
+    if (!identityInfoOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (!identityInfoRef.current?.contains(event.target)) {
+        setIdentityInfoOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setIdentityInfoOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [identityInfoOpen]);
+
   if (!authChecked) {
     return null;
   }
@@ -300,25 +370,30 @@ export default function CheckoutPage() {
         </div>
       )}
 
-      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 pb-32 md:pb-16 grid gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-7 xl:col-span-8">
-          <div className="glass-surface rounded-2xl border border-border bg-white p-4 sm:p-6">
-            <h2 className="text-xl font-semibold text-primary">Teslimat adresi</h2>
+      <div className="mx-auto grid max-w-[1400px] gap-5 px-4 pb-36 sm:px-6 md:gap-6 md:pb-24 lg:grid-cols-[minmax(0,1fr)_minmax(340px,400px)] lg:items-start xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="min-w-0 space-y-5 md:space-y-6">
+          <div className="glass-surface rounded-[28px] border border-border bg-white p-5 sm:p-6">
+            <h2 className="text-xl font-semibold tracking-[-0.02em] text-primary">
+              Teslimat adresi
+            </h2>
 
             {addresses.length === 0 ? (
               <p className="mt-3 text-secondary">
                 Kayıtlı adres yok. Lütfen{" "}
-                <a className="text-accent underline" href="/account?tab=Addresses">
+                <a
+                  className="text-accent underline"
+                  href="/account?tab=Addresses"
+                >
                   Hesabım &gt; Adresler
-                </a>
-                {" "}kısmından ekleyin.
+                </a>{" "}
+                kısmından ekleyin.
               </p>
             ) : (
-              <div className="mt-4 space-y-3">
+              <div className="mt-5 space-y-3">
                 {addresses.map((a) => (
                   <label
                     key={a.id}
-                    className="glass-surface-soft flex items-start gap-3 rounded-xl border border-border bg-contact-bg p-3 sm:p-4"
+                    className="glass-surface-soft flex items-start gap-3 rounded-2xl border border-border bg-contact-bg px-4 py-4 transition hover:border-accent/25"
                   >
                     <input
                       type="radio"
@@ -328,17 +403,22 @@ export default function CheckoutPage() {
                       className="mt-1"
                     />
                     <div className="min-w-0 break-words">
-                      <div className="font-medium text-primary">{a.fullName}</div>
-                      <div className="text-sm text-secondary whitespace-pre-line">
+                      <div className="font-medium leading-6 text-primary">
+                        {a.fullName}
+                      </div>
+                      <div className="mt-1 text-sm leading-6 text-secondary whitespace-pre-line">
                         {a.addressLine ||
                           `${a.addressLine1 || ""} ${a.addressLine2 || ""}`.trim()}
                       </div>
-                      <div className="text-sm text-secondary">
+                      <div className="text-sm leading-6 text-secondary">
                         {a.city}
-                        {a.district ? `, ${a.district}` : ""} {a.postalCode} {a.country}
+                        {a.district ? `, ${a.district}` : ""} {a.postalCode}{" "}
+                        {a.country}
                       </div>
                       {a.phone && (
-                        <div className="text-sm text-secondary">📞 {a.phone}</div>
+                        <div className="text-sm leading-6 text-secondary">
+                          📞 {a.phone}
+                        </div>
                       )}
                       {a.isDefault && (
                         <span className="mt-1 inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700 ring-1 ring-emerald-200">
@@ -351,29 +431,85 @@ export default function CheckoutPage() {
               </div>
             )}
           </div>
+
+          <div className="glass-surface rounded-[28px] border border-border bg-white p-5 sm:p-6">
+            <div className="relative" ref={identityInfoRef}>
+              <input
+                id="checkout-identity-number"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="T.C. Kimlik Numarası"
+                value={identityNumber}
+                onChange={(event) =>
+                  setIdentityNumber(
+                    String(event.target.value || "")
+                      .replace(/\D+/g, "")
+                      .slice(0, 11),
+                  )
+                }
+                className="w-full rounded-2xl border border-border bg-white px-4 py-3.5 pr-14 text-sm text-primary outline-none transition placeholder:text-secondary/70 focus:border-accent/60 focus:ring-2 focus:ring-accent/15"
+              />
+              <button
+                type="button"
+                aria-label="TC kimlik numarası bilgilendirmesi"
+                aria-expanded={identityInfoOpen}
+                aria-controls="checkout-identity-tooltip"
+                onClick={() => setIdentityInfoOpen((prev) => !prev)}
+                className="absolute right-3 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface text-secondary transition hover:border-accent/40 hover:bg-white hover:text-primary"
+              >
+                <Info className="h-4 w-4" />
+              </button>
+              {identityInfoOpen && (
+                <div
+                  id="checkout-identity-tooltip"
+                  role="dialog"
+                  aria-modal="false"
+                  className="absolute right-0 top-[calc(100%+12px)] z-20 w-[min(320px,calc(100vw-4rem))] rounded-2xl border border-border bg-white p-4 text-sm leading-6 text-secondary shadow-xl sm:w-80"
+                >
+                  <div className="absolute right-5 top-0 h-3 w-3 -translate-y-1/2 rotate-45 border-l border-t border-border bg-white" />
+                  Kimlik numaranızı ödeme akışı için kullanacağız. Dilerseniz
+                  boş bırakabilirsiniz, bu durumda <code>11111111111</code>{" "}
+                  olarak gönderilecektir. Kimlik bilgilerinizi kaydetmiyoruz.
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="lg:col-span-5 xl:col-span-4">
-          <div className="glass-surface rounded-2xl border border-border bg-white p-4 sm:p-6 lg:sticky lg:top-[calc(var(--header-height)+1rem)]">
-            <h2 className="text-xl font-semibold text-primary">Sipariş özeti</h2>
+        <div className="glass-surface rounded-[28px] border border-border bg-white p-5 sm:p-6 lg:self-start">
+          <div className="flex items-start justify-between gap-3">
+            <h2 className="text-xl font-semibold tracking-[-0.02em] text-primary">
+              Sipariş özeti
+            </h2>
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-600">
+              Ödeme
+            </span>
+          </div>
 
-            <ul className="mt-4 max-h-48 space-y-3 overflow-auto pr-1 sm:max-h-56">
-              {lines.map((it, idx) => (
-                <li key={idx} className="flex items-start justify-between gap-3 text-sm">
-                  <span className="min-w-0 flex-1 text-primary truncate">
-                    {it.name} × {it.qty}
-                  </span>
-                  <span className="shrink-0 text-secondary">
-                    ₺{Number(it.lineTotal || 0).toFixed(2)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+          <ul className="mt-5 max-h-48 divide-y divide-border/70 overflow-auto pr-1 sm:max-h-56">
+            {lines.map((it, idx) => (
+              <li
+                key={idx}
+                className="flex items-start justify-between gap-3 py-3 text-sm first:pt-0 last:pb-0"
+              >
+                <span className="min-w-0 flex-1 leading-6 text-primary truncate">
+                  {it.name} × {it.qty}
+                </span>
+                <span className="shrink-0 pt-0.5 text-secondary">
+                  ₺{Number(it.lineTotal || 0).toFixed(2)}
+                </span>
+              </li>
+            ))}
+          </ul>
 
-            <div className="mt-4 border-t border-border pt-4 space-y-1 text-sm">
+          <div className="mt-5 rounded-2xl border border-border/80 bg-surface/60 p-4 text-sm">
+            <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-secondary">Ara toplam</span>
-                <span className="text-primary">₺{Number(baseSubtotal || subtotal).toFixed(2)}</span>
+                <span className="text-primary">
+                  ₺{Number(baseSubtotal || subtotal).toFixed(2)}
+                </span>
               </div>
               {standardDiscountAmount > 0 && (
                 <div className="flex justify-between text-emerald-700">
@@ -405,55 +541,43 @@ export default function CheckoutPage() {
                   <span>Koşul sağlanmadı</span>
                 </div>
               )}
-              <div className="flex justify-between text-base font-semibold">
+              <div className="flex justify-between border-t border-border/80 pt-3 text-base font-semibold">
                 <span className="text-primary">Toplam</span>
                 <span className="text-primary">₺{totalDue.toFixed(2)}</span>
               </div>
             </div>
+          </div>
 
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-primary">Ödeme</h3>
-              {!hasAddress && (
-                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                  Sipariş işlemi için önce adres ekleyin.
-                </div>
-              )}
-
-              <div className="glass-surface-soft mt-4 rounded-xl border border-border bg-surface p-4 text-sm">
-                <p className="font-semibold text-primary">
-                  Ödeme entegrasyonu yenileniyor
-                </p>
-                <p className="mt-1 text-xs text-secondary">
-                  Iyzico kurulumu öncesi eski ödeme akışı tamamen devre dışı
-                  bırakıldı. Bu ekranda adres ve sepet kontrolü yapılabilir ama
-                  sipariş oluşturulmaz.
-                </p>
-                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs text-amber-800">
-                  Ödeme altyapısı hazır olduğunda checkout yeniden açılacak.
-                </div>
+          <div className="mt-6 space-y-4">
+            <h3 className="text-lg font-semibold tracking-[-0.02em] text-primary">
+              Ödeme
+            </h3>
+            {!hasAddress && (
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                Sipariş işlemi için önce adres ekleyin.
               </div>
+            )}
 
-              <div className="relative">
-                <LoadingOverlay show={false} />
-                <button
-                  disabled
-                  className="mt-5 w-full rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Ödeme entegrasyonu hazırlanıyor
-                </button>
-              </div>
-
-              <p className="mt-3 text-xs text-secondary">
-                Iyzico kurulumu tamamlanana kadar checkout kapalı kalacak.
-              </p>
+            <div className="relative">
+              <LoadingOverlay show={submitting} />
+              <button
+                type="button"
+                onClick={handleCheckout}
+                disabled={!hasItems || !hasAddress || submitting}
+                className="mt-1 w-full rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(14,165,233,0.22)] transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
+              >
+                {submitting
+                  ? "Iyzico sayfasina yonlendiriliyor..."
+                  : "Güvenli Ödeme"}
+              </button>
             </div>
           </div>
         </div>
       </div>
 
       <div className="fixed inset-x-4 bottom-4 z-40 lg:hidden">
-        <div className="glass-surface rounded-2xl border border-border bg-white/95 p-3 shadow-xl backdrop-blur-sm">
-          <div className="flex items-center justify-between gap-4">
+        <div className="glass-surface rounded-[26px] border border-border bg-white/95 p-3 shadow-[0_18px_45px_rgba(15,23,42,0.18)] backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] uppercase tracking-[0.18em] text-secondary/70">
                 Toplam
@@ -463,10 +587,12 @@ export default function CheckoutPage() {
               </p>
             </div>
             <button
-              disabled
-              className="shrink-0 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              type="button"
+              onClick={handleCheckout}
+              disabled={!hasItems || !hasAddress || submitting}
+              className="shrink-0 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(14,165,233,0.22)] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
             >
-              Ödeme hazırlanıyor
+              {submitting ? "Yonlendiriliyor..." : "Güvenli Ödeme"}
             </button>
           </div>
           {!hasAddress && (

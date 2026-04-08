@@ -5,6 +5,7 @@ import {
   formatStaticText,
 } from "../i18n/staticContent.js";
 import AppImage from "./ui/AppImage.jsx";
+import { resolveImageSrc } from "../utils/imageSrc.js";
 
 /**
  * slides item yapısı (backend'den heroApi.list ile geliyor):
@@ -20,6 +21,7 @@ export default function Hero({
   imageAutoMs = 6000, // fotoğraf slaytı için otomatik geçiş süresi
   className = "",
 }) {
+  const resolveMediaSrc = (value) => resolveImageSrc(value) || undefined;
   const t = useStaticTranslation();
   const heroCopy = t("heroComponent") || {};
   const noMediaLabel = heroCopy.noMedia || "Medya yok";
@@ -144,8 +146,8 @@ export default function Hero({
                 <video
                   ref={(el) => (videoRefs.current[s.id] = el)}
                   className="absolute inset-0 h-full w-full object-cover"
-                  src={s.video.url}
-                  poster={s.video.posterUrl || undefined}
+                  src={resolveMediaSrc(s.video.url)}
+                  poster={resolveMediaSrc(s.video.posterUrl)}
                   playsInline
                   muted
                   preload="metadata"

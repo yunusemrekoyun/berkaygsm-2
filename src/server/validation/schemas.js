@@ -158,6 +158,20 @@ export const orderCreateSchema = orderCreateBaseSchema.refine(
   "addressId veya addressSnapshot zorunlu"
 );
 
+export const iyzicoInitializeSchema = orderCreateBaseSchema
+  .extend({
+    identityNumber: optionalTrimmed(
+      z
+        .string()
+        .trim()
+        .regex(/^\d{11}$/, "TC kimlik numarası 11 haneli olmalı")
+    ),
+  })
+  .refine(
+    (data) => data.addressId || data.addressSnapshot,
+    "addressId veya addressSnapshot zorunlu"
+  );
+
 export const printJobClaimSchema = z.object({
   agentId: optionalTrimmed(z.string().max(120)).optional(),
   printerName: optionalTrimmed(z.string().max(160)).optional(),

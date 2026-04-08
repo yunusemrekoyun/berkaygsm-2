@@ -91,6 +91,11 @@ import {
   updateOrderStatus,
 } from "./controllers/orderController.js";
 import {
+  initializeIyzicoPayment,
+  handleIyzicoCallback,
+  handleIyzicoWebhook,
+} from "./controllers/iyzicoController.js";
+import {
   listHeroes,
   createHero,
   getHero,
@@ -192,6 +197,7 @@ import { requireRole } from "./middleware/roles.js";
 import { validateBody } from "./middleware/validate.js";
 import {
   orderCreateSchema,
+  iyzicoInitializeSchema,
   printJobClaimSchema,
   printJobCompleteSchema,
   printJobFailSchema,
@@ -402,6 +408,16 @@ export const routes = [
   route("DELETE", ["user-details", "addresses", ":addressId"], [requireAuth, deleteAddress]),
   route("GET", ["user-details", "favorites"], [requireAuth, getFavorites]),
   route("POST", ["user-details", "favorites", "toggle"], [requireAuth, toggleFavorite]),
+
+  // payments
+  route(
+    "POST",
+    ["payments", "iyzico", "initialize"],
+    [requireAuth, validateBody(iyzicoInitializeSchema), initializeIyzicoPayment]
+  ),
+  route("GET", ["payments", "iyzico", "callback"], [handleIyzicoCallback]),
+  route("POST", ["payments", "iyzico", "callback"], [handleIyzicoCallback]),
+  route("POST", ["payments", "iyzico", "webhook"], [handleIyzicoWebhook]),
 
   // orders
   route(

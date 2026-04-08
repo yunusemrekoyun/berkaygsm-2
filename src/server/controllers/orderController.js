@@ -776,7 +776,9 @@ async function buildOrderPreparation({
       ? Product.find({ _id: { $in: allProductIds } }).populate("category")
       : [],
     setIds.length
-      ? SetModel.find({ _id: { $in: setIds } }).populate("products.product")
+      ? SetModel.find({ _id: { $in: setIds } })
+          .populate("products.product")
+          .populate("category")
       : [],
   ]);
 
@@ -1142,6 +1144,7 @@ async function buildOrderPreparation({
       catalogNeedMap,
       setNeedMap,
       productMap: pMap,
+      setMap: sMap,
       productStockMap,
     },
     normalizedItems,
@@ -1480,9 +1483,9 @@ async function finalizeOrder(prepared, options = {}) {
 export async function createOrder(req, res) {
   try {
     return res.status(503).json({
-      code: "PAYMENT_NOT_CONFIGURED",
+      code: "DIRECT_ORDER_CREATION_DISABLED",
       message:
-        "Online ödeme altyapısı şu anda yeniden yapılandırılıyor. Sipariş oluşturma geçici olarak kapalı.",
+        "Doğrudan sipariş oluşturma kapalı. Checkout akışı Iyzico ödeme oturumu üzerinden ilerlemeli.",
     });
   } catch (err) {
     if (err.status) {

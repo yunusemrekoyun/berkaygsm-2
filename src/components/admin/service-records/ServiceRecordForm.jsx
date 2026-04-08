@@ -6,6 +6,7 @@ import {
   formatTrPhoneForInput,
   formatTrPhoneForSubmit,
 } from "../../../utils/phoneMask.js";
+import { resolveImageSrc } from "../../../utils/imageSrc.js";
 
 const WORKFLOW_OPTIONS = [
   { value: "new", label: "Yeni Kayıt" },
@@ -375,8 +376,9 @@ export default function ServiceRecordForm({
           ) : (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               {imageItems.map((item) => {
-                const previewSrc =
-                  item.type === "existing" ? item.asset?.url : item.previewUrl;
+                const previewSrc = resolveImageSrc(
+                  item.type === "existing" ? item.asset?.url : item.previewUrl
+                );
                 return (
                   <article
                     key={item.id}

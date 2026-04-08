@@ -7,6 +7,10 @@ export default function SuccessPage() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const orderId = searchParams.get("order");
+  const statusParam = String(searchParams.get("status") || "")
+    .trim()
+    .toLowerCase();
+  const messageParam = String(searchParams.get("message") || "").trim();
   const [order, setOrder] = useState(null);
 
   useEffect(() => {
@@ -25,12 +29,26 @@ export default function SuccessPage() {
     };
   }, [orderId]);
 
-  const paymentFailed =
-    String(order?.payment?.status || "").toLowerCase() === "failed";
-  const heading = paymentFailed ? "Ödeme tamamlanamadı" : "Teşekkürler!";
+  const derivedStatus = order
+    ? String(order?.payment?.status || "").toLowerCase() === "failed"
+      ? "failed"
+      : "success"
+    : statusParam || "success";
+
+  const paymentFailed = derivedStatus === "failed";
+  const paymentReview = derivedStatus === "review";
+  const heading = paymentFailed
+    ? "Ödeme tamamlanamadı"
+    : paymentReview
+      ? "Ödeme alındı, sipariş kontrol ediliyor"
+      : "Teşekkürler!";
   const message = paymentFailed
-    ? "Ödeme tamamlanamadı. Sipariş durumunu hesabınızdan kontrol edebilirsiniz."
-    : "Siparişiniz başarıyla oluşturuldu.";
+    ? messageParam ||
+      "Ödeme tamamlanamadı. Sipariş durumunu hesabınızdan kontrol edebilirsiniz."
+    : paymentReview
+      ? messageParam ||
+        "Ödeme sonucu güvenlik kontrolüne alındı. Kısa süre içinde manuel olarak doğrulanacak."
+      : "Siparişiniz başarıyla oluşturuldu.";
 
   return (
     <section className="store-page bg-surface-light/60">
@@ -88,10 +106,12 @@ export default function SuccessPage() {
 
           <div className="mt-6 flex justify-center gap-3">
             <Link
-              to={paymentFailed ? "/checkout" : "/"}
+              to={paymentFailed || paymentReview ? "/checkout" : "/"}
               className="glass-chip rounded-full border border-border px-4 py-2 text-sm text-primary hover:bg-surface-hover"
             >
-              {paymentFailed ? "Checkout sayfasına dön" : "Alışverişe devam et"}
+              {paymentFailed || paymentReview
+                ? "Checkout sayfasına dön"
+                : "Alışverişe devam et"}
             </Link>
             <Link
               to="/account?tab=Orders"
