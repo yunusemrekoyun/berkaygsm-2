@@ -1,6 +1,7 @@
 // src/components/layout/Header.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Search,
   ShoppingBag,
@@ -10,6 +11,7 @@ import {
   X,
   ChevronRight,
   ChevronDown,
+  LoaderCircle,
 } from "lucide-react";
 import MegaMenu from "./MegaMenu";
 import AppImage from "../ui/AppImage.jsx";
@@ -29,8 +31,11 @@ export default function Header({
   initialLang = DEFAULT_LANG,
 }) {
   const navigate = useNavigate();
+  const router = useRouter();
+  const location = useLocation();
   const [q, setQ] = useState("");
   const [hydrated, setHydrated] = useState(false);
+  const [cartNavPending, setCartNavPending] = useState(false);
   const hasInitialCategoryTree = Array.isArray(initialCategoryTree);
   const normalizedInitialCategoryTree = useMemo(
     () => normalizeTree(initialCategoryTree || []),
@@ -60,6 +65,16 @@ export default function Header({
   useEffect(() => {
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    router.prefetch?.("/cart");
+  }, [router]);
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/cart")) {
+      setCartNavPending(false);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     let mounted = true;
@@ -151,6 +166,12 @@ export default function Header({
   const handleSaleNavigate = () => {
     navigate("/shop?sale=true");
     setMobileCategoryOpen(false);
+  };
+
+  const handleCartNavigate = () => {
+    if (!location.pathname.startsWith("/cart")) {
+      setCartNavPending(true);
+    }
   };
 
   const handleDesktopNavPointerDown = (event) => {
@@ -286,9 +307,15 @@ export default function Header({
               <div className="flex items-center gap-2">
                 <Link
                   to="/cart"
+                  onClick={handleCartNavigate}
+                  aria-busy={cartNavPending}
                   className="glass-chip relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-secondary hover:text-primary"
                 >
-                  <ShoppingBag className="h-5 w-5" />
+                  {cartNavPending ? (
+                    <LoaderCircle className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <ShoppingBag className="h-5 w-5" />
+                  )}
                   {hydrated && totalItems > 0 && (
                     <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-accent text-[10px] text-white">
                       {totalItems}
@@ -356,9 +383,15 @@ export default function Header({
                 <div className="flex items-center justify-end gap-3">
                   <Link
                     to="/cart"
+                    onClick={handleCartNavigate}
+                    aria-busy={cartNavPending}
                     className="glass-chip relative inline-flex rounded-full p-2 hover:bg-surface-hover"
                   >
-                    <ShoppingBag className="h-6 w-6 text-secondary" />
+                    {cartNavPending ? (
+                      <LoaderCircle className="h-6 w-6 animate-spin text-secondary" />
+                    ) : (
+                      <ShoppingBag className="h-6 w-6 text-secondary" />
+                    )}
                     {hydrated && totalItems > 0 && (
                       <span className="absolute -right-0.5 -top-0.5 grid h-5 w-5 place-items-center rounded-full bg-accent text-[10px] text-white">
                         {totalItems}

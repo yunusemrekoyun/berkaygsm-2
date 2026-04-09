@@ -1,3 +1,5 @@
+"use client";
+
 // src/pages/FAQPage.jsx
 import { useEffect, useState } from "react";
 import { ChevronDown, HelpCircle } from "lucide-react";

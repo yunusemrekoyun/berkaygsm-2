@@ -1,3 +1,5 @@
+"use client";
+
 import BreadCrumb from "../components/shop/BreadCrumb";
 import Cart from "../components/cart/Cart";
 import { useStaticTranslation } from "../i18n/staticContent.js";

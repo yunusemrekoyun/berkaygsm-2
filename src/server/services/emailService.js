@@ -819,3 +819,144 @@ export async function sendContactMessageAdminEmail({ message }) {
     replyTo: message.email || undefined,
   });
 }
+
+export async function sendPaymentManualReviewAdminEmail({
+  paymentSession,
+  user = null,
+}) {
+  const { adminInbox } = getMailConfig();
+  if (!adminInbox || !paymentSession) return { ok: false, skipped: true };
+
+  const customerName = String(
+    paymentSession?.addressSnapshot?.fullName ||
+      `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
+      "Müşteri"
+  ).trim();
+  const customerEmail = String(user?.email || "").trim();
+  const customerPhone = String(
+    paymentSession?.addressSnapshot?.phone || user?.phone || ""
+  ).trim();
+  const address = [
+    paymentSession?.addressSnapshot?.addressLine,
+    paymentSession?.addressSnapshot?.district,
+    paymentSession?.addressSnapshot?.city,
+    paymentSession?.addressSnapshot?.postalCode,
+    paymentSession?.addressSnapshot?.country,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const reservationEntries = Array.isArray(paymentSession?.stockReservation?.entries)
+    ? paymentSession.stockReservation.entries
+    : [];
+  const reservationState = String(paymentSession?.stockReservation?.state || "none");
+  const paymentId = String(paymentSession?.payment?.paymentId || "").trim();
+  const errorMessage = String(paymentSession?.lastError?.message || "").trim();
+  const errorCode = String(paymentSession?.lastError?.code || "").trim();
+  const errorPhase = String(paymentSession?.lastError?.phase || "").trim();
+  const conversationId = String(paymentSession?.conversationId || "").trim();
+  const total = formatMoney(paymentSession?.pricing?.total || 0);
+  const createdAt = formatDate(paymentSession?.createdAt);
+  const sessionId =
+    paymentSession?._id?.toString?.() || String(paymentSession?._id || "");
+
+  const bodyHtml = `
+    <div style="margin-top:22px;padding:22px;border:1px solid ${BRAND_BORDER};border-radius:20px;background:#ffffff">
+      <h2 style="margin:0 0 14px;font-size:18px;color:${BRAND_COLOR}">Manual review gereken ödeme</h2>
+      <div style="font-size:14px;line-height:1.8;color:#334155">
+        <div><strong>Session ID:</strong> ${escapeHtml(sessionId || "-")}</div>
+        <div><strong>Conversation ID:</strong> ${escapeHtml(conversationId || "-")}</div>
+        <div><strong>Payment ID:</strong> ${escapeHtml(paymentId || "-")}</div>
+        <div><strong>Tutar:</strong> ${escapeHtml(total)}</div>
+        <div><strong>Müşteri:</strong> ${escapeHtml(customerName || "-")}</div>
+        <div><strong>E-posta:</strong> ${escapeHtml(customerEmail || "-")}</div>
+        <div><strong>Telefon:</strong> ${escapeHtml(customerPhone || "-")}</div>
+        <div><strong>Adres:</strong> ${escapeHtml(address || "-")}</div>
+        <div><strong>Rezervasyon:</strong> ${escapeHtml(reservationState)} (${reservationEntries.length} satır)</div>
+        <div><strong>Hata aşaması:</strong> ${escapeHtml(errorPhase || "-")}</div>
+        <div><strong>Hata kodu:</strong> ${escapeHtml(errorCode || "-")}</div>
+        <div><strong>Oluşturulma:</strong> ${escapeHtml(createdAt || "-")}</div>
+      </div>
+      <div style="margin-top:16px;padding:16px;border-radius:16px;background:${BRAND_SURFACE};border:1px solid ${BRAND_BORDER};color:#334155">
+        <strong style="display:block;margin-bottom:8px;color:${BRAND_COLOR}">Açıklama</strong>
+        ${escapeHtml(errorMessage || "Ödeme manuel kontrole alındı.")}
+      </div>
+      ${
+        reservationEntries.length
+          ? `
+            <div style="margin-top:16px;padding:16px;border-radius:16px;background:#f8fbff;border:1px solid ${BRAND_BORDER}">
+              <strong style="display:block;margin-bottom:8px;color:${BRAND_COLOR}">Rezerve edilen stok kalemleri</strong>
+              <div style="font-size:13px;line-height:1.8;color:#334155">
+                ${reservationEntries
+                  .map((entry) => {
+                    const variant = [
+                      entry?.color,
+                      entry?.size,
+                      entry?.attribute,
+                    ]
+                      .filter(Boolean)
+                      .join(" / ");
+                    return `${escapeHtml(entry?.productName || entry?.productId || "Ürün")} × ${escapeHtml(entry?.qty || 0)}${
+                      variant ? ` (${escapeHtml(variant)})` : ""
+                    }`;
+                  })
+                  .join("<br />")}
+              </div>
+            </div>
+          `
+          : ""
+      }
+    </div>
+  `;
+
+  const html = buildEmailShell({
+    preheader: `Manual review gereken ödeme: ${conversationId || sessionId}`,
+    heading: "Ödeme manuel kontrole alındı",
+    intro:
+      "Iyzico ödeme akışında otomatik finalize edilemeyen bir işlem tespit edildi. Müşteriyle gerektiğinde iletişime geçerek sipariş veya iade sürecini kontrol edin.",
+    bodyHtml,
+    footerNote:
+      "Bu bildirim CepLife ödeme sistemi tarafından otomatik gönderilmiştir.",
+  });
+
+  const text = [
+    "Manual review gereken ödeme",
+    `Session ID: ${sessionId || "-"}`,
+    `Conversation ID: ${conversationId || "-"}`,
+    `Payment ID: ${paymentId || "-"}`,
+    `Tutar: ${total}`,
+    `Müşteri: ${customerName || "-"}`,
+    `E-posta: ${customerEmail || "-"}`,
+    `Telefon: ${customerPhone || "-"}`,
+    `Adres: ${address || "-"}`,
+    `Rezervasyon: ${reservationState} (${reservationEntries.length} satır)`,
+    `Hata aşaması: ${errorPhase || "-"}`,
+    `Hata kodu: ${errorCode || "-"}`,
+    `Oluşturulma: ${createdAt || "-"}`,
+    "",
+    errorMessage || "Ödeme manuel kontrole alındı.",
+    reservationEntries.length
+      ? [
+          "",
+          "Rezerve edilen stok kalemleri:",
+          ...reservationEntries.map((entry) => {
+            const variant = [entry?.color, entry?.size, entry?.attribute]
+              .filter(Boolean)
+              .join(" / ");
+            return `- ${entry?.productName || entry?.productId || "Ürün"} x ${
+              entry?.qty || 0
+            }${variant ? ` (${variant})` : ""}`;
+          }),
+        ].join("\n")
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return sendEmail({
+    to: adminInbox,
+    subject: `Manual review ödeme uyarısı: ${conversationId || sessionId}`,
+    html,
+    text,
+    replyTo: customerEmail || undefined,
+  });
+}

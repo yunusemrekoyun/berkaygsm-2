@@ -4,6 +4,8 @@ import RouteMemory from "../../components/RouteMemory.jsx";
 import ConsentAwareVisitTracker from "../../components/analytics/ConsentAwareVisitTracker.jsx";
 import { getStorefrontCategoryTree } from "../../server/services/storefrontPrefetchService.js";
 
+export const dynamic = "force-dynamic";
+
 export default async function StoreLayout({ children }) {
   const initialCategoryTree = await getStorefrontCategoryTree();
 

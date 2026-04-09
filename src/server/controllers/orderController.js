@@ -419,32 +419,58 @@ function validateSetSelections(setDoc, rawSelections = []) {
     });
   }
 
-  return expectedSelections.map((expected, index) => {
-    const selection = rawSelections[index];
-    const receivedProductId = String(selection?.productId || "").trim();
+  const remainingSelections = rawSelections.map((selection, index) => ({
+    selection,
+    index,
+    used: false,
+  }));
 
-    if (!receivedProductId || receivedProductId !== expected.productId) {
+  return expectedSelections.map((expected, index) => {
+    const match = remainingSelections.find((entry) => {
+      if (entry.used) return false;
+      const receivedProductId = String(entry.selection?.productId || "").trim();
+      const receivedQtyInSet = Math.max(
+        1,
+        Number(entry.selection?.qtyInSet || 1) || 1
+      );
+      return (
+        receivedProductId &&
+        receivedProductId === expected.productId &&
+        receivedQtyInSet === expected.qtyInSet
+      );
+    });
+
+    if (!match) {
+      const productMatch = remainingSelections.find((entry) => {
+        if (entry.used) return false;
+        return String(entry.selection?.productId || "").trim() === expected.productId;
+      });
+
+      if (productMatch) {
+        const receivedQtyInSet = Math.max(
+          1,
+          Number(productMatch.selection?.qtyInSet || 1) || 1
+        );
+        fail(400, "Set ürün adedi set tanımıyla eşleşmiyor", {
+          setId: String(setDoc?._id || ""),
+          index,
+          productId: expected.productId,
+          expectedQtyInSet: expected.qtyInSet,
+          receivedQtyInSet,
+        });
+      }
+
       fail(400, "Set seçimi set tanımıyla eşleşmiyor", {
         setId: String(setDoc?._id || ""),
         index,
         expectedProductId: expected.productId,
-        receivedProductId: receivedProductId || null,
+        receivedProductId: null,
       });
     }
 
-    const receivedQtyInSet = Math.max(
-      1,
-      Number(selection?.qtyInSet || 1) || 1
-    );
-    if (receivedQtyInSet !== expected.qtyInSet) {
-      fail(400, "Set ürün adedi set tanımıyla eşleşmiyor", {
-        setId: String(setDoc?._id || ""),
-        index,
-        productId: expected.productId,
-        expectedQtyInSet: expected.qtyInSet,
-        receivedQtyInSet,
-      });
-    }
+    match.used = true;
+    const selection = match.selection;
+    const receivedProductId = String(selection?.productId || "").trim();
 
     return {
       productId: expected.productId,
@@ -471,6 +497,57 @@ function buildStockUsageSnapshot(stockUsage = new Map()) {
       image: usage.image || "",
     };
   });
+}
+
+function buildPreparedStockUsageEntries(prepared = {}) {
+  const {
+    catalogNeedMap,
+    setNeedMap,
+    productMap,
+  } = prepared;
+
+  const entries = new Map();
+
+  function pushEntry(productId, variantKey, qty, source) {
+    const pid = String(productId || "").trim();
+    const amount = Math.max(0, Math.floor(Number(qty || 0) || 0));
+    const key = String(variantKey || "").trim();
+    if (!pid || !key || amount <= 0) return;
+
+    const entryKey = `${pid}::${key}`;
+    const variant = decodeVariantKey(key);
+    const product = productMap?.get(pid) || null;
+    const current = entries.get(entryKey) || {
+      productId: pid,
+      color: variant.color,
+      size: variant.size,
+      attribute: variant.attribute,
+      qty: 0,
+      source: source === "set_selection" ? "set_selection" : "product",
+      productName: product?.name || "",
+      image: product?.images?.[0]?.url || "",
+    };
+
+    current.qty += amount;
+    if (source === "set_selection") current.source = "set_selection";
+    entries.set(entryKey, current);
+  }
+
+  for (const [pid, variants] of catalogNeedMap?.entries?.() || []) {
+    for (const [vkey, entry] of variants.entries()) {
+      const index = Number(entry?.index);
+      if (!Number.isFinite(index) || index < 0) continue;
+      pushEntry(pid, vkey, entry?.qty, "product");
+    }
+  }
+
+  for (const [pid, variants] of setNeedMap?.entries?.() || []) {
+    for (const [vkey, qty] of variants.entries()) {
+      pushEntry(pid, vkey, qty, "set_selection");
+    }
+  }
+
+  return Array.from(entries.values());
 }
 
 function setOrderAccounting(order, values = {}) {
@@ -552,6 +629,7 @@ async function restoreStockUsageSnapshot(stockEntries = [], session = null) {
 
 async function applyOrderStockAccounting(order, options = {}) {
   const session = options.session || null;
+  const strictMissingStock = options.strictMissingStock === true;
   const stockEntries = Array.isArray(options.stockEntries)
     ? options.stockEntries
     : buildOrderStockUsageEntries(order);
@@ -609,11 +687,17 @@ async function applyOrderStockAccounting(order, options = {}) {
     const bucket = buckets.get(productId);
 
     if (!bucket || bucket.rows.length === 0) {
-      if (entry?.source === "set_selection") {
-        fail(409, "Set secimi için stok satiri bulunamadi", {
-          productId,
-          variant,
-        });
+      if (entry?.source === "set_selection" || strictMissingStock) {
+        fail(
+          409,
+          entry?.source === "set_selection"
+            ? "Set secimi için stok satiri bulunamadi"
+            : "Ürün için stok kaydı bulunamadı",
+          {
+            productId,
+            variant,
+          }
+        );
       }
       continue;
     }
@@ -676,6 +760,26 @@ async function applyOrderStockAccounting(order, options = {}) {
   };
 }
 
+async function reservePreparedStock(prepared, options = {}) {
+  const stockEntries = buildPreparedStockUsageEntries(prepared);
+  if (!stockEntries.length) {
+    return { applied: false, stockEntries: [] };
+  }
+
+  return applyOrderStockAccounting(
+    {},
+    {
+      session: options.session || null,
+      stockEntries,
+      strictMissingStock: true,
+    }
+  );
+}
+
+async function releaseReservedStock(stockEntries = [], options = {}) {
+  return restoreStockUsageSnapshot(stockEntries, options.session || null);
+}
+
 async function hydrateMissingProductStockBuckets(
   productStockMap,
   productIds = []
@@ -714,6 +818,103 @@ async function hydrateMissingProductStockBuckets(
     bucket.items.push(row);
     bucket.itemMap.set(variantKeyOf(row), row);
   });
+}
+
+function mergeVariantNeed(targetMap, productId, variantKey, qty, source) {
+  const pid = String(productId || "").trim();
+  const key = String(variantKey || "").trim();
+  const amount = Math.max(0, Number(qty || 0));
+  if (!pid || !key || amount <= 0) return;
+
+  if (!targetMap.has(pid)) targetMap.set(pid, new Map());
+  const bucket = targetMap.get(pid);
+  const current = bucket.get(key) || {
+    totalQty: 0,
+    directQty: 0,
+    setQty: 0,
+  };
+  current.totalQty += amount;
+  if (source === "set") current.setQty += amount;
+  else current.directQty += amount;
+  bucket.set(key, current);
+}
+
+async function validateCombinedTrackedStock({
+  productMap,
+  productStockMap,
+  catalogNeedMap,
+  setNeedMap,
+}) {
+  const combinedNeedMap = new Map();
+
+  for (const [pid, variants] of catalogNeedMap.entries()) {
+    for (const [vkey, entry] of variants.entries()) {
+      mergeVariantNeed(combinedNeedMap, pid, vkey, entry?.qty, "product");
+    }
+  }
+
+  for (const [pid, variants] of setNeedMap.entries()) {
+    for (const [vkey, qty] of variants.entries()) {
+      mergeVariantNeed(combinedNeedMap, pid, vkey, qty, "set");
+    }
+  }
+
+  for (const [pid, variants] of combinedNeedMap.entries()) {
+    const prod = await ensureProductLoaded(productMap, pid);
+    if (!prod) {
+      fail(400, "Stok doğrulaması için ürün bulunamadı", { productId: pid });
+    }
+
+    const inventory = Array.isArray(prod.inventory) ? prod.inventory : [];
+    const stockBucket = productStockMap?.get(pid) || null;
+
+    for (const [variantKey, requirement] of variants.entries()) {
+      const stockDoc = stockBucket?.itemMap?.get(variantKey) || null;
+      const inventoryRow =
+        inventory.find((row) => variantKeyOf(row) === variantKey) || null;
+
+      if (!stockDoc && !inventoryRow) {
+        fail(400, "Ürün için varyant bulunamadı", {
+          productId: pid,
+          variant: decodeVariantKey(variantKey),
+        });
+      }
+
+      const available = stockDoc
+        ? Math.max(0, Math.floor(Number(stockDoc.qtyOnHand || 0) || 0))
+        : Math.max(
+            0,
+            Math.floor(
+              Number(
+                inventoryRow?.stockCatalog ??
+                  inventoryRow?.stock ??
+                  inventoryRow?.qtyOnHand ??
+                  0
+              ) || 0
+            )
+          );
+
+      if (available < requirement.totalQty) {
+        const hasDirect = requirement.directQty > 0;
+        const hasSet = requirement.setQty > 0;
+        const message =
+          hasDirect && hasSet
+            ? "Ürün ve set toplamı için yeterli stok yok"
+            : hasSet
+              ? "Seçim için yetersiz stok"
+              : "Ürün için yeterli stok yok";
+
+        fail(400, message, {
+          productId: pid,
+          variant: decodeVariantKey(variantKey),
+          needed: requirement.totalQty,
+          available,
+          directQty: requirement.directQty,
+          setQty: requirement.setQty,
+        });
+      }
+    }
+  }
 }
 
 async function buildOrderPreparation({
@@ -811,6 +1012,12 @@ async function buildOrderPreparation({
       const p = await ensureProductLoaded(pMap, raw.id);
       if (!p)
         fail(404, "Ürün bulunamadı: " + raw.id, { productId: raw.id });
+
+      if (!Array.isArray(p.inventory) || p.inventory.length === 0) {
+        fail(409, "Ürün için stok kaydı bulunamadı", {
+          productId: String(p._id),
+        });
+      }
 
       const discount = productDiscountMap.get(String(p._id)) || null;
 
@@ -925,57 +1132,12 @@ async function buildOrderPreparation({
     }
   }
 
-  for (const [pid, variants] of setNeedMap.entries()) {
-    const prod = await ensureProductLoaded(pMap, pid);
-    if (!prod) {
-      fail(400, "Seçim ürünü eksik: " + pid, { productId: pid });
-    }
-    const inv = Array.isArray(prod.inventory) ? prod.inventory : [];
-    for (const [vkey, needed] of variants.entries()) {
-      const idx = inv.findIndex((row) => variantKeyOf(row) === vkey);
-      const row = idx >= 0 ? inv[idx] : null;
-      const available = getInventoryStock(row, "set");
-      if (available < needed) {
-        fail(400, "Seçim için yetersiz stok", {
-          productId: pid,
-          variant: decodeVariantKey(vkey),
-          needed,
-          available,
-        });
-      }
-    }
-  }
-
-  for (const [pid, variants] of catalogNeedMap.entries()) {
-    const prod = await ensureProductLoaded(pMap, pid);
-    if (!prod) {
-      fail(400, "Katalog stoku için ürün bulunamadı: " + pid, {
-        productId: pid,
-      });
-    }
-    const inv = Array.isArray(prod.inventory) ? prod.inventory : [];
-    for (const [vkey, entry] of variants.entries()) {
-      if (entry.index < 0) continue;
-      const row =
-        inv[entry.index] ||
-        inv.find((candidate) => variantKeyOf(candidate) === vkey);
-      if (!row) {
-        fail(400, "Ürün için varyant bulunamadı", {
-          productId: pid,
-          variant: decodeVariantKey(vkey),
-        });
-      }
-      const available = getInventoryStock(row, "catalog");
-      if (available < entry.qty) {
-        fail(400, "Ürün için yeterli stok yok", {
-          productId: pid,
-          variant: decodeVariantKey(vkey),
-          needed: entry.qty,
-          available,
-        });
-      }
-    }
-  }
+  await validateCombinedTrackedStock({
+    productMap: pMap,
+    productStockMap,
+    catalogNeedMap,
+    setNeedMap,
+  });
 
   let couponSummary = null;
   let couponContext = null;
@@ -1175,6 +1337,11 @@ async function finalizeOrder(prepared, options = {}) {
 
   const orderNumber = options.orderNumber || (await createOrderNumber());
   const applyStockDeductions = options.applyStockDeductions !== false;
+  const providedStockUsageEntries = Array.isArray(options.stockUsageEntries)
+    ? buildOrderStockUsageEntries({
+        accounting: { stockUsage: options.stockUsageEntries },
+      })
+    : [];
   const orderNote =
     typeof options.note === "string" ? options.note.trim() : "";
   const session = options.session || null;
@@ -1346,7 +1513,9 @@ async function finalizeOrder(prepared, options = {}) {
     }
   }
 
-  const accountingStockUsage = buildStockUsageSnapshot(stockUsage);
+  const accountingStockUsage = applyStockDeductions
+    ? buildStockUsageSnapshot(stockUsage)
+    : providedStockUsageEntries;
 
   let payment;
   let status = options.statusOverride || "pending";
@@ -1525,7 +1694,10 @@ function variantKeyOf(row) {
 
 export {
   buildOrderPreparation,
+  buildPreparedStockUsageEntries,
   finalizeOrder,
+  reservePreparedStock,
+  releaseReservedStock,
   shapeOrder,
   summarizeOrderItems,
   normalizeCode,
@@ -1653,18 +1825,6 @@ function resolveCatalogVariant(product, rawItem) {
     index: -1,
     key: candidateKey,
   };
-}
-
-function getInventoryStock(row, pool = "catalog") {
-  if (!row) return 0;
-  if (pool === "set") {
-    if (typeof row?.stockSet === "number") return Number(row.stockSet) || 0;
-  } else {
-    if (typeof row?.stockCatalog === "number")
-      return Number(row.stockCatalog) || 0;
-  }
-  if (typeof row?.stock === "number") return Number(row.stock) || 0;
-  return 0;
 }
 
 function decodeVariantKey(key) {

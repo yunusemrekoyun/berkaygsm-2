@@ -202,14 +202,24 @@ export function validateIyzicoHppWebhookSignature(body, headerSignature) {
   return actual === signature;
 }
 
-export function buildIyzicoCallbackRedirectUrl({ orderId, status, message }) {
+export function buildIyzicoCallbackRedirectUrl({
+  baseUrl = "",
+  orderId,
+  status,
+  message,
+}) {
   const config = getIyzicoConfig();
-  const baseUrl = config.publicBaseUrl || "";
-  const url = new URL("/checkout/success", baseUrl || "https://example.com");
+  const resolvedBaseUrl = String(baseUrl || config.publicBaseUrl || "").trim();
+  const url = new URL(
+    "/checkout/success",
+    resolvedBaseUrl || "https://example.com"
+  );
   if (orderId) url.searchParams.set("order", String(orderId));
   if (status) url.searchParams.set("status", String(status));
   if (message) url.searchParams.set("message", String(message));
-  return baseUrl ? `${url.pathname}${url.search}` : `/checkout/success${url.search}`;
+  return resolvedBaseUrl
+    ? `${url.origin}${url.pathname}${url.search}`
+    : `/checkout/success${url.search}`;
 }
 
 export function normalizeIyzicoPrice(value) {

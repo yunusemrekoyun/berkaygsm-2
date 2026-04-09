@@ -32,21 +32,41 @@ const secureCookieDefault =
 
 const sameSiteDefault = resolveSameSite(process.env.COOKIE_SAMESITE || "strict");
 
+function getAccessTokenSecret() {
+  const secret = String(process.env.JWT_ACCESS_SECRET || "").trim();
+  if (!secret) {
+    throw new Error("JWT_ACCESS_SECRET yapılandırılmamış");
+  }
+  return secret;
+}
+
+function getRefreshTokenSecret() {
+  const secret = String(process.env.JWT_REFRESH_SECRET || "").trim();
+  if (!secret) {
+    throw new Error("JWT_REFRESH_SECRET yapılandırılmamış");
+  }
+  return secret;
+}
+
+function getRefreshCookieSameSite() {
+  // External payment providers redirect users back to the site after payment.
+  // Strict cookies are not reliable for that return leg, so auth refresh must
+  // stay at least Lax even if the broader site policy is configured as Strict.
+  if (sameSiteDefault === "strict") return "lax";
+  return sameSiteDefault;
+}
+
 function signAccessToken(payload) {
-  const secret =
-    process.env.JWT_ACCESS_SECRET || process.env.JWT_REFRESH_SECRET || null;
-  return jwt.sign(payload, secret, { expiresIn: ACCESS_EXPIRES });
+  return jwt.sign(payload, getAccessTokenSecret(), { expiresIn: ACCESS_EXPIRES });
 }
 
 function signRefreshToken(payload) {
-  const secret =
-    process.env.JWT_REFRESH_SECRET || process.env.JWT_ACCESS_SECRET || null;
-  return jwt.sign(payload, secret, { expiresIn: REFRESH_EXPIRES });
+  return jwt.sign(payload, getRefreshTokenSecret(), { expiresIn: REFRESH_EXPIRES });
 }
 
 function clearRefreshCookie(res) {
   const common = {
-    sameSite: sameSiteDefault,
+    sameSite: getRefreshCookieSameSite(),
     secure: secureCookieDefault,
     httpOnly: true,
   };
@@ -65,7 +85,7 @@ function setRefreshCookie(res, token) {
   res.cookie("refreshToken", token, {
     httpOnly: true,
     secure: secureCookieDefault,
-    sameSite: sameSiteDefault,
+    sameSite: getRefreshCookieSameSite(),
     path: "/api/auth",
     maxAge: 1000 * 60 * 60 * 24 * 30,
   });
@@ -190,9 +210,7 @@ export const refresh = async (req, res) => {
   if (!token) return res.status(401).json({ message: "Refresh token yok" });
 
   try {
-    const secret =
-      process.env.JWT_REFRESH_SECRET || process.env.JWT_ACCESS_SECRET || null;
-    const payload = jwt.verify(token, secret);
+    const payload = jwt.verify(token, getRefreshTokenSecret());
     const user = await User.findById(payload.sub);
 
     if (!user)
@@ -248,9 +266,7 @@ export const logout = async (req, res) => {
   const token = req.cookies?.refreshToken;
   if (token) {
     try {
-      const secret =
-        process.env.JWT_REFRESH_SECRET || process.env.JWT_ACCESS_SECRET || null;
-      const payload = jwt.verify(token, secret);
+      const payload = jwt.verify(token, getRefreshTokenSecret());
       const user = await User.findById(payload.sub);
       if (user) {
         user.refreshSessions = removeRefreshSession(user.refreshSessions || [], {

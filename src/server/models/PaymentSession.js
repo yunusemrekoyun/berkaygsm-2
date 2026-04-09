@@ -83,6 +83,58 @@ const SessionErrorSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const SessionStockUsageSchema = new mongoose.Schema(
+  {
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+    },
+    color: { type: String, default: null },
+    size: { type: String, default: null },
+    attribute: { type: String, default: null },
+    qty: { type: Number, min: 1, default: 1 },
+    source: {
+      type: String,
+      enum: ["product", "set_selection"],
+      default: "product",
+    },
+    productName: { type: String, default: "" },
+    image: { type: String, default: "" },
+  },
+  { _id: false }
+);
+
+const SessionStockReservationSchema = new mongoose.Schema(
+  {
+    state: {
+      type: String,
+      enum: ["none", "reserved", "released", "committed"],
+      default: "none",
+    },
+    entries: { type: [SessionStockUsageSchema], default: [] },
+    reservedAt: { type: Date, default: null },
+    releasedAt: { type: Date, default: null },
+    committedAt: { type: Date, default: null },
+  },
+  { _id: false }
+);
+
+const ManualReviewNotificationSchema = new mongoose.Schema(
+  {
+    state: {
+      type: String,
+      enum: ["pending", "sending", "sent"],
+      default: "pending",
+    },
+    attemptCount: { type: Number, default: 0 },
+    lastAttemptAt: { type: Date, default: null },
+    sentAt: { type: Date, default: null },
+    lastError: { type: String, default: "" },
+  },
+  { _id: false }
+);
+
 const PaymentSessionSchema = new mongoose.Schema(
   {
     provider: { type: String, enum: ["iyzico"], default: "iyzico" },
@@ -128,6 +180,18 @@ const PaymentSessionSchema = new mongoose.Schema(
       index: true,
       trim: true,
     },
+    fingerprint: {
+      type: String,
+      default: null,
+      index: true,
+      trim: true,
+    },
+    activeFingerprintKey: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    returnOrigin: { type: String, default: null, trim: true },
     checkoutUrl: { type: String, required: true, trim: true },
     addressSnapshot: { type: SessionAddressSchema, required: true },
     items: { type: [SessionItemSchema], default: [] },
@@ -135,16 +199,34 @@ const PaymentSessionSchema = new mongoose.Schema(
     note: { type: String, default: "" },
     pricing: { type: SessionPricingSchema, default: () => ({}) },
     payment: { type: SessionPaymentSchema, default: () => ({}) },
+    stockReservation: {
+      type: SessionStockReservationSchema,
+      default: () => ({ state: "none", entries: [] }),
+    },
     callbackAt: { type: Date, default: null },
     webhookAt: { type: Date, default: null },
     finalizedAt: { type: Date, default: null },
     expiresAt: { type: Date, default: null, index: true },
     lastError: { type: SessionErrorSchema, default: null },
+    manualReviewNotification: {
+      type: ManualReviewNotificationSchema,
+      default: null,
+    },
   },
   { timestamps: true }
 );
 
 PaymentSessionSchema.index({ createdAt: -1 });
+PaymentSessionSchema.index({ user: 1, fingerprint: 1, status: 1, expiresAt: -1 });
+PaymentSessionSchema.index(
+  { activeFingerprintKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      activeFingerprintKey: { $type: "string" },
+    },
+  }
+);
 
 export default mongoose.models.PaymentSession ||
   mongoose.model("PaymentSession", PaymentSessionSchema);

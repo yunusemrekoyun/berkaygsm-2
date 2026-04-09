@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import BreadCrumb from "../components/shop/BreadCrumb";
 import { Link } from "react-router-dom";

@@ -22,6 +22,10 @@ fi
 mkdir -p "${RELEASE_DIR}"
 
 rsync -a \
+  --exclude ".env" \
+  --exclude ".env.local" \
+  --exclude ".env.prod" \
+  --exclude ".env.*.local" \
   --exclude ".git" \
   --exclude ".next" \
   --exclude "node_modules" \

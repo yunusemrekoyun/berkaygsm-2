@@ -1,7 +1,10 @@
-"use client";
-
+import { Suspense } from "react";
 import PrivacyPolicyPage from "../../../screens/PrivacyPolicyPage.jsx";
 
 export default function Page() {
-  return <PrivacyPolicyPage />;
+  return (
+    <Suspense fallback={null}>
+      <PrivacyPolicyPage />
+    </Suspense>
+  );
 }

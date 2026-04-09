@@ -1,12 +1,13 @@
-"use client";
-
+import { Suspense } from "react";
 import CheckoutPage from "../../../screens/CheckoutPage.jsx";
 import RequireAuth from "../../../components/auth/RequireAuth.jsx";
 
 export default function Page() {
   return (
-    <RequireAuth>
-      <CheckoutPage />
-    </RequireAuth>
+    <Suspense fallback={null}>
+      <RequireAuth>
+        <CheckoutPage />
+      </RequireAuth>
+    </Suspense>
   );
 }

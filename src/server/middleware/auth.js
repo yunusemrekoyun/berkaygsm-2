@@ -6,9 +6,14 @@ export async function requireAuth(req, res, next) {
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) return res.status(401).json({ message: "Token bulunamadı" });
 
+  const secret = String(process.env.JWT_ACCESS_SECRET || "").trim();
+  if (!secret) {
+    return res
+      .status(500)
+      .json({ message: "Kimlik doğrulama yapılandırması eksik" });
+  }
+
   try {
-    const secret =
-      process.env.JWT_ACCESS_SECRET || process.env.JWT_REFRESH_SECRET || null;
     const payload = jwt.verify(token, secret);
 
     const user = await User.findById(payload.sub).select(

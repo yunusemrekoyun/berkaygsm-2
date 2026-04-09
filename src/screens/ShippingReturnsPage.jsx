@@ -1,3 +1,5 @@
+"use client";
+
 // src/pages/ShippingReturnsPage.jsx
 import { useEffect, useMemo, useState } from "react";
 import BreadCrumb from "../components/shop/BreadCrumb";

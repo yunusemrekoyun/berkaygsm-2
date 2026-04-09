@@ -3,6 +3,7 @@ import { findRoute } from "./apiRoutes.js";
 import { runHandlers } from "./adapter.js";
 import { generalLimiter } from "./rateLimiters.js";
 import { connectDB } from "./config/db.js";
+import { kickPaymentSessionMaintenance } from "./services/paymentSessionMaintenanceService.js";
 
 export async function handleApi(request, context = {}) {
   const paramsSource = context?.params;
@@ -20,6 +21,7 @@ export async function handleApi(request, context = {}) {
   }
 
   await connectDB();
+  void kickPaymentSessionMaintenance();
 
   const handlers = [generalLimiter, ...match.handlers];
 

@@ -1,7 +1,15 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import BreadCrumb from "../components/shop/BreadCrumb";
 import { orderApi } from "../api/orders";
+import { useCart } from "../hooks/useCart.jsx";
+import {
+  getAccessToken,
+  getUser,
+  refreshAccessToken,
+} from "../api/client";
 
 export default function SuccessPage() {
   const location = useLocation();
@@ -12,11 +20,20 @@ export default function SuccessPage() {
     .toLowerCase();
   const messageParam = String(searchParams.get("message") || "").trim();
   const [order, setOrder] = useState(null);
+  const { clearCart, clearCoupon } = useCart() || {};
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       if (!orderId) return;
+      let hasToken = Boolean(getAccessToken());
+
+      if (!hasToken && getUser()) {
+        hasToken = await refreshAccessToken();
+      }
+
+      if (!hasToken) return;
+
       try {
         const o = await orderApi.get(orderId);
         if (mounted) setOrder(o);
@@ -49,6 +66,27 @@ export default function SuccessPage() {
       ? messageParam ||
         "Ödeme sonucu güvenlik kontrolüne alındı. Kısa süre içinde manuel olarak doğrulanacak."
       : "Siparişiniz başarıyla oluşturuldu.";
+
+  useEffect(() => {
+    if (!orderId || !order || derivedStatus !== "success") return;
+    if (typeof window === "undefined") return;
+
+    const handledKey = `checkout-success-cleared:${orderId}`;
+    try {
+      if (window.sessionStorage.getItem(handledKey)) return;
+    } catch {
+      // ignore storage errors
+    }
+
+    clearCart?.();
+    clearCoupon?.();
+
+    try {
+      window.sessionStorage.setItem(handledKey, "1");
+    } catch {
+      // ignore storage errors
+    }
+  }, [clearCart, clearCoupon, derivedStatus, order, orderId]);
 
   return (
     <section className="store-page bg-surface-light/60">
