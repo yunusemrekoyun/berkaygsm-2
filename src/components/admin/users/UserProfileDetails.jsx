@@ -92,6 +92,16 @@ export default function UserProfileDetails({ user }) {
           }`}
         />
         <InfoItem
+          icon={Mail}
+          label="Bakım duyuru izni"
+          value={
+            user.maintenanceAnnouncementsEnabled !== false
+              ? "Onaylı"
+              : "Kapalı"
+          }
+          helper="Tatil modu açılış/kapanış mailleri"
+        />
+        <InfoItem
           icon={CalendarClock}
           label="Kayıt Tarihi"
           value={formatDateTime(user.createdAt)}

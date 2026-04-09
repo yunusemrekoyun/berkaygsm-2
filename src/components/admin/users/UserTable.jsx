@@ -55,6 +55,7 @@ export default function UserTable({
           <tr>
             <th className="px-4 py-3 text-left font-medium">Kullanıcı</th>
             <th className="px-4 py-3 text-left font-medium">İletişim</th>
+            <th className="px-4 py-3 text-left font-medium">Bakım Maili</th>
             <th className="px-4 py-3 text-left font-medium">Rol</th>
             <th className="px-4 py-3 text-left font-medium">Katılma Tarihi</th>
             <th className="px-4 py-3 text-right font-medium">İşlemler</th>
@@ -132,6 +133,21 @@ export default function UserTable({
                       {user.phone || "—"}
                     </div>
                   </div>
+                </td>
+
+                <td className="px-4 py-3" data-label="Bakım Maili">
+                  <span
+                    className={[
+                      "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold",
+                      user.maintenanceAnnouncementsEnabled !== false
+                        ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border border-slate-200 bg-slate-50 text-slate-600",
+                    ].join(" ")}
+                  >
+                    {user.maintenanceAnnouncementsEnabled !== false
+                      ? "Onaylı"
+                      : "Kapalı"}
+                  </span>
                 </td>
 
                 <td className="px-4 py-3" data-label="Rol">
