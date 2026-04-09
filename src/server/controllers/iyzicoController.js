@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import User from "../models/User.js";
 import PaymentSession from "../models/PaymentSession.js";
+import Order from "../models/Order.js";
 import {
   buildOrderPreparation,
   buildPreparedStockUsageEntries,
@@ -11,7 +12,11 @@ import {
   roundCurrency,
   runInMongoTransaction,
 } from "./orderController.js";
-import { sendPaymentManualReviewAdminEmail } from "../services/emailService.js";
+import {
+  sendOrderAdminEmail,
+  sendOrderCustomerEmail,
+  sendPaymentManualReviewAdminEmail,
+} from "../services/emailService.js";
 import {
   assertIyzicoConfigured,
   getIyzicoCallbackUrl,
@@ -773,7 +778,10 @@ async function finalizePaymentSession(sessionDoc, retrieveResult, source) {
       );
       if (!currentSession) fail(404, "Ödeme oturumu bulunamadı");
       if (currentSession.order) {
-        return { orderId: currentSession.order?.toString?.() || currentSession.order };
+        return {
+          orderId: currentSession.order?.toString?.() || currentSession.order,
+          shouldSendOrderEmails: false,
+        };
       }
 
       const prepared = await buildOrderPreparation({
@@ -884,6 +892,7 @@ async function finalizePaymentSession(sessionDoc, retrieveResult, source) {
       return {
         orderId: order._id?.toString?.() || String(order._id),
         manualReview: false,
+        shouldSendOrderEmails: true,
       };
     });
 
@@ -897,6 +906,7 @@ async function finalizePaymentSession(sessionDoc, retrieveResult, source) {
     return {
       status: "success",
       orderId: transactionResult.orderId,
+      shouldSendOrderEmails: transactionResult.shouldSendOrderEmails === true,
     };
   } catch (error) {
     await markSessionFailure(
@@ -1223,6 +1233,9 @@ export async function handleIyzicoCallback(req, res) {
     }
 
     if (finalized.status === "success") {
+      if (finalized.shouldSendOrderEmails && finalized.orderId) {
+        await sendOrderConfirmationEmails(finalized.orderId);
+      }
       return sendRedirect(
         res,
         buildIyzicoCallbackRedirectUrl({
@@ -1263,6 +1276,23 @@ export async function handleIyzicoCallback(req, res) {
       })
     );
   }
+}
+
+async function sendOrderConfirmationEmails(orderId) {
+  const order = await Order.findById(orderId).populate(
+    "user",
+    "firstName lastName email phone"
+  );
+
+  if (!order) return { ok: false, skipped: true };
+
+  const user = order.user && typeof order.user === "object" ? order.user : null;
+  await Promise.allSettled([
+    sendOrderCustomerEmail({ order, user }),
+    sendOrderAdminEmail({ order, user }),
+  ]);
+
+  return { ok: true };
 }
 
 export async function handleIyzicoWebhook(req, res) {
@@ -1322,7 +1352,15 @@ export async function handleIyzicoWebhook(req, res) {
       });
       assertRetrieveResponseCorrelation(paymentSession, retrieveResult);
 
-      await finalizePaymentSession(paymentSession, retrieveResult, "webhook");
+      const finalized = await finalizePaymentSession(
+        paymentSession,
+        retrieveResult,
+        "webhook"
+      );
+
+      if (finalized?.status === "success" && finalized.shouldSendOrderEmails && finalized.orderId) {
+        await sendOrderConfirmationEmails(finalized.orderId);
+      }
     } catch (error) {
       await markSessionFailure(
         paymentSession._id,
