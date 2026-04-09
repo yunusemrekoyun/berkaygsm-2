@@ -1,5 +1,8 @@
 import nodemailer from "nodemailer";
 import {
+  signMaintenanceAnnouncementUnsubscribeToken,
+} from "../utils/maintenanceAnnouncementTokens.js";
+import {
   OFFICIAL_ADDRESS,
   OFFICIAL_PHONE,
   OFFICIAL_SUPPORT_EMAIL,
@@ -74,6 +77,16 @@ function getPublicSiteUrl() {
 
 function getLogoUrl() {
   return `${getPublicSiteUrl()}${LOGO_PATH}`;
+}
+
+function getMaintenanceAnnouncementUnsubscribeUrl(user) {
+  const token = signMaintenanceAnnouncementUnsubscribeToken({
+    userId: user?._id || user?.id,
+    email: user?.email,
+  });
+  return `${getPublicSiteUrl()}/api/maintenance-announcements/unsubscribe?token=${encodeURIComponent(
+    token
+  )}`;
 }
 
 function getOrderStatusLabel(order) {
@@ -229,7 +242,14 @@ function formatPricingTableHtml(order) {
     .join("");
 }
 
-function buildEmailShell({ preheader = "", heading, intro, bodyHtml, footerNote = "" }) {
+function buildEmailShell({
+  preheader = "",
+  heading,
+  intro,
+  bodyHtml,
+  footerNote = "",
+  badgeLabel = "CepLife Sipariş Bildirimi",
+}) {
   const logoUrl = getLogoUrl();
   return `
     <!doctype html>
@@ -249,7 +269,7 @@ function buildEmailShell({ preheader = "", heading, intro, bodyHtml, footerNote 
                         logoUrl
                       )}" alt="CepLife" width="180" style="margin:0 auto 18px;display:block;height:auto;max-width:180px" />
                       <div style="display:inline-block;padding:7px 14px;border-radius:999px;background:${BRAND_SURFACE};border:1px solid ${BRAND_BORDER};font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:${BRAND_COLOR};font-weight:700">
-                        CepLife Sipariş Bildirimi
+                        ${escapeHtml(badgeLabel)}
                       </div>
                       <h1 style="margin:18px 0 8px;font-size:28px;line-height:1.2;color:${BRAND_COLOR}">
                         ${escapeHtml(heading)}
@@ -958,5 +978,82 @@ export async function sendPaymentManualReviewAdminEmail({
     html,
     text,
     replyTo: customerEmail || undefined,
+  });
+}
+
+export async function sendMaintenanceAnnouncementEmail({ user, enabled }) {
+  const email = String(user?.email || "").trim().toLowerCase();
+  if (!email) return { ok: false, skipped: true };
+
+  const fullName =
+    `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
+    "CepLife müşterisi";
+  const unsubscribeUrl = getMaintenanceAnnouncementUnsubscribeUrl(user);
+  const subject = enabled
+    ? "CepLife geçici olarak bakım modunda"
+    : "CepLife yeniden yayında";
+  const heading = enabled ? "Sitemiz bakımda" : "Sitemiz yeniden açıldı";
+  const intro = enabled
+    ? "Altyapımız üzerinde kısa süreli bir bakım çalışması yürütüyoruz. En kısa sürede yeniden hizmet vermeye devam edeceğiz."
+    : "Bakım çalışmamız tamamlandı. CepLife yeniden yayında ve sipariş almaya devam ediyor.";
+  const bodyHtml = `
+    <div style="margin-top:22px;padding:24px;border:1px solid ${BRAND_BORDER};border-radius:20px;background:#ffffff">
+      <div style="font-size:16px;line-height:1.8;color:#334155">
+        Merhaba ${escapeHtml(fullName)},
+      </div>
+      <div style="margin-top:12px;font-size:15px;line-height:1.8;color:#475569">
+        ${
+          enabled
+            ? "CepLife mağazamız geçici olarak bakım moduna alınmıştır. Bu süreçte mağaza arayüzü kapalı olacaktır."
+            : "CepLife mağazamız tekrar erişime açılmıştır. Ürünleri inceleyebilir ve sipariş vermeye devam edebilirsiniz."
+        }
+      </div>
+      <div style="margin-top:12px;font-size:15px;line-height:1.8;color:#475569">
+        Destek için ${escapeHtml(OFFICIAL_SUPPORT_EMAIL)} adresine yazabilir veya ${escapeHtml(
+          OFFICIAL_PHONE
+        )} numarasından bize ulaşabilirsiniz.
+      </div>
+      <div style="margin-top:20px">
+        <a href="${escapeHtml(
+          unsubscribeUrl
+        )}" style="display:inline-block;border-radius:999px;background:${BRAND_COLOR};color:#ffffff;text-decoration:none;font-weight:700;padding:12px 18px;font-size:14px">
+          Duyurulardan çık
+        </a>
+      </div>
+      <div style="margin-top:12px;font-size:12px;line-height:1.8;color:#64748b">
+        Bu bağlantı yalnızca bakım ve site durumu duyurularından çıkış yapmak içindir.
+      </div>
+    </div>
+  `;
+
+  const html = buildEmailShell({
+    badgeLabel: "CepLife Site Duyurusu",
+    preheader: enabled
+      ? "CepLife geçici olarak bakım moduna alındı."
+      : "CepLife bakım çalışmasını tamamladı ve yeniden açıldı.",
+    heading,
+    intro,
+    bodyHtml,
+    footerNote:
+      "Bu bildirim yalnızca bakım ve site durumu duyuruları için gönderilmiştir.",
+  });
+
+  const text = [
+    `Merhaba ${fullName},`,
+    "",
+    enabled
+      ? "CepLife geçici olarak bakım moduna alınmıştır."
+      : "CepLife yeniden yayındadır.",
+    `Destek: ${OFFICIAL_SUPPORT_EMAIL}`,
+    `Telefon: ${OFFICIAL_PHONE}`,
+    "",
+    `Bu duyuruları almak istemiyorsanız: ${unsubscribeUrl}`,
+  ].join("\n");
+
+  return sendEmail({
+    to: email,
+    subject,
+    html,
+    text,
   });
 }

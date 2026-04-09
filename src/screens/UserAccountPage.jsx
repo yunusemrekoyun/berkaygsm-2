@@ -85,6 +85,8 @@ export default function UserAccountPage({ onLogout }) {
             lastName: details.user.lastName,
             email: details.user.email,
             phone: details.user.phone,
+            maintenanceAnnouncementsEnabled:
+              details.user.maintenanceAnnouncementsEnabled !== false,
             avatarUrl,
           });
         } else if (details?.profile) {
@@ -228,12 +230,26 @@ export default function UserAccountPage({ onLogout }) {
                     onSave={async (payload) => {
                       try {
                         setBusy(true);
-                        await userDetailsApi.updateProfile({
+                        const updatedDetails = await userDetailsApi.updateProfile({
                           firstName: payload.firstName,
                           lastName: payload.lastName,
                           email: payload.email,
                           phone: payload.phone,
+                          maintenanceAnnouncementsEnabled:
+                            payload.maintenanceAnnouncementsEnabled,
                         });
+                        if (updatedDetails?.user) {
+                          setProfile((prev) => ({
+                            ...(prev || {}),
+                            firstName: updatedDetails.user.firstName,
+                            lastName: updatedDetails.user.lastName,
+                            email: updatedDetails.user.email,
+                            phone: updatedDetails.user.phone,
+                            maintenanceAnnouncementsEnabled:
+                              updatedDetails.user
+                                .maintenanceAnnouncementsEnabled !== false,
+                          }));
+                        }
                         if (payload.avatarFile) {
                           const avatar = await userDetailsApi.uploadAvatar(
                             payload.avatarFile

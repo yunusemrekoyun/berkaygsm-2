@@ -23,6 +23,10 @@ const UserSchema = new mongoose.Schema(
       trim: true,
     },
     phone: { type: String, trim: true },
+    maintenanceAnnouncementsEnabled: {
+      type: Boolean,
+      default: true,
+    },
     passwordHash: { type: String, required: true },
     role: { type: String, enum: ["user", "admin"], default: "user" },
 

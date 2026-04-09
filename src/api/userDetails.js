@@ -25,6 +25,7 @@ export const userDetailsApi = {
     lastName,
     email,
     phone,
+    maintenanceAnnouncementsEnabled,
     gender,
     birthDate,
   }) {
@@ -33,6 +34,11 @@ export const userDetailsApi = {
     if (lastName !== undefined) payload.lastName = String(lastName).trim();
     if (email !== undefined) payload.email = String(email).trim();
     if (phone !== undefined) payload.phone = String(phone).trim();
+    if (maintenanceAnnouncementsEnabled !== undefined) {
+      payload.maintenanceAnnouncementsEnabled = Boolean(
+        maintenanceAnnouncementsEnabled
+      );
+    }
     if (gender !== undefined) payload.gender = String(gender).trim();
     if (birthDate !== undefined) payload.birthDate = birthDate;
 

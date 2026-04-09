@@ -38,6 +38,8 @@ export default function AuthPage({ initialView = "register", onAuthSuccess }) {
         email: vals.email,
         phone: vals.phone || "",
         password: vals.pass,
+        maintenanceAnnouncementsEnabled:
+          vals.maintenanceAnnouncementsEnabled,
         role: "user",
       });
 

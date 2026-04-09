@@ -15,6 +15,8 @@ export default function RegisterForm({ onSubmit, loadingText = "Yükleniyor..." 
   const [confirmPass, setConfirmPass] = useState("");
   const [phone, setPhone] = useState("");
   const [agree, setAgree] = useState(false);
+  const [maintenanceAnnouncementsEnabled, setMaintenanceAnnouncementsEnabled] =
+    useState(false);
   const [loading, setLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [confirmError, setConfirmError] = useState("");
@@ -41,6 +43,7 @@ export default function RegisterForm({ onSubmit, loadingText = "Yükleniyor..." 
         email,
         pass,
         phone: formatTrPhoneForSubmit(phone),
+        maintenanceAnnouncementsEnabled,
       });
     } finally {
       setLoading(false);
@@ -149,6 +152,16 @@ export default function RegisterForm({ onSubmit, loadingText = "Yükleniyor..." 
           className="mt-1"
         />
         Kullanım Koşulları ve Gizlilik Politikası’nı kabul ediyorum.
+      </label>
+
+      <label className="flex items-start gap-2 text-sm text-secondary">
+        <input
+          type="checkbox"
+          checked={maintenanceAnnouncementsEnabled}
+          onChange={(e) => setMaintenanceAnnouncementsEnabled(e.target.checked)}
+          className="mt-1"
+        />
+        Bakım ve site durumu duyurularından haberdar olmak istiyorum.
       </label>
 
       <button

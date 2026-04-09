@@ -46,6 +46,10 @@ export default function OverviewSection({ user, profile, avatarSrc, onSave, copy
     lastName: profile?.lastName ?? user?.lastName ?? "",
     email: profile?.email ?? user?.email ?? "",
     phone: formatTrPhoneForInput(profile?.phone ?? user?.phone ?? ""),
+    maintenanceAnnouncementsEnabled:
+      profile?.maintenanceAnnouncementsEnabled ??
+      user?.maintenanceAnnouncementsEnabled ??
+      true,
   });
   const [avatarFile, setAvatarFile] = useState(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
@@ -61,6 +65,10 @@ export default function OverviewSection({ user, profile, avatarSrc, onSave, copy
       lastName: profile?.lastName ?? user?.lastName ?? "",
       email: profile?.email ?? user?.email ?? "",
       phone: formatTrPhoneForInput(profile?.phone ?? user?.phone ?? ""),
+      maintenanceAnnouncementsEnabled:
+        profile?.maintenanceAnnouncementsEnabled ??
+        user?.maintenanceAnnouncementsEnabled ??
+        true,
     });
   }, [profile, user]);
 
@@ -153,6 +161,20 @@ export default function OverviewSection({ user, profile, avatarSrc, onSave, copy
           inputMode="numeric"
           autoComplete="tel"
         />
+
+        <label className="flex items-start gap-3 rounded-xl border border-border bg-contact-bg p-4 text-sm text-primary">
+          <input
+            type="checkbox"
+            checked={!!form.maintenanceAnnouncementsEnabled}
+            onChange={(e) =>
+              onChange("maintenanceAnnouncementsEnabled", e.target.checked)
+            }
+            className="mt-1"
+          />
+          <span>
+            Bakım ve site durumu duyurularını e-posta ile almak istiyorum.
+          </span>
+        </label>
 
         <div className="rounded-xl border border-border bg-contact-bg p-4">
           <div className="flex items-center justify-between gap-3">

@@ -4,6 +4,7 @@ import { heroApi } from "../../api/heroes";
 import { campaignApi } from "../../api/campaigns";
 import ShippingSettingsCard from "./settings/ShippingSettingsCard.jsx";
 import ReviewSettingsCard from "./settings/ReviewSettingsCard.jsx";
+import MaintenanceModeSettingsCard from "./settings/MaintenanceModeSettingsCard.jsx";
 import AppImage from "../ui/AppImage.jsx";
 import {
   Wand2,
@@ -299,9 +300,10 @@ export default function AdminSettingsPageInner() {
             subtitle="Geçiş dönemine ait küçük ayarlar."
           >
             <div className="col-span-1 md:col-span-2">
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <ShippingSettingsCard />
                 <ReviewSettingsCard />
+                <MaintenanceModeSettingsCard />
               </div>
             </div>
           </SectionBlock>

@@ -7,11 +7,20 @@ export const authApi = {
     email,
     phone,
     password,
+    maintenanceAnnouncementsEnabled,
     role = "user",
   }) {
     const data = await http("/auth/register", {
       method: "POST",
-      body: { firstName, lastName, email, phone, password, role },
+      body: {
+        firstName,
+        lastName,
+        email,
+        phone,
+        password,
+        maintenanceAnnouncementsEnabled,
+        role,
+      },
     });
     setAccessToken(data.accessToken);
     setUser(data.user);

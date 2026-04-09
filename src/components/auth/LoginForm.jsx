@@ -1,6 +1,10 @@
 import { useState } from "react";
 
-export default function LoginForm({ onSubmit, loadingText = "Yükleniyor..." }) {
+export default function LoginForm({
+  onSubmit,
+  loadingText = "Yükleniyor...",
+  showForgotPassword = true,
+}) {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [loading, setLoading] = useState(false);
@@ -54,11 +58,13 @@ export default function LoginForm({ onSubmit, loadingText = "Yükleniyor..." }) 
         {loading ? loadingText : "Giriş yap"}
       </button>
 
-      <div className="text-right text-sm">
-        <button type="button" className="text-secondary hover:text-accent">
-          Şifreni mi unuttun?
-        </button>
-      </div>
+      {showForgotPassword ? (
+        <div className="text-right text-sm">
+          <button type="button" className="text-secondary hover:text-accent">
+            Şifreni mi unuttun?
+          </button>
+        </div>
+      ) : null}
     </form>
   );
 }

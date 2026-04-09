@@ -56,6 +56,15 @@ function getRefreshCookieSameSite() {
   return sameSiteDefault;
 }
 
+function parseBooleanLike(value, fallback = false) {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value === "boolean") return value;
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "1", "yes", "on"].includes(normalized)) return true;
+  if (["false", "0", "no", "off"].includes(normalized)) return false;
+  return fallback;
+}
+
 function signAccessToken(payload) {
   return jwt.sign(payload, getAccessTokenSecret(), { expiresIn: ACCESS_EXPIRES });
 }
@@ -135,7 +144,14 @@ async function issueSessionTokens(user) {
 
 /** POST /api/auth/register */
 export const register = async (req, res) => {
-  const { firstName, lastName, email, phone, password } = req.body;
+  const {
+    firstName,
+    lastName,
+    email,
+    phone,
+    password,
+    maintenanceAnnouncementsEnabled,
+  } = req.body;
   if (!firstName || !lastName || !email || !password)
     return res.status(400).json({ message: "Zorunlu alanlar eksik" });
 
@@ -153,6 +169,10 @@ export const register = async (req, res) => {
     lastName,
     email,
     phone,
+    maintenanceAnnouncementsEnabled:
+      maintenanceAnnouncementsEnabled !== undefined
+        ? parseBooleanLike(maintenanceAnnouncementsEnabled, true)
+        : true,
     passwordHash,
     role: "user",
   });

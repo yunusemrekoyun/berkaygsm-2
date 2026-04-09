@@ -22,6 +22,8 @@ export function shapeUser(user) {
     fullName,
     email: user.email || "",
     phone: user.phone || "",
+    maintenanceAnnouncementsEnabled:
+      user.maintenanceAnnouncementsEnabled !== false,
     role: user.role || "user",
     createdAt: user.createdAt || null,
     updatedAt: user.updatedAt || null,

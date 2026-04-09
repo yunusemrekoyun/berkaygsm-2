@@ -108,6 +108,11 @@ import {
   updateShippingConfig,
 } from "./controllers/shippingController.js";
 import {
+  getSiteModeManage,
+  updateSiteModeManage,
+  unsubscribeMaintenanceAnnouncements,
+} from "./controllers/siteModeController.js";
+import {
   listStocks,
   listByOwner,
   upsertStock,
@@ -257,6 +262,7 @@ export const routes = [
   route("POST", ["auth", "refresh"], [refreshLimiter, refresh]),
   route("POST", ["auth", "logout"], [refreshLimiter, logout]),
   route("GET", ["auth", "me"], [requireAuth, me]),
+  route("GET", ["maintenance-announcements", "unsubscribe"], [unsubscribeMaintenanceAnnouncements]),
 
   // products
   route("GET", ["products"], [listProducts]),
@@ -495,6 +501,8 @@ export const routes = [
   // shipping
   route("GET", ["shipping"], [getShippingConfig]),
   route("PUT", ["shipping"], [requireAuth, requireRole("admin"), updateShippingConfig]),
+  route("GET", ["site-mode", "manage"], [requireAuth, requireRole("admin"), getSiteModeManage]),
+  route("PUT", ["site-mode", "manage"], [requireAuth, requireRole("admin"), updateSiteModeManage]),
 
   // discounts
   route("GET", ["discounts"], [requireAuth, requireRole("admin"), listDiscounts]),

@@ -39,6 +39,15 @@ function shapeAddress(doc) {
   };
 }
 
+function parseBooleanLike(value, fallback = false) {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value === "boolean") return value;
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "1", "yes", "on"].includes(normalized)) return true;
+  if (["false", "0", "no", "off"].includes(normalized)) return false;
+  return fallback;
+}
+
 function shapeAvatar(avatar) {
   if (!avatar) return null;
   return {
@@ -148,7 +157,15 @@ export async function getMyDetails(req, res) {
 export async function updateMyDetails(req, res) {
   try {
     const userId = req.userId;
-    const { firstName, lastName, phone, email, gender, birthDate } = req.body;
+    const {
+      firstName,
+      lastName,
+      phone,
+      email,
+      gender,
+      birthDate,
+      maintenanceAnnouncementsEnabled,
+    } = req.body;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "Kullanıcı bulunamadı" });
@@ -175,6 +192,12 @@ export async function updateMyDetails(req, res) {
       user.lastName = v;
     }
     if (phone !== undefined) user.phone = String(phone).trim();
+    if (maintenanceAnnouncementsEnabled !== undefined) {
+      user.maintenanceAnnouncementsEnabled = parseBooleanLike(
+        maintenanceAnnouncementsEnabled,
+        true
+      );
+    }
 
     await user.save();
 
