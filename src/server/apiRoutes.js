@@ -219,6 +219,8 @@ import {
   mediaUploadLimiter,
   mediaSignatureLimiter,
   contactMessageLimiter,
+  webhookLimiter,
+  callbackLimiter,
 } from "./rateLimiters.js";
 
 const healthHandler = (req, res) => res.json({ ok: true });
@@ -422,9 +424,10 @@ export const routes = [
     ["payments", "iyzico", "initialize"],
     [strictLimiter, optionalAuth, validateBody(iyzicoInitializeSchema), initializeIyzicoPayment]
   ),
-  route("GET", ["payments", "iyzico", "callback"], [handleIyzicoCallback]),
-  route("POST", ["payments", "iyzico", "callback"], [handleIyzicoCallback]),
-  route("POST", ["payments", "iyzico", "webhook"], [handleIyzicoWebhook]),
+  route("GET", ["payments", "iyzico", "callback"], [callbackLimiter, handleIyzicoCallback]),
+  route("POST", ["payments", "iyzico", "callback"], [callbackLimiter, handleIyzicoCallback]),
+  // webhookLimiter: iyzico sunucu IP başına 60 req/dk — imza doğrulaması handler içinde ilk adım
+  route("POST", ["payments", "iyzico", "webhook"], [webhookLimiter, handleIyzicoWebhook]),
 
   // orders
   route(

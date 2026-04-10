@@ -260,6 +260,54 @@ function shapeCustomerOrder(doc) {
   return shaped;
 }
 
+// --- Public (kimlik doğrulamasız) response için maskeleme yardımcıları ---
+
+function maskEmail(email) {
+  const raw = String(email || "").trim();
+  if (!raw) return "";
+  const atIdx = raw.indexOf("@");
+  if (atIdx < 0) return `${raw.slice(0, 2)}***`;
+  const local = raw.slice(0, atIdx);
+  const domain = raw.slice(atIdx);
+  const visible = local.slice(0, Math.min(2, local.length));
+  return `${visible}***${domain}`;
+}
+
+function maskPhone(phone) {
+  const raw = String(phone || "").trim();
+  if (!raw) return "";
+  if (raw.length <= 5) return "***";
+  return `${raw.slice(0, 3)}****${raw.slice(-2)}`;
+}
+
+/**
+ * Kimlik doğrulaması olmadan halka açık sipariş takibinde kullanılan şekillendirici.
+ * Tam adres satırı, telefon ve email maskeli döner; admin ve kullanıcı görünümleri etkilenmez.
+ */
+function shapePublicOrder(doc) {
+  const shaped = shapeCustomerOrder(doc);
+  if (!shaped) return shaped;
+
+  if (shaped.customer) {
+    shaped.customer = {
+      ...shaped.customer,
+      email: maskEmail(shaped.customer.email),
+      phone: maskPhone(shaped.customer.phone),
+    };
+  }
+
+  if (shaped.address) {
+    shaped.address = {
+      ...shaped.address,
+      phone: maskPhone(shaped.address.phone),
+      // Tam adres satırı public response'da gizlenir; şehir/ilçe yeterlidir.
+      addressLine: shaped.address.addressLine ? "***" : "",
+    };
+  }
+
+  return shaped;
+}
+
 async function resolveAddressSnapshot({
   userId,
   addressId,
@@ -1924,12 +1972,39 @@ export async function getOrder(req, res) {
   }
 }
 
-/** GET /api/orders/track/:idOrNumber */
+/** GET /api/orders/track/:idOrNumber?email=<customer-email>
+ *
+ * Public sipariş takibi. Sipariş numarası veya ID yanı sıra müşteri emaili
+ * zorunludur; eşleşmezse 404 döner (sipariş varlığı ifşa edilmez).
+ * Response `shapePublicOrder` ile maskelenmiş gelir.
+ */
 export async function trackOrder(req, res) {
   try {
+    const emailParam = String(req.query.email || "").trim().toLowerCase();
+    if (!emailParam) {
+      return res
+        .status(400)
+        .json({ message: "Sipariş takibi için e-posta adresi gerekli" });
+    }
+
     const order = await findOrderByIdOrNumber(req.params.idOrNumber);
     if (!order) return res.status(404).json({ message: "Sipariş bulunamadı" });
-    res.json({ order: shapeCustomerOrder(order) });
+
+    // Siparişin kayıtlı email adresiyle karşılaştır (customer snapshot → payer).
+    const orderEmail = String(
+      order.customer?.email ||
+        order.payment?.payer?.email ||
+        ""
+    )
+      .trim()
+      .toLowerCase();
+
+    if (!orderEmail || emailParam !== orderEmail) {
+      // Email eşleşmediğinde sipariş varlığını gizlemek için 404 kullanılır.
+      return res.status(404).json({ message: "Sipariş bulunamadı" });
+    }
+
+    res.json({ order: shapePublicOrder(order) });
   } catch (err) {
     res.status(500).json({ message: err.message || "Siparişler alınamadı" });
   }

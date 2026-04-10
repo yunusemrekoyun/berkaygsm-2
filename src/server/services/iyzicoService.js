@@ -207,6 +207,7 @@ export function buildIyzicoCallbackRedirectUrl({
   orderId,
   status,
   message,
+  customerEmail = null,
 }) {
   const config = getIyzicoConfig();
   const resolvedBaseUrl = String(baseUrl || config.publicBaseUrl || "").trim();
@@ -217,6 +218,9 @@ export function buildIyzicoCallbackRedirectUrl({
   if (orderId) url.searchParams.set("order", String(orderId));
   if (status) url.searchParams.set("status", String(status));
   if (message) url.searchParams.set("message", String(message));
+  // Yalnızca başarılı ödeme redirect'inde müşteri emaili eklenir; trackOrder
+  // endpoint'i bu değeri sipariş sahipliğini doğrulamak için kullanır.
+  if (customerEmail) url.searchParams.set("email", String(customerEmail));
   return resolvedBaseUrl
     ? `${url.origin}${url.pathname}${url.search}`
     : `/checkout/success${url.search}`;

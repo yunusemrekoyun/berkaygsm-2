@@ -146,3 +146,29 @@ export const contactMessageLimiter = rateLimit({
   },
   persistent: true,
 });
+
+// Webhook: iyzico sunucu IP'leri için toleranslı ama spam'i kesen limiter.
+// Persistent değil (memory) — iyzico sunucuları az sayıda bilinen IP'den gelir.
+const webhookWindow = Number(
+  process.env.RATE_LIMIT_WEBHOOK_WINDOW_MS || 60 * 1000
+);
+const webhookMax = Number(process.env.RATE_LIMIT_WEBHOOK_MAX || 60);
+
+export const webhookLimiter = rateLimit({
+  windowMs: webhookWindow,
+  max: webhookMax,
+  message: { message: "İstek limiti aşıldı" },
+});
+
+// Callback: kullanıcı ödeme sonrası geri döndüğünde IP başına 30 req/dk izin ver.
+// Normal akışta bir kullanıcı 1-2 kez callback'e düşer; bu limit bot spamini keser.
+const callbackWindow = Number(
+  process.env.RATE_LIMIT_CALLBACK_WINDOW_MS || 60 * 1000
+);
+const callbackMax = Number(process.env.RATE_LIMIT_CALLBACK_MAX || 30);
+
+export const callbackLimiter = rateLimit({
+  windowMs: callbackWindow,
+  max: callbackMax,
+  message: { message: "İstek limiti aşıldı" },
+});

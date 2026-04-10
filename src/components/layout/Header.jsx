@@ -41,7 +41,9 @@ export default function Header({
   const [cartNavPending, setCartNavPending] = useState(false);
   const [trackingPromptOpen, setTrackingPromptOpen] = useState(false);
   const [trackingCode, setTrackingCode] = useState("");
+  const [trackingEmail, setTrackingEmail] = useState("");
   const [trackingLookupCode, setTrackingLookupCode] = useState("");
+  const [trackingLookupEmail, setTrackingLookupEmail] = useState("");
   const [trackingError, setTrackingError] = useState("");
   const hasInitialCategoryTree = Array.isArray(initialCategoryTree);
   const normalizedInitialCategoryTree = useMemo(
@@ -182,6 +184,8 @@ export default function Header({
   };
 
   const handleOpenTracking = () => {
+    setTrackingCode("");
+    setTrackingEmail("");
     setTrackingError("");
     setTrackingPromptOpen(true);
   };
@@ -189,13 +193,19 @@ export default function Header({
   const handleSubmitTracking = (event) => {
     event.preventDefault();
     const normalized = String(trackingCode || "").trim();
+    const normalizedEmail = String(trackingEmail || "").trim().toLowerCase();
     if (!normalized) {
       setTrackingError("Sipariş kodunu girin.");
+      return;
+    }
+    if (!normalizedEmail) {
+      setTrackingError("E-posta adresinizi girin.");
       return;
     }
     setTrackingError("");
     setTrackingPromptOpen(false);
     setTrackingLookupCode(normalized);
+    setTrackingLookupEmail(normalizedEmail);
   };
 
   const handleDesktopNavPointerDown = (event) => {
@@ -590,6 +600,7 @@ export default function Header({
             className="absolute inset-0 bg-slate-950/45 backdrop-blur-[1px]"
             onClick={() => {
               setTrackingPromptOpen(false);
+              setTrackingEmail("");
               setTrackingError("");
             }}
             aria-hidden
@@ -604,14 +615,15 @@ export default function Header({
                   Sipariş kodunuzu girin
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-secondary">
-                  Sipariş numaranızı girerek kargo ve durum detaylarını
-                  görüntüleyebilirsiniz.
+                  Sipariş numaranızı ve sipariş e-postanızı girerek durum
+                  detaylarını görüntüleyebilirsiniz.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => {
                   setTrackingPromptOpen(false);
+                  setTrackingEmail("");
                   setTrackingError("");
                 }}
                 className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/70 bg-white text-secondary transition hover:border-accent/35 hover:text-accent"
@@ -633,7 +645,23 @@ export default function Header({
                     setTrackingCode(event.target.value);
                     if (trackingError) setTrackingError("");
                   }}
-                  placeholder="Örn: CEPLIFE-123456"
+                  placeholder="Örn: AYY-20260410-XXXX"
+                  className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm text-primary outline-none transition placeholder:text-secondary/60 focus:border-accent/60 focus:ring-2 focus:ring-accent/15"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-medium text-primary">
+                  Sipariş E-postası
+                </span>
+                <input
+                  type="email"
+                  value={trackingEmail}
+                  onChange={(event) => {
+                    setTrackingEmail(event.target.value);
+                    if (trackingError) setTrackingError("");
+                  }}
+                  placeholder="siparis@email.com"
                   className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm text-primary outline-none transition placeholder:text-secondary/60 focus:border-accent/60 focus:ring-2 focus:ring-accent/15"
                 />
               </label>
@@ -647,6 +675,7 @@ export default function Header({
                   type="button"
                   onClick={() => {
                     setTrackingPromptOpen(false);
+                    setTrackingEmail("");
                     setTrackingError("");
                   }}
                   className="rounded-full border border-border px-4 py-2.5 text-sm font-medium text-primary transition hover:bg-surface-hover"
@@ -668,8 +697,12 @@ export default function Header({
       {trackingLookupCode ? (
         <CustomerOrderDetailsModal
           orderId={trackingLookupCode}
-          loadOrder={orderApi.track}
-          onClose={() => setTrackingLookupCode("")}
+          // email, trackOrder endpoint'inin sipariş sahipliği doğrulaması için gerekli
+          loadOrder={(id) => orderApi.track(id, trackingLookupEmail || null)}
+          onClose={() => {
+            setTrackingLookupCode("");
+            setTrackingLookupEmail("");
+          }}
         />
       ) : null}
     </>

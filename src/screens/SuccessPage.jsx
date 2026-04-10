@@ -21,6 +21,9 @@ export default function SuccessPage() {
     .trim()
     .toLowerCase();
   const messageParam = String(searchParams.get("message") || "").trim();
+  // Başarılı ödeme callback'i bu email'i redirect URL'ye ekler; misafir trackOrder
+  // doğrulaması için kullanılır. Kayıtlı kullanıcılar JWT ile eriştiğinden etkilenmez.
+  const emailParam = String(searchParams.get("email") || "").trim();
   const [order, setOrder] = useState(null);
   const { clearCart, clearCoupon } = useCart() || {};
   const hasSession = hasAuthSession();
@@ -47,7 +50,7 @@ export default function SuccessPage() {
       try {
         const o = hasToken
           ? await orderApi.get(orderId)
-          : await orderApi.track(orderId);
+          : await orderApi.track(orderId, emailParam || null);
         if (mounted) setOrder(o);
       } catch {
         // ignore

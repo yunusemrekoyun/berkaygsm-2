@@ -343,7 +343,17 @@ function buildSessionOwnerKey({ userId, customerSnapshot }) {
   const uid = String(userId || "").trim();
   if (uid) return `user:${uid}`;
   const email = normalizeEmail(customerSnapshot?.email);
-  if (email) return `guest:${email}`;
+  if (email) {
+    // Email plaintext yerine SHA-256 hash'i saklanır; activeFingerprintKey DB'de
+    // indeksli olduğundan email'in açık görünmemesi gerekir. Hash deterministik
+    // olduğundan eşleşme mantığı değişmez. Mevcut initialized session'lar
+    // (eski format: guest:<email>:...) session TTL dolduğunda otomatik silinir.
+    const emailHash = crypto
+      .createHash("sha256")
+      .update(email)
+      .digest("hex");
+    return `guest:${emailHash}`;
+  }
   return null;
 }
 
@@ -1350,6 +1360,10 @@ export async function handleIyzicoCallback(req, res) {
           baseUrl: returnOrigin,
           orderId: finalized.orderId,
           status: "success",
+          // Misafir müşteri için email redirect URL'ye eklenir; success page bu
+          // değeri trackOrder doğrulamasında kullanır. Kayıtlı kullanıcılar JWT
+          // ile eriştiğinden bu alan onlar için gereksiz (ama zararsız).
+          customerEmail: paymentSession.customer?.email || null,
         })
       );
     }
@@ -1428,8 +1442,11 @@ export async function handleIyzicoWebhook(req, res) {
     if (
       paymentSession.order ||
       paymentSession.status === "failed" ||
+      paymentSession.status === "expired" ||
       paymentSession.status === "manual_review"
     ) {
+      // expired session'lar da tekrar işlenmeden çıkış yapar; önceden manuel_review'a
+      // düşüyor ve gereksiz finalize süreci çalıştırıyordu.
       return res.status(200).json({ ok: true });
     }
 

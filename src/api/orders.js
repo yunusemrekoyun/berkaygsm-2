@@ -9,8 +9,9 @@ export const orderApi = {
     const data = await http(`/orders/${id}`, { auth: true });
     return data.order || null;
   },
-  async track(idOrNumber) {
-    const data = await http(`/orders/track/${encodeURIComponent(idOrNumber)}`);
+  async track(idOrNumber, email = null) {
+    const qs = email ? `?email=${encodeURIComponent(email)}` : "";
+    const data = await http(`/orders/track/${encodeURIComponent(idOrNumber)}${qs}`);
     return data.order || null;
   },
   async adminList(params = {}) {
