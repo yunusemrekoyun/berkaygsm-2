@@ -249,6 +249,16 @@ export default function AdminOrdersPage() {
                     order.user && typeof order.user === "object"
                       ? order.user
                       : null;
+                  const guestCustomer = order.customer || null;
+                  const customerName =
+                    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+                    guestCustomer?.fullName ||
+                    "—";
+                  const customerEmail =
+                    user?.email ||
+                    guestCustomer?.email ||
+                    order?.payment?.payer?.email ||
+                    "—";
                   const created = order.createdAt
                     ? new Date(order.createdAt).toLocaleString()
                     : "-";
@@ -269,25 +279,15 @@ export default function AdminOrdersPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3 align-top" data-label="Müşteri">
-                        {user ? (
-                          <div className="flex items-center gap-2 text-sm text-[var(--color-text-admin)]">
-                            <User2 className="h-4 w-4 text-[var(--color-text-admin-muted)]" />
-                            <div>
-                              <div className="font-medium">
-                                {[user.firstName, user.lastName]
-                                  .filter(Boolean)
-                                  .join(" ") || "—"}
-                              </div>
-                              <div className="text-xs text-[var(--color-text-admin-muted)]">
-                                {user.email || "—"}
-                              </div>
+                        <div className="flex items-center gap-2 text-sm text-[var(--color-text-admin)]">
+                          <User2 className="h-4 w-4 text-[var(--color-text-admin-muted)]" />
+                          <div>
+                            <div className="font-medium">{customerName}</div>
+                            <div className="text-xs text-[var(--color-text-admin-muted)]">
+                              {customerEmail}
                             </div>
                           </div>
-                        ) : (
-                          <span className="text-xs text-[var(--color-text-admin-muted)]">
-                            {order.user || "—"}
-                          </span>
-                        )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 align-top" data-label="Toplam">
                         <div className="flex flex-col text-[var(--color-text-admin)]">

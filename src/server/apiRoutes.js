@@ -86,6 +86,7 @@ import {
   createOrder,
   myOrders,
   getOrder,
+  trackOrder,
   listOrders,
   adminGetOrder,
   updateOrderStatus,
@@ -195,7 +196,7 @@ import {
   markAdminNotificationsRead,
 } from "./controllers/adminNotificationController.js";
 
-import { requireAuth } from "./middleware/auth.js";
+import { optionalAuth, requireAuth } from "./middleware/auth.js";
 import { requireMediaWritesEnabled } from "./middleware/mediaFreeze.js";
 import { requirePrintAgent } from "./middleware/printAgent.js";
 import { requireRole } from "./middleware/roles.js";
@@ -419,7 +420,7 @@ export const routes = [
   route(
     "POST",
     ["payments", "iyzico", "initialize"],
-    [requireAuth, validateBody(iyzicoInitializeSchema), initializeIyzicoPayment]
+    [strictLimiter, optionalAuth, validateBody(iyzicoInitializeSchema), initializeIyzicoPayment]
   ),
   route("GET", ["payments", "iyzico", "callback"], [handleIyzicoCallback]),
   route("POST", ["payments", "iyzico", "callback"], [handleIyzicoCallback]),
@@ -432,6 +433,7 @@ export const routes = [
     [requireAuth, validateBody(orderCreateSchema), createOrder]
   ),
   route("GET", ["orders", "mine"], [requireAuth, myOrders]),
+  route("GET", ["orders", "track", ":idOrNumber"], [strictLimiter, trackOrder]),
   route("GET", ["orders", "admin"], [requireAuth, requireRole("admin"), listOrders]),
   route("GET", ["orders", "admin", ":id"], [requireAuth, requireRole("admin"), adminGetOrder]),
   route(

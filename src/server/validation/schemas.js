@@ -166,6 +166,18 @@ export const iyzicoInitializeSchema = orderCreateBaseSchema
         .trim()
         .regex(/^\d{11}$/, "TC kimlik numarası 11 haneli olmalı")
     ),
+    guestCustomer: z
+      .object({
+        fullName: optionalTrimmed(z.string().min(2).max(120)),
+        email: optionalTrimmed(z.string().trim().email().max(160)),
+        phone: optionalTrimmed(
+          z
+            .string()
+            .trim()
+            .regex(/^[0-9+()\-\s]{6,32}$/, "Telefon numarası geçersiz")
+        ),
+      })
+      .optional(),
   })
   .refine(
     (data) => data.addressId || data.addressSnapshot,

@@ -125,6 +125,16 @@ const AddressSnapshotSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const CustomerSnapshotSchema = new mongoose.Schema(
+  {
+    fullName: { type: String, default: "" },
+    email: { type: String, default: "" },
+    phone: { type: String, default: "" },
+    isGuest: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
 const PayerSchema = new mongoose.Schema(
   {
     email: { type: String, default: null },
@@ -191,8 +201,10 @@ const OrderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       index: true,
-      required: true,
+      required: false,
+      default: null,
     },
+    customer: { type: CustomerSnapshotSchema, default: () => ({}) },
 
     items: { type: [OrderItemSchema], default: [] },
 

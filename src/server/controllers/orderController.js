@@ -105,6 +105,20 @@ function shapeOrder(doc, printJob = null) {
   const userId = populatedUser
     ? populatedUser._id.toString()
     : rawUser?.toString?.() || rawUser;
+  const customerSnapshot =
+    doc.customer && typeof doc.customer === "object" ? doc.customer : null;
+  const customerFullName =
+    String(customerSnapshot?.fullName || "").trim() ||
+    [populatedUser?.firstName, populatedUser?.lastName].filter(Boolean).join(" ") ||
+    String(doc.address?.fullName || "").trim();
+  const customerEmail =
+    String(customerSnapshot?.email || "").trim() ||
+    String(populatedUser?.email || "").trim() ||
+    String(doc.payment?.payer?.email || "").trim();
+  const customerPhone =
+    String(customerSnapshot?.phone || "").trim() ||
+    String(doc.address?.phone || "").trim() ||
+    String(populatedUser?.phone || "").trim();
   return {
     id: doc._id.toString(),
     orderNumber: doc.orderNumber || doc._id.toString(),
@@ -117,6 +131,12 @@ function shapeOrder(doc, printJob = null) {
           phone: populatedUser.phone || "",
         }
       : userId,
+    customer: {
+      fullName: customerFullName,
+      email: customerEmail,
+      phone: customerPhone,
+      isGuest: customerSnapshot?.isGuest === true || !userId,
+    },
     items: doc.items.map((i) => ({
       kind: i.kind,
       ref: i.ref?.toString?.() || i.ref,
@@ -1556,7 +1576,17 @@ async function finalizeOrder(prepared, options = {}) {
 
   const orderPayload = {
     orderNumber,
-    user: userId,
+    user: userId || null,
+    customer: {
+      fullName:
+        String(options.customerSnapshot?.fullName || "").trim() ||
+        String(addressSnap?.fullName || "").trim(),
+      email: String(options.customerSnapshot?.email || "").trim(),
+      phone:
+        String(options.customerSnapshot?.phone || "").trim() ||
+        String(addressSnap?.phone || "").trim(),
+      isGuest: options.customerSnapshot?.isGuest === true || !userId,
+    },
     items: orderItems,
     address: addressSnap,
     note: orderNote,
@@ -1889,6 +1919,17 @@ export async function getOrder(req, res) {
     }
     if (!o) return res.status(404).json({ message: "Sipariş bulunamadı" });
     res.json({ order: shapeCustomerOrder(o) });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Siparişler alınamadı" });
+  }
+}
+
+/** GET /api/orders/track/:idOrNumber */
+export async function trackOrder(req, res) {
+  try {
+    const order = await findOrderByIdOrNumber(req.params.idOrNumber);
+    if (!order) return res.status(404).json({ message: "Sipariş bulunamadı" });
+    res.json({ order: shapeCustomerOrder(order) });
   } catch (err) {
     res.status(500).json({ message: err.message || "Siparişler alınamadı" });
   }

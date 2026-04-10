@@ -55,6 +55,10 @@ function sanitizeDigits(value) {
   return String(value || "").replace(/\D+/g, "");
 }
 
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 function normalizePhone(value) {
   const raw = String(value || "").trim();
   if (!raw) return "";
@@ -244,6 +248,16 @@ function normalizeAddressSnapshot(addressSnap = null) {
   };
 }
 
+function normalizeCustomerSnapshot(customerSnapshot = null) {
+  if (!customerSnapshot || typeof customerSnapshot !== "object") return null;
+  return {
+    fullName: String(customerSnapshot.fullName || "").trim(),
+    email: normalizeEmail(customerSnapshot.email),
+    phone: String(customerSnapshot.phone || "").trim(),
+    isGuest: customerSnapshot.isGuest === true,
+  };
+}
+
 function normalizePricingSnapshot(pricing = null) {
   if (!pricing || typeof pricing !== "object") return null;
   return {
@@ -257,6 +271,7 @@ function normalizePricingSnapshot(pricing = null) {
 
 function buildPaymentSessionFingerprint({
   userId,
+  customerSnapshot,
   addressSnapshot,
   items,
   couponCode,
@@ -267,6 +282,7 @@ function buildPaymentSessionFingerprint({
 }) {
   const payload = {
     userId: String(userId || "").trim(),
+    customerSnapshot: normalizeCustomerSnapshot(customerSnapshot),
     addressSnapshot: normalizeAddressSnapshot(addressSnapshot),
     items: normalizeFingerprintItems(items),
     couponCode: normalizeCode(couponCode || ""),
@@ -323,11 +339,19 @@ function assertRetrieveResponseCorrelation(sessionDoc, retrieveResult) {
   }
 }
 
-function buildActiveFingerprintKey(userId, fingerprint) {
+function buildSessionOwnerKey({ userId, customerSnapshot }) {
   const uid = String(userId || "").trim();
+  if (uid) return `user:${uid}`;
+  const email = normalizeEmail(customerSnapshot?.email);
+  if (email) return `guest:${email}`;
+  return null;
+}
+
+function buildActiveFingerprintKey(ownerKey, fingerprint) {
+  const safeOwnerKey = String(ownerKey || "").trim();
   const fp = String(fingerprint || "").trim();
-  if (!uid || !fp) return null;
-  return `${uid}:${fp}`;
+  if (!safeOwnerKey || !fp) return null;
+  return `${safeOwnerKey}:${fp}`;
 }
 
 function comparePricingSnapshots(left, right) {
@@ -571,32 +595,78 @@ function buildSessionItems(orderItems = []) {
   }));
 }
 
-async function loadBuyer(userId) {
-  const user = await User.findById(userId).select(
-    "firstName lastName fullName email phone createdAt updatedAt"
-  );
-  if (!user) fail(404, "Kullanıcı bulunamadı");
-  return user;
-}
+async function loadBuyer({ userId, customerSnapshot = null }) {
+  const normalizedCustomer = normalizeCustomerSnapshot(customerSnapshot);
 
-function buildBuyerPayload({ user, addressSnap, identityNumber, ip }) {
-  const fallbackName = splitFullName(addressSnap?.fullName || "");
-  const name = truncateText(user.firstName || fallbackName.name || "Müşteri", 50);
-  const surname = truncateText(user.lastName || fallbackName.surname || "-", 50);
-  const phone = normalizePhone(addressSnap?.phone || user.phone || "");
-  if (!phone) {
-    fail(400, "Iyzico için teslimat adresinde geçerli telefon numarası gerekli");
+  if (userId) {
+    const user = await User.findById(userId).select(
+      "firstName lastName fullName email phone createdAt updatedAt"
+    );
+    if (!user) fail(404, "Kullanıcı bulunamadı");
+    return {
+      user,
+      customer: {
+        fullName:
+          `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+          normalizedCustomer?.fullName ||
+          "",
+        email: normalizeEmail(user.email),
+        phone: String(user.phone || normalizedCustomer?.phone || "").trim(),
+        isGuest: false,
+      },
+    };
+  }
+
+  if (
+    !normalizedCustomer?.fullName ||
+    !normalizedCustomer?.email ||
+    !normalizedCustomer?.phone
+  ) {
+    fail(400, "Misafir ödeme için ad soyad, e-posta ve telefon gerekli");
   }
 
   return {
-    id: String(user._id),
+    user: null,
+    customer: {
+      ...normalizedCustomer,
+      isGuest: true,
+    },
+  };
+}
+
+function buildBuyerPayload({ user, customer, addressSnap, identityNumber, ip }) {
+  const fallbackName = splitFullName(addressSnap?.fullName || "");
+  const customerName = splitFullName(
+    customer?.fullName || addressSnap?.fullName || ""
+  );
+  const name = truncateText(
+    user?.firstName || customerName.name || fallbackName.name || "Müşteri",
+    50
+  );
+  const surname = truncateText(
+    user?.lastName || customerName.surname || fallbackName.surname || "-",
+    50
+  );
+  const phone = normalizePhone(
+    addressSnap?.phone || customer?.phone || user?.phone || ""
+  );
+  if (!phone) {
+    fail(400, "Iyzico için teslimat adresinde geçerli telefon numarası gerekli");
+  }
+  const email = normalizeEmail(user?.email || customer?.email || "");
+  if (!email) {
+    fail(400, "Iyzico için geçerli bir e-posta adresi gerekli");
+  }
+
+  return {
+    id: user?._id ? String(user._id) : `guest:${email}`,
     name,
     surname,
     identityNumber: normalizeIdentityNumber(identityNumber),
-    email: String(user.email || "").trim().toLowerCase(),
+    email,
     gsmNumber: phone,
-    registrationDate: formatIyzicoDate(user.createdAt),
-    lastLoginDate: formatIyzicoDate(user.updatedAt || new Date()),
+    registrationDate: formatIyzicoDate(user?.createdAt || new Date()),
+    lastLoginDate: formatIyzicoDate(user?.updatedAt || new Date()),
     registrationAddress: truncateText(addressSnap?.addressLine || "-", 400),
     city: truncateText(addressSnap?.city || "-", 50),
     country: truncateText(mapCountry(addressSnap?.country || "Turkey"), 50),
@@ -785,7 +855,8 @@ async function finalizePaymentSession(sessionDoc, retrieveResult, source) {
       }
 
       const prepared = await buildOrderPreparation({
-        userId: currentSession.user?.toString?.() || currentSession.user,
+        userId:
+          currentSession.user?.toString?.() || currentSession.user || null,
         addressSnapshot: currentSession.addressSnapshot,
         items: currentSession.items,
         couponCode: currentSession.couponCode || null,
@@ -844,6 +915,7 @@ async function finalizePaymentSession(sessionDoc, retrieveResult, source) {
       const order = await finalizeOrder(prepared.details, {
         session: mongoSession,
         note: currentSession.note || "",
+        customerSnapshot: currentSession.customer || null,
         applyStockDeductions: false,
         stockUsageEntries: reservedStockEntries,
         statusOverride: fraudStatus === 1 ? "paid" : "pending",
@@ -859,8 +931,11 @@ async function finalizePaymentSession(sessionDoc, retrieveResult, source) {
           ),
           amount: retrievedPaidPrice,
           payer: {
-            email: null,
-            name: currentSession.addressSnapshot?.fullName || null,
+            email: currentSession.customer?.email || null,
+            name:
+              currentSession.customer?.fullName ||
+              currentSession.addressSnapshot?.fullName ||
+              null,
             providerPayerId: null,
             countryCode: mapCountry(
               currentSession.addressSnapshot?.country || "Turkey"
@@ -932,8 +1007,29 @@ export async function initializeIyzicoPayment(req, res) {
     const identityNumber = req.body?.identityNumber || "";
     const couponCode = normalizeCode(req.body?.couponCode || "");
     const note = String(req.body?.note || "").trim();
+    const guestCustomer = normalizeCustomerSnapshot(
+      req.body?.guestCustomer || null
+    );
+    const isGuestCheckout = !req.userId;
+
+    if (isGuestCheckout) {
+      if (req.body?.addressId) {
+        fail(400, "Misafir ödeme için kayıtlı adres kullanılamaz");
+      }
+      if (
+        !guestCustomer?.fullName ||
+        !guestCustomer?.email ||
+        !guestCustomer?.phone
+      ) {
+        fail(400, "Misafir ödeme için ad soyad, e-posta ve telefon gerekli");
+      }
+      if (couponCode) {
+        fail(401, "Kupon kullanmak için giriş yapmalısınız");
+      }
+    }
+
     const prepared = await buildOrderPreparation({
-      userId: req.userId,
+      userId: req.userId || null,
       addressId: req.body?.addressId,
       addressSnapshot: req.body?.addressSnapshot || null,
       items: req.body?.items || [],
@@ -943,7 +1039,8 @@ export async function initializeIyzicoPayment(req, res) {
     const sessionItems = buildSessionItems(prepared.details.orderItems);
     const returnOrigin = resolveReturnOrigin(req);
     const fingerprint = buildPaymentSessionFingerprint({
-      userId: req.userId,
+      userId: req.userId || null,
+      customerSnapshot: guestCustomer,
       addressSnapshot: prepared.details.addressSnap,
       items: sessionItems,
       couponCode,
@@ -952,14 +1049,20 @@ export async function initializeIyzicoPayment(req, res) {
       returnOrigin,
       identityNumber,
     });
-    const activeFingerprintKey = buildActiveFingerprintKey(req.userId, fingerprint);
+    const ownerKey = buildSessionOwnerKey({
+      userId: req.userId || null,
+      customerSnapshot: guestCustomer,
+    });
+    const activeFingerprintKey = buildActiveFingerprintKey(
+      ownerKey,
+      fingerprint
+    );
     const now = new Date();
 
     await expireInitializedSessions(now, { limit: 50 });
 
     const existingSession = await PaymentSession.findOne({
-      user: req.userId,
-      fingerprint,
+      activeFingerprintKey,
       status: "initialized",
       order: null,
       expiresAt: { $gt: now },
@@ -989,11 +1092,15 @@ export async function initializeIyzicoPayment(req, res) {
       });
     }
 
-    const user = await loadBuyer(req.userId);
-    const conversationId = buildConversationId(req.userId);
+    const buyerContext = await loadBuyer({
+      userId: req.userId || null,
+      customerSnapshot: guestCustomer,
+    });
+    const conversationId = buildConversationId(ownerKey);
     const basketId = conversationId;
     const buyer = buildBuyerPayload({
-      user,
+      user: buyerContext.user,
+      customer: buyerContext.customer,
       addressSnap: prepared.details.addressSnap,
       identityNumber,
       ip: req.ip,
@@ -1036,7 +1143,8 @@ export async function initializeIyzicoPayment(req, res) {
               provider: "iyzico",
               mode: config.sandbox ? "sandbox" : "live",
               status: "initialized",
-              user: req.userId,
+              user: req.userId || null,
+              customer: buyerContext.customer,
               conversationId,
               basketId,
               token: initializeResult.token,

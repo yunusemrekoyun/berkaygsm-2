@@ -9,6 +9,10 @@ export const orderApi = {
     const data = await http(`/orders/${id}`, { auth: true });
     return data.order || null;
   },
+  async track(idOrNumber) {
+    const data = await http(`/orders/track/${encodeURIComponent(idOrNumber)}`);
+    return data.order || null;
+  },
   async adminList(params = {}) {
     const qs = toQueryString(params);
     return http(`/orders/admin${qs}`, { auth: true });

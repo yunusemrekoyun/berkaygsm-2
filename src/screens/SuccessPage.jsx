@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import BreadCrumb from "../components/shop/BreadCrumb";
 import { orderApi } from "../api/orders";
 import { useCart } from "../hooks/useCart.jsx";
@@ -9,9 +9,11 @@ import {
   getAccessToken,
   getUser,
   refreshAccessToken,
+  hasAuthSession,
 } from "../api/client";
 
 export default function SuccessPage() {
+  const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const orderId = searchParams.get("order");
@@ -21,6 +23,16 @@ export default function SuccessPage() {
   const messageParam = String(searchParams.get("message") || "").trim();
   const [order, setOrder] = useState(null);
   const { clearCart, clearCoupon } = useCart() || {};
+  const hasSession = hasAuthSession();
+
+  useEffect(() => {
+    if (!orderId && !hasSession) {
+      navigate(
+        `/account?view=login&redirect=${encodeURIComponent("/checkout/success")}`,
+        { replace: true }
+      );
+    }
+  }, [hasSession, navigate, orderId]);
 
   useEffect(() => {
     let mounted = true;
@@ -32,10 +44,10 @@ export default function SuccessPage() {
         hasToken = await refreshAccessToken();
       }
 
-      if (!hasToken) return;
-
       try {
-        const o = await orderApi.get(orderId);
+        const o = hasToken
+          ? await orderApi.get(orderId)
+          : await orderApi.track(orderId);
         if (mounted) setOrder(o);
       } catch {
         // ignore
@@ -152,10 +164,10 @@ export default function SuccessPage() {
                 : "Alışverişe devam et"}
             </Link>
             <Link
-              to="/account?tab=Orders"
+              to={hasSession ? "/account?tab=Orders" : "/"}
               className="rounded-full bg-accent px-4 py-2 text-sm text-white hover:bg-accent-hover"
             >
-              Siparişlerimi gör
+              {hasSession ? "Siparişlerimi gör" : "Ana sayfaya dön"}
             </Link>
           </div>
         </div>

@@ -112,11 +112,17 @@ function getOrderAddress(order) {
 }
 
 function getOrderCustomerEmail(order, user) {
-  return String(user?.email || order?.payment?.payer?.email || "").trim();
+  return String(
+    user?.email ||
+      order?.customer?.email ||
+      order?.payment?.payer?.email ||
+      ""
+  ).trim();
 }
 
 function getOrderCustomerName(order, user, fallback = "Müşterimiz") {
   return String(
+    order?.customer?.fullName ||
     order?.address?.fullName ||
       `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
       fallback
@@ -685,7 +691,9 @@ export async function sendOrderAdminEmail({ order, user }) {
 
   const customerName = getOrderCustomerName(order, user, "Müşteri");
   const customerEmail = getOrderCustomerEmail(order, user);
-  const customerPhone = String(order?.address?.phone || user?.phone || "").trim();
+  const customerPhone = String(
+    order?.customer?.phone || order?.address?.phone || user?.phone || ""
+  ).trim();
   const note = String(order?.note || "").trim();
   const couponCode = String(order?.coupon?.code || "").trim();
   const orderAddress = getOrderAddress(order);
@@ -849,12 +857,18 @@ export async function sendPaymentManualReviewAdminEmail({
 
   const customerName = String(
     paymentSession?.addressSnapshot?.fullName ||
+      paymentSession?.customer?.fullName ||
       `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
       "Müşteri"
   ).trim();
-  const customerEmail = String(user?.email || "").trim();
+  const customerEmail = String(
+    user?.email || paymentSession?.customer?.email || ""
+  ).trim();
   const customerPhone = String(
-    paymentSession?.addressSnapshot?.phone || user?.phone || ""
+    paymentSession?.customer?.phone ||
+      paymentSession?.addressSnapshot?.phone ||
+      user?.phone ||
+      ""
   ).trim();
   const address = [
     paymentSession?.addressSnapshot?.addressLine,

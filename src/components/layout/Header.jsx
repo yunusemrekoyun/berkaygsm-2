@@ -7,6 +7,7 @@ import {
   ShoppingBag,
   Heart,
   User,
+  Truck,
   Menu,
   X,
   ChevronRight,
@@ -15,7 +16,9 @@ import {
 } from "lucide-react";
 import MegaMenu from "./MegaMenu";
 import AppImage from "../ui/AppImage.jsx";
+import CustomerOrderDetailsModal from "../orders/CustomerOrderDetailsModal.jsx";
 import { categoryApi } from "../../api/categories";
+import { orderApi } from "../../api/orders.js";
 import { mapCategoryTree } from "../../utils/catalog";
 import { useCart } from "../../hooks/useCart";
 import { useStorefrontLang } from "../../context/LangContext.jsx";
@@ -36,6 +39,10 @@ export default function Header({
   const [q, setQ] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const [cartNavPending, setCartNavPending] = useState(false);
+  const [trackingPromptOpen, setTrackingPromptOpen] = useState(false);
+  const [trackingCode, setTrackingCode] = useState("");
+  const [trackingLookupCode, setTrackingLookupCode] = useState("");
+  const [trackingError, setTrackingError] = useState("");
   const hasInitialCategoryTree = Array.isArray(initialCategoryTree);
   const normalizedInitialCategoryTree = useMemo(
     () => normalizeTree(initialCategoryTree || []),
@@ -174,6 +181,23 @@ export default function Header({
     }
   };
 
+  const handleOpenTracking = () => {
+    setTrackingError("");
+    setTrackingPromptOpen(true);
+  };
+
+  const handleSubmitTracking = (event) => {
+    event.preventDefault();
+    const normalized = String(trackingCode || "").trim();
+    if (!normalized) {
+      setTrackingError("Sipariş kodunu girin.");
+      return;
+    }
+    setTrackingError("");
+    setTrackingPromptOpen(false);
+    setTrackingLookupCode(normalized);
+  };
+
   const handleDesktopNavPointerDown = (event) => {
     const container = desktopNavRef.current;
     if (!container || !desktopNavHasOverflow || event.button !== 0) return;
@@ -305,6 +329,14 @@ export default function Header({
                 <span className="sr-only">{BRAND_NAME}</span>
               </Link>
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleOpenTracking}
+                  className="glass-chip inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-secondary hover:text-primary"
+                  aria-label="Sipariş takip"
+                >
+                  <Truck className="h-5 w-5" />
+                </button>
                 <Link
                   to="/cart"
                   onClick={handleCartNavigate}
@@ -381,6 +413,14 @@ export default function Header({
                   </form>
                 </div>
                 <div className="flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={handleOpenTracking}
+                    className="glass-chip inline-flex rounded-full p-2 hover:bg-surface-hover"
+                    aria-label="Sipariş takip"
+                  >
+                    <Truck className="h-6 w-6 text-secondary" />
+                  </button>
                   <Link
                     to="/cart"
                     onClick={handleCartNavigate}
@@ -543,6 +583,95 @@ export default function Header({
           </div>
         </div>
       )}
+
+      {trackingPromptOpen && (
+        <div className="fixed inset-0 z-[170]">
+          <div
+            className="absolute inset-0 bg-slate-950/45 backdrop-blur-[1px]"
+            onClick={() => {
+              setTrackingPromptOpen(false);
+              setTrackingError("");
+            }}
+            aria-hidden
+          />
+          <div className="absolute left-1/2 top-1/2 w-[min(92vw,440px)] -translate-x-1/2 -translate-y-1/2 rounded-[28px] border border-border bg-white p-5 shadow-[0_30px_120px_rgba(15,23,42,0.24)] sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary">
+                  Sipariş Takibi
+                </div>
+                <h2 className="mt-2 text-xl font-semibold text-primary">
+                  Sipariş kodunuzu girin
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-secondary">
+                  Sipariş numaranızı girerek kargo ve durum detaylarını
+                  görüntüleyebilirsiniz.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setTrackingPromptOpen(false);
+                  setTrackingError("");
+                }}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/70 bg-white text-secondary transition hover:border-accent/35 hover:text-accent"
+                aria-label="Kapat"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitTracking} className="mt-5 space-y-4">
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-medium text-primary">
+                  Sipariş Kodu
+                </span>
+                <input
+                  autoFocus
+                  value={trackingCode}
+                  onChange={(event) => {
+                    setTrackingCode(event.target.value);
+                    if (trackingError) setTrackingError("");
+                  }}
+                  placeholder="Örn: CEPLIFE-123456"
+                  className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm text-primary outline-none transition placeholder:text-secondary/60 focus:border-accent/60 focus:ring-2 focus:ring-accent/15"
+                />
+              </label>
+
+              {trackingError ? (
+                <p className="text-sm text-rose-600">{trackingError}</p>
+              ) : null}
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTrackingPromptOpen(false);
+                    setTrackingError("");
+                  }}
+                  className="rounded-full border border-border px-4 py-2.5 text-sm font-medium text-primary transition hover:bg-surface-hover"
+                >
+                  Vazgeç
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-hover"
+                >
+                  Siparişi göster
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {trackingLookupCode ? (
+        <CustomerOrderDetailsModal
+          orderId={trackingLookupCode}
+          loadOrder={orderApi.track}
+          onClose={() => setTrackingLookupCode("")}
+        />
+      ) : null}
     </>
   );
 }

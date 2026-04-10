@@ -11,6 +11,10 @@ import { useCart } from "../hooks/useCart";
 import { userDetailsApi } from "../api/userDetails";
 import { getAccessToken, refreshAccessToken } from "../api/client";
 import { paymentApi } from "../api/payments";
+import {
+  formatTrPhoneForInput,
+  formatTrPhoneForSubmit,
+} from "../utils/phoneMask.js";
 
 function parseError(error) {
   if (!error) return { message: "", status: null };
@@ -53,9 +57,61 @@ function parseError(error) {
   return { message, status };
 }
 
+function emptyGuestCheckoutForm() {
+  return {
+    fullName: "",
+    email: "",
+    phone: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    country: "Türkiye",
+  };
+}
+
+function buildGuestAddressSnapshot(form) {
+  return {
+    fullName: String(form?.fullName || "").trim(),
+    phone: formatTrPhoneForSubmit(form?.phone || ""),
+    country: String(form?.country || "").trim(),
+    city: String(form?.city || "").trim(),
+    district: String(form?.state || "").trim(),
+    postalCode: String(form?.postalCode || "").trim(),
+    addressLine: String(
+      [form?.addressLine1, form?.addressLine2]
+        .map((value) => String(value || "").trim())
+        .filter(Boolean)
+        .join(" ")
+    ),
+  };
+}
+
+function buildGuestCustomerSnapshot(form) {
+  return {
+    fullName: String(form?.fullName || "").trim(),
+    email: String(form?.email || "").trim().toLowerCase(),
+    phone: formatTrPhoneForSubmit(form?.phone || ""),
+  };
+}
+
+function isGuestCheckoutReady(form) {
+  const address = buildGuestAddressSnapshot(form);
+  const customer = buildGuestCustomerSnapshot(form);
+  return Boolean(
+    customer.fullName &&
+      customer.email &&
+      customer.phone &&
+      address.country &&
+      address.city &&
+      address.addressLine
+  );
+}
+
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const [authChecked, setAuthChecked] = useState(false);
+  const [authState, setAuthState] = useState("checking");
 
   const cart = useCart() || {};
   const {
@@ -77,7 +133,7 @@ export default function CheckoutPage() {
     (async () => {
       const token = getAccessToken();
       if (token) {
-        if (active) setAuthChecked(true);
+        if (active) setAuthState("authenticated");
         return;
       }
 
@@ -85,17 +141,17 @@ export default function CheckoutPage() {
       if (!active) return;
 
       if (refreshed) {
-        setAuthChecked(true);
+        setAuthState("authenticated");
         return;
       }
 
-      navigate(`/account?view=login&redirect=/checkout`, { replace: true });
+      setAuthState("guest-choice");
     })();
 
     return () => {
       active = false;
     };
-  }, [navigate]);
+  }, []);
 
   const checkoutItems = useMemo(
     () =>
@@ -231,9 +287,14 @@ export default function CheckoutPage() {
   const [identityInfoOpen, setIdentityInfoOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const identityInfoRef = useRef(null);
+  const [guestForm, setGuestForm] = useState(() => emptyGuestCheckoutForm());
 
   const hasItems = checkoutItems.length > 0;
-  const hasAddress = Boolean(addressId);
+  const isAuthenticated = authState === "authenticated";
+  const isGuestCheckout = authState === "guest";
+  const hasAddress = isAuthenticated
+    ? Boolean(addressId)
+    : isGuestCheckoutReady(guestForm);
 
   async function handleCheckout() {
     if (!hasItems || !hasAddress || submitting) return;
@@ -241,10 +302,17 @@ export default function CheckoutPage() {
       setSubmitting(true);
       setBanner(null);
       const response = await paymentApi.initializeIyzicoCheckout({
-        addressId,
+        addressId: isAuthenticated ? addressId : null,
+        addressSnapshot: isGuestCheckout
+          ? buildGuestAddressSnapshot(guestForm)
+          : null,
+        guestCustomer: isGuestCheckout
+          ? buildGuestCustomerSnapshot(guestForm)
+          : null,
         items: checkoutItems,
-        couponCode: coupon?.code || null,
+        couponCode: isAuthenticated ? coupon?.code || null : null,
         identityNumber: identityNumber.trim() || null,
+        auth: isAuthenticated,
       });
 
       const checkoutUrl = String(response?.payment?.checkoutUrl || "").trim();
@@ -266,7 +334,10 @@ export default function CheckoutPage() {
   }
 
   useEffect(() => {
-    if (!authChecked) return;
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
     let mounted = true;
     (async () => {
       try {
@@ -307,14 +378,14 @@ export default function CheckoutPage() {
     return () => {
       mounted = false;
     };
-  }, [authChecked, navigate]);
+  }, [isAuthenticated, navigate]);
 
   useEffect(() => {
-    if (!authChecked) return;
+    if (authState === "checking") return;
     if (!loading && lines.length === 0) {
       navigate("/cart", { replace: true });
     }
-  }, [authChecked, lines.length, loading, navigate]);
+  }, [authState, lines.length, loading, navigate]);
 
   useEffect(() => {
     if (!identityInfoOpen) return undefined;
@@ -340,11 +411,11 @@ export default function CheckoutPage() {
     };
   }, [identityInfoOpen]);
 
-  if (!authChecked) {
+  if (authState === "checking") {
     return null;
   }
 
-  if (loading) {
+  if (isAuthenticated && loading) {
     return (
       <section className="store-page bg-surface-light/60">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-12">
@@ -376,10 +447,224 @@ export default function CheckoutPage() {
         <div className="min-w-0 space-y-5 md:space-y-6">
           <div className="glass-surface rounded-[28px] border border-border bg-white p-5 sm:p-6">
             <h2 className="text-xl font-semibold tracking-[-0.02em] text-primary">
-              Teslimat adresi
+              {isAuthenticated
+                ? "Teslimat adresi"
+                : authState === "guest-choice"
+                  ? "Devam et"
+                  : "Teslimat ve iletişim bilgileri"}
             </h2>
 
-            {addresses.length === 0 ? (
+            {!isAuthenticated ? (
+              authState === "guest-choice" ? (
+                <div className="mt-5 space-y-4">
+                  <p className="text-sm leading-6 text-secondary">
+                    Siparişe devam etmek için giriş yapabilir veya misafir
+                    olarak ödeme adımına geçebilirsiniz.
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          `/account?view=login&redirect=${encodeURIComponent(
+                            "/checkout"
+                          )}`
+                        )
+                      }
+                      className="rounded-2xl border border-border bg-white px-4 py-4 text-sm font-semibold text-primary transition hover:border-accent/35 hover:bg-surface-hover"
+                    >
+                      Giriş yap
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthState("guest");
+                        setBanner(null);
+                      }}
+                      className="rounded-2xl bg-accent px-4 py-4 text-sm font-semibold text-white transition hover:bg-accent-hover"
+                    >
+                      Misafir olarak devam et
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-5 space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm leading-6 text-secondary">
+                      Misafir ödeme için teslimat ve iletişim bilgilerinizi girin.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          `/account?view=login&redirect=${encodeURIComponent(
+                            "/checkout"
+                          )}`
+                        )
+                      }
+                      className="shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-primary hover:bg-surface-hover"
+                    >
+                      Giriş yap
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <label className="block">
+                      <span className="mb-1 block text-sm font-medium text-primary">
+                        Ad Soyad
+                      </span>
+                      <input
+                        value={guestForm.fullName}
+                        onChange={(event) =>
+                          setGuestForm((prev) => ({
+                            ...prev,
+                            fullName: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                        required
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-1 block text-sm font-medium text-primary">
+                        E-posta
+                      </span>
+                      <input
+                        type="email"
+                        value={guestForm.email}
+                        onChange={(event) =>
+                          setGuestForm((prev) => ({
+                            ...prev,
+                            email: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                        required
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-1 block text-sm font-medium text-primary">
+                        Telefon
+                      </span>
+                      <input
+                        value={guestForm.phone}
+                        onChange={(event) =>
+                          setGuestForm((prev) => ({
+                            ...prev,
+                            phone: formatTrPhoneForInput(event.target.value),
+                          }))
+                        }
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                        inputMode="numeric"
+                        autoComplete="tel"
+                        required
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-1 block text-sm font-medium text-primary">
+                        Ülke
+                      </span>
+                      <input
+                        value={guestForm.country}
+                        onChange={(event) =>
+                          setGuestForm((prev) => ({
+                            ...prev,
+                            country: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                        required
+                      />
+                    </label>
+
+                    <label className="sm:col-span-2 block">
+                      <span className="mb-1 block text-sm font-medium text-primary">
+                        Adres Satırı 1
+                      </span>
+                      <input
+                        value={guestForm.addressLine1}
+                        onChange={(event) =>
+                          setGuestForm((prev) => ({
+                            ...prev,
+                            addressLine1: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                        required
+                      />
+                    </label>
+
+                    <label className="sm:col-span-2 block">
+                      <span className="mb-1 block text-sm font-medium text-primary">
+                        Adres Satırı 2
+                      </span>
+                      <input
+                        value={guestForm.addressLine2}
+                        onChange={(event) =>
+                          setGuestForm((prev) => ({
+                            ...prev,
+                            addressLine2: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-1 block text-sm font-medium text-primary">
+                        Şehir
+                      </span>
+                      <input
+                        value={guestForm.city}
+                        onChange={(event) =>
+                          setGuestForm((prev) => ({
+                            ...prev,
+                            city: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                        required
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-1 block text-sm font-medium text-primary">
+                        İl / İlçe
+                      </span>
+                      <input
+                        value={guestForm.state}
+                        onChange={(event) =>
+                          setGuestForm((prev) => ({
+                            ...prev,
+                            state: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-1 block text-sm font-medium text-primary">
+                        Posta Kodu
+                      </span>
+                      <input
+                        value={guestForm.postalCode}
+                        onChange={(event) =>
+                          setGuestForm((prev) => ({
+                            ...prev,
+                            postalCode: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                      />
+                    </label>
+                  </div>
+                </div>
+              )
+            ) : addresses.length === 0 ? (
               <p className="mt-3 text-secondary">
                 Kayıtlı adres yok. Lütfen{" "}
                 <a
@@ -556,7 +841,11 @@ export default function CheckoutPage() {
             </h3>
             {!hasAddress && (
               <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                Sipariş işlemi için önce adres ekleyin.
+                {isAuthenticated
+                  ? "Sipariş işlemi için önce adres ekleyin."
+                  : authState === "guest-choice"
+                    ? "Siparişe devam etmek için giriş yapın veya misafir ödeme seçeneğini seçin."
+                    : "Sipariş işlemi için teslimat ve iletişim bilgilerini eksiksiz doldurun."}
               </div>
             )}
 
@@ -599,7 +888,11 @@ export default function CheckoutPage() {
           </div>
           {!hasAddress && (
             <p className="mt-2 text-xs text-amber-700">
-              Sipariş işlemi için önce adres ekleyin.
+              {isAuthenticated
+                ? "Sipariş işlemi için önce adres ekleyin."
+                : authState === "guest-choice"
+                  ? "Devam etmek için giriş yapın veya misafir ödeme seçeneğini seçin."
+                  : "Sipariş işlemi için teslimat ve iletişim bilgilerini tamamlayın."}
             </p>
           )}
         </div>

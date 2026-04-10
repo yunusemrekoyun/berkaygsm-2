@@ -44,6 +44,16 @@ const SessionAddressSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const SessionCustomerSchema = new mongoose.Schema(
+  {
+    fullName: { type: String, default: "" },
+    email: { type: String, default: "" },
+    phone: { type: String, default: "" },
+    isGuest: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
 const SessionPricingSchema = new mongoose.Schema(
   {
     currency: { type: String, default: "TRY" },
@@ -156,9 +166,11 @@ const PaymentSessionSchema = new mongoose.Schema(
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
+      default: null,
       index: true,
     },
+    customer: { type: SessionCustomerSchema, default: () => ({}) },
     order: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Order",

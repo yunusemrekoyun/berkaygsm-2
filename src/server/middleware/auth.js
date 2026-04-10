@@ -1,41 +1,70 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-export async function requireAuth(req, res, next) {
+async function resolveUserFromAuthHeader(req) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
-  if (!token) return res.status(401).json({ message: "Token bulunamadı" });
+  if (!token) return { token: null, user: null, payload: null };
 
   const secret = String(process.env.JWT_ACCESS_SECRET || "").trim();
   if (!secret) {
-    return res
-      .status(500)
-      .json({ message: "Kimlik doğrulama yapılandırması eksik" });
+    throw Object.assign(new Error("Kimlik doğrulama yapılandırması eksik"), {
+      status: 500,
+    });
   }
 
-  try {
-    const payload = jwt.verify(token, secret);
+  const payload = jwt.verify(token, secret);
 
-    const user = await User.findById(payload.sub).select(
-      "role isDeleted deletedAlias"
-    );
+  const user = await User.findById(payload.sub).select(
+    "role isDeleted deletedAlias"
+  );
 
-    if (!user)
-      return res.status(401).json({ message: "Kullanıcı bulunamadı" });
+  if (!user) {
+    throw Object.assign(new Error("Kullanıcı bulunamadı"), { status: 401 });
+  }
 
-    if (user.isDeleted) {
-      return res.status(403).json({
-        message: user.deletedAlias
+  if (user.isDeleted) {
+    throw Object.assign(
+      new Error(
+        user.deletedAlias
           ? `Hesap pasif (${user.deletedAlias})`
-          : "Hesap pasif",
-      });
-    }
+          : "Hesap pasif"
+      ),
+      { status: 403 }
+    );
+  }
 
-    req.userId = user._id.toString();
-    req.userRole = user.role || payload.role;
-    req.user = user;
+  return { token, user, payload };
+}
+
+function attachResolvedUser(req, resolved) {
+  if (!resolved?.user) return;
+  req.userId = resolved.user._id.toString();
+  req.userRole = resolved.user.role || resolved.payload?.role;
+  req.user = resolved.user;
+}
+
+export async function requireAuth(req, res, next) {
+  try {
+    const resolved = await resolveUserFromAuthHeader(req);
+    if (!resolved?.token) {
+      return res.status(401).json({ message: "Token bulunamadı" });
+    }
+    attachResolvedUser(req, resolved);
+    return next();
+  } catch (error) {
+    return res
+      .status(error?.status || 401)
+      .json({ message: error?.message || "Geçersiz veya süresi dolmuş token" });
+  }
+}
+
+export async function optionalAuth(req, res, next) {
+  try {
+    const resolved = await resolveUserFromAuthHeader(req);
+    attachResolvedUser(req, resolved);
     return next();
   } catch {
-    return res.status(401).json({ message: "Geçersiz veya süresi dolmuş token" });
+    return next();
   }
 }

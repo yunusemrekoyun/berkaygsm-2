@@ -141,7 +141,11 @@ function SummaryItem({ label, value, strong = false }) {
   );
 }
 
-export default function CustomerOrderDetailsModal({ orderId, onClose }) {
+export default function CustomerOrderDetailsModal({
+  orderId,
+  onClose,
+  loadOrder = orderApi.get,
+}) {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -154,7 +158,7 @@ export default function CustomerOrderDetailsModal({ orderId, onClose }) {
       try {
         setLoading(true);
         setError("");
-        const data = await orderApi.get(orderId);
+        const data = await loadOrder(orderId);
         if (!mounted) return;
         setOrder(data);
       } catch (err) {
@@ -169,7 +173,7 @@ export default function CustomerOrderDetailsModal({ orderId, onClose }) {
     return () => {
       mounted = false;
     };
-  }, [orderId]);
+  }, [loadOrder, orderId]);
 
   const statusKey = String(order?.status || "pending").toLowerCase();
   const statusMeta = ORDER_STATUS_META[statusKey] || ORDER_STATUS_META.pending;

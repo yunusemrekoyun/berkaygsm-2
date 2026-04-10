@@ -423,16 +423,21 @@ export default function OrderInvoiceModal({ orderId, onClose, admin = false }) {
 
     const customerName = formatText(
       firstFilled(
+        order.customer?.fullName,
         order.address?.fullName,
         [order.user?.firstName, order.user?.lastName].filter(Boolean).join(" "),
         order.payment?.payer?.name
       )
     );
     const customerEmail = formatText(
-      firstFilled(order.user?.email, order.payment?.payer?.email)
+      firstFilled(
+        order.customer?.email,
+        order.user?.email,
+        order.payment?.payer?.email
+      )
     );
     const customerPhone = formatText(
-      firstFilled(order.address?.phone, order.user?.phone)
+      firstFilled(order.customer?.phone, order.address?.phone, order.user?.phone)
     );
     const identityNumber = deriveInvoiceIdentity(order);
     const invoiceType = deriveInvoiceType(order, identityNumber);
@@ -455,7 +460,7 @@ export default function OrderInvoiceModal({ orderId, onClose, admin = false }) {
         label: "Vergi dairesi bilgisi yok",
         detail: "Kurumsal faturalarda manuel tamamlama gerekir.",
       },
-      !firstFilled(order.user?.email, order.payment?.payer?.email) && {
+      !firstFilled(order.customer?.email, order.user?.email, order.payment?.payer?.email) && {
         label: "Fatura e-postası eksik",
         detail: "Belge gönderimi için müşteri e-postası gerekli olabilir.",
       },
