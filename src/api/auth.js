@@ -8,6 +8,7 @@ export const authApi = {
     phone,
     password,
     maintenanceAnnouncementsEnabled,
+    turnstileToken,
     role = "user",
   }) {
     const data = await http("/auth/register", {
@@ -19,6 +20,7 @@ export const authApi = {
         phone,
         password,
         maintenanceAnnouncementsEnabled,
+        turnstileToken,
         role,
       },
     });
@@ -26,10 +28,10 @@ export const authApi = {
     setUser(data.user);
     return data;
   },
-  async login({ email, password }) {
+  async login({ email, password, turnstileToken }) {
     const data = await http("/auth/login", {
       method: "POST",
-      body: { email, password },
+      body: { email, password, turnstileToken },
     });
     setAccessToken(data.accessToken);
     setUser(data.user);

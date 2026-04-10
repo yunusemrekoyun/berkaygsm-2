@@ -20,6 +20,7 @@ export async function listUsers(req, res) {
       search = "",
       role = "",
       sort = "recent",
+      status = "",
       includeDeleted = "false",
     } = req.query;
 
@@ -33,6 +34,7 @@ export async function listUsers(req, res) {
     const filter = buildUserFilter({
       search,
       role,
+      status,
       includeDeleted: includeDel,
     });
     const sortOption = SORT_MAP[sort] || SORT_MAP.recent;
@@ -56,7 +58,7 @@ export async function listUsers(req, res) {
         pages: Math.max(1, Math.ceil(total / pageSize)),
       },
       metrics,
-      appliedFilters: { search, role, sort, includeDeleted: includeDel },
+      appliedFilters: { search, role, sort, status, includeDeleted: includeDel },
     });
   } catch (error) {
     res.status(500).json({ message: error.message || "Kullanıcılar listelenemedi" });

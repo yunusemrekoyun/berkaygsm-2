@@ -1,10 +1,11 @@
 import User from "../models/User.js";
 import {
+  dispatchMaintenanceAnnouncement,
   getSiteModeConfig,
-  queueMaintenanceAnnouncementDispatch,
   shapeSiteModeConfig,
 } from "../services/siteModeService.js";
 import {
+  assertMaintenanceAnnouncementSecretConfigured,
   verifyMaintenanceAnnouncementUnsubscribeToken,
 } from "../utils/maintenanceAnnouncementTokens.js";
 
@@ -61,6 +62,10 @@ export async function updateSiteModeManage(req, res) {
     const previous = !!config.maintenanceModeEnabled;
     const changed = previous !== enabled;
 
+    if (changed) {
+      assertMaintenanceAnnouncementSecretConfigured();
+    }
+
     config.maintenanceModeEnabled = enabled;
     config.maintenanceModeUpdatedAt = new Date();
     config.maintenanceModeUpdatedBy = req.userId || null;
@@ -74,13 +79,16 @@ export async function updateSiteModeManage(req, res) {
 
     await config.save();
 
-    if (changed) {
-      void queueMaintenanceAnnouncementDispatch({ enabled });
-    }
+    const dispatch =
+      changed && config.announcementDispatching
+        ? await dispatchMaintenanceAnnouncement({ enabled })
+        : null;
+    const latestConfig = dispatch ? await getSiteModeConfig() : config;
 
     res.json({
-      siteMode: shapeSiteModeConfig(config),
+      siteMode: shapeSiteModeConfig(latestConfig),
       changed,
+      dispatch,
     });
   } catch (error) {
     res
@@ -92,7 +100,7 @@ export async function updateSiteModeManage(req, res) {
 export async function unsubscribeMaintenanceAnnouncements(req, res) {
   const token = String(req.query?.token || req.body?.token || "").trim();
   if (!token) {
-    res.status(400).setHeader("Content-Type", "text/html; charset=utf-8");
+    res.status(status).setHeader("Content-Type", "text/html; charset=utf-8");
     return res.end(
       htmlPage({
         title: "Geçersiz bağlantı",
@@ -130,12 +138,18 @@ export async function unsubscribeMaintenanceAnnouncements(req, res) {
       })
     );
   } catch (error) {
+    const status =
+      error?.message === "MAINTENANCE_ANNOUNCEMENT_SECRET yapılandırılmamış"
+        ? 500
+        : 400;
     res.status(400).setHeader("Content-Type", "text/html; charset=utf-8");
     return res.end(
       htmlPage({
-        title: "Bağlantı geçersiz",
+        title: status === 500 ? "Yapılandırma hatası" : "Bağlantı geçersiz",
         body:
-          "<p>Abonelikten çıkış bağlantısı doğrulanamadı. Lütfen daha sonra tekrar deneyin.</p>",
+          status === 500
+            ? "<p>Bakım duyurusu abonelik sistemi şu anda yapılandırılmamış. Lütfen daha sonra tekrar deneyin.</p>"
+            : "<p>Abonelikten çıkış bağlantısı doğrulanamadı. Lütfen daha sonra tekrar deneyin.</p>",
       })
     );
   }

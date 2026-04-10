@@ -13,6 +13,10 @@ import {
   removeRefreshSession,
   upsertRefreshSession,
 } from "../utils/refreshSessions.js";
+import {
+  isTurnstileConfigured,
+  verifyTurnstileToken,
+} from "../utils/turnstile.js";
 
 const ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES || "15m";
 const REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES || "7d";
@@ -142,6 +146,31 @@ async function issueSessionTokens(user) {
   return { accessToken, refreshToken };
 }
 
+async function ensureAuthTurnstile(req, res, token) {
+  if (!isTurnstileConfigured()) return true;
+
+  if (!String(token || "").trim()) {
+    res.status(400).json({ message: "Lütfen doğrulama adımını tamamlayın." });
+    return false;
+  }
+
+  const turnstileResult = await verifyTurnstileToken({
+    token,
+    remoteIp: req.ip,
+    expectedHostname: process.env.TURNSTILE_EXPECTED_HOSTNAME || "",
+  });
+
+  if (!turnstileResult?.success) {
+    res.status(400).json({
+      message: "Doğrulama başarısız. Lütfen tekrar deneyin.",
+      details: turnstileResult?.["error-codes"] || [],
+    });
+    return false;
+  }
+
+  return true;
+}
+
 /** POST /api/auth/register */
 export const register = async (req, res) => {
   const {
@@ -151,9 +180,12 @@ export const register = async (req, res) => {
     phone,
     password,
     maintenanceAnnouncementsEnabled,
+    turnstileToken,
   } = req.body;
   if (!firstName || !lastName || !email || !password)
     return res.status(400).json({ message: "Zorunlu alanlar eksik" });
+
+  if (!(await ensureAuthTurnstile(req, res, turnstileToken))) return;
 
   const passwordCheck = validatePasswordPolicy(password);
   if (!passwordCheck.ok) {
@@ -197,9 +229,11 @@ export const register = async (req, res) => {
 
 /** POST /api/auth/login */
 export const login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, turnstileToken } = req.body;
   if (!email || !password)
     return res.status(400).json({ message: "Giriş bilgileri eksik" });
+
+  if (!(await ensureAuthTurnstile(req, res, turnstileToken))) return;
 
   const user = await User.findOne({ email });
   if (!user)

@@ -68,7 +68,7 @@ async function sendMaintenanceAnnouncementBatch({ enabled }) {
         })
       )
     );
-    for (const result of results) {
+    for (const [index, result] of results.entries()) {
       const value =
         result.status === "fulfilled"
           ? result.value
@@ -78,6 +78,15 @@ async function sendMaintenanceAnnouncementBatch({ enabled }) {
       } else if (!value?.skipped) {
         failed += 1;
         lastError = value?.error || lastError || "mail-send-failed";
+        logger.warn(
+          {
+            enabled,
+            email: chunk[index]?.email || "",
+            userId: chunk[index]?._id?.toString?.() || "",
+            err: value?.error || "mail-send-failed",
+          },
+          "Maintenance announcement email failed"
+        );
       }
     }
   }
@@ -90,22 +99,19 @@ async function sendMaintenanceAnnouncementBatch({ enabled }) {
   config.lastAnnouncementError = lastError;
   config.announcementDispatching = false;
   await config.save();
+
+  return {
+    state,
+    recipients: users.length,
+    delivered,
+    failed,
+    error: lastError,
+  };
 }
 
-export function queueMaintenanceAnnouncementDispatch({ enabled }) {
-  if (announcementDispatchPromise) {
-    announcementDispatchPromise = announcementDispatchPromise.finally(() =>
-      sendMaintenanceAnnouncementBatch({ enabled }).catch((error) => {
-        logger.error(
-          { err: error?.message || String(error), enabled },
-          "Maintenance announcement dispatch failed"
-        );
-      })
-    );
-    return announcementDispatchPromise;
-  }
-
-  announcementDispatchPromise = sendMaintenanceAnnouncementBatch({ enabled })
+export function dispatchMaintenanceAnnouncement({ enabled }) {
+  const run = () =>
+    sendMaintenanceAnnouncementBatch({ enabled })
     .catch(async (error) => {
       logger.error(
         { err: error?.message || String(error), enabled },
@@ -118,10 +124,20 @@ export function queueMaintenanceAnnouncementDispatch({ enabled }) {
         config.announcementDispatching = false;
         await config.save().catch(() => {});
       }
+      throw error;
     })
-    .finally(() => {
-      announcementDispatchPromise = null;
-    });
+  ;
 
-  return announcementDispatchPromise;
+  const scheduledPromise = announcementDispatchPromise
+    ? announcementDispatchPromise.finally(run)
+    : run();
+
+  announcementDispatchPromise = scheduledPromise;
+  scheduledPromise.finally(() => {
+    if (announcementDispatchPromise === scheduledPromise) {
+      announcementDispatchPromise = null;
+    }
+  });
+
+  return scheduledPromise;
 }

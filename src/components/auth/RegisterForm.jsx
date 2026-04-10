@@ -1,4 +1,5 @@
 import { useState } from "react";
+import TurnstileWidget from "../ui/TurnstileWidget.jsx";
 import {
   formatTrPhoneForInput,
   formatTrPhoneForSubmit,
@@ -7,6 +8,9 @@ import {
   getPasswordPolicyHint,
   validatePasswordPolicy,
 } from "../../utils/passwordPolicy.js";
+
+const TURNSTILE_SITE_KEY =
+  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
 export default function RegisterForm({ onSubmit, loadingText = "Yükleniyor..." }) {
   const [name, setName] = useState("");
@@ -20,6 +24,10 @@ export default function RegisterForm({ onSubmit, loadingText = "Yükleniyor..." 
   const [loading, setLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [confirmError, setConfirmError] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaError, setCaptchaError] = useState("");
+  const [captchaResetCounter, setCaptchaResetCounter] = useState(0);
+  const captchaEnabled = Boolean(TURNSTILE_SITE_KEY);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -36,6 +44,10 @@ export default function RegisterForm({ onSubmit, loadingText = "Yükleniyor..." 
       setPasswordError(passwordCheck.message);
       return;
     }
+    if (captchaEnabled && !captchaToken) {
+      setCaptchaError("Lütfen doğrulama adımını tamamlayın.");
+      return;
+    }
     setLoading(true);
     try {
       await onSubmit?.({
@@ -44,9 +56,14 @@ export default function RegisterForm({ onSubmit, loadingText = "Yükleniyor..." 
         pass,
         phone: formatTrPhoneForSubmit(phone),
         maintenanceAnnouncementsEnabled,
+        turnstileToken: captchaToken,
       });
     } finally {
       setLoading(false);
+      if (captchaEnabled) {
+        setCaptchaToken("");
+        setCaptchaResetCounter((prev) => prev + 1);
+      }
     }
   };
 
@@ -163,6 +180,27 @@ export default function RegisterForm({ onSubmit, loadingText = "Yükleniyor..." 
         />
         Bakım ve site durumu duyurularından haberdar olmak istiyorum.
       </label>
+
+      {captchaEnabled ? (
+        <TurnstileWidget
+          siteKey={TURNSTILE_SITE_KEY}
+          resetSignal={captchaResetCounter}
+          onTokenChange={(token) => {
+            setCaptchaToken(token);
+            if (captchaError) setCaptchaError("");
+          }}
+          onError={(message) => {
+            setCaptchaToken("");
+            setCaptchaError(message);
+          }}
+        />
+      ) : null}
+
+      {captchaError ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+          {captchaError}
+        </div>
+      ) : null}
 
       <button
         type="submit"

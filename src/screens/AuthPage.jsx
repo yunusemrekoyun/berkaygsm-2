@@ -40,6 +40,7 @@ export default function AuthPage({ initialView = "register", onAuthSuccess }) {
         password: vals.pass,
         maintenanceAnnouncementsEnabled:
           vals.maintenanceAnnouncementsEnabled,
+        turnstileToken: vals.turnstileToken,
         role: "user",
       });
 
@@ -62,6 +63,7 @@ export default function AuthPage({ initialView = "register", onAuthSuccess }) {
       await authApi.login({
         email: vals.email,
         password: vals.pass,
+        turnstileToken: vals.turnstileToken,
       });
 
       toast.success("Giriş başarılı!");

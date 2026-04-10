@@ -36,7 +36,7 @@ export function shapeUser(user) {
   };
 }
 
-export function buildUserFilter({ search, role, includeDeleted }) {
+export function buildUserFilter({ search, role, includeDeleted, status }) {
   const filter = {};
 
   // rol filtresi
@@ -44,8 +44,14 @@ export function buildUserFilter({ search, role, includeDeleted }) {
     filter.role = role;
   }
 
-  // 🔽 default: silinmişleri listeleme
-  if (!includeDeleted) {
+  const normalizedStatus = String(status || "").trim().toLowerCase();
+
+  if (normalizedStatus === "active") {
+    filter.isDeleted = false;
+  } else if (normalizedStatus === "deleted") {
+    filter.isDeleted = true;
+  } else if (!includeDeleted) {
+    // 🔽 default: silinmişleri listeleme
     filter.isDeleted = false;
   }
 

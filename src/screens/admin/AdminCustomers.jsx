@@ -74,7 +74,7 @@ export default function AdminCustomers() {
           page,
           limit: resolvedLimit,
           sort: resolvedSort,
-          status: resolvedStatus, // NEW (backend listUsers destekliyor)
+          status: resolvedStatus,
         };
         if (resolvedRole) params.role = resolvedRole;
         if (resolvedSearch) params.search = resolvedSearch;
@@ -89,7 +89,7 @@ export default function AdminCustomers() {
           limit: resolvedLimit,
         });
       } catch (error) {
-        setBanner({ type: "error", message: extractMessage(error) });
+        setBanner({ variant: "danger", message: extractMessage(error) });
       } finally {
         setLoading(false);
       }
@@ -109,7 +109,7 @@ export default function AdminCustomers() {
         prev.map((item) => (item.id === updated.id ? updated : item))
       );
       setBanner({
-        type: "success",
+        variant: "success",
         message:
           updated.role === "admin"
             ? `${updated.fullName || updated.email} artık yönetici`
@@ -117,7 +117,7 @@ export default function AdminCustomers() {
       });
       if (selectedUser?.id === updated.id) setSelectedUser(updated);
     } catch (error) {
-      setBanner({ type: "error", message: extractMessage(error) });
+      setBanner({ variant: "danger", message: extractMessage(error) });
     } finally {
       setPendingUserId(null);
     }

@@ -1,15 +1,15 @@
 import jwt from "jsonwebtoken";
 
 function getSecret() {
-  const secret = String(
-    process.env.MAINTENANCE_ANNOUNCEMENT_SECRET ||
-      process.env.JWT_ACCESS_SECRET ||
-      ""
-  ).trim();
+  const secret = String(process.env.MAINTENANCE_ANNOUNCEMENT_SECRET || "").trim();
   if (!secret) {
     throw new Error("MAINTENANCE_ANNOUNCEMENT_SECRET yapılandırılmamış");
   }
   return secret;
+}
+
+export function assertMaintenanceAnnouncementSecretConfigured() {
+  return getSecret();
 }
 
 export function signMaintenanceAnnouncementUnsubscribeToken({

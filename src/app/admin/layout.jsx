@@ -58,6 +58,7 @@ function AdminLoginScreen({ onLogin }) {
                   const loginResult = await authApi.login({
                     email: values.email,
                     password: values.pass,
+                    turnstileToken: values.turnstileToken,
                   });
                   if ((loginResult?.user?.role || "").toLowerCase() !== "admin") {
                     await authApi.logout();

@@ -52,11 +52,22 @@ export default function TurnstileWidget({
   const autoId = useId().replace(/:/g, "");
   const containerRef = useRef(null);
   const widgetIdRef = useRef(null);
+  const onTokenChangeRef = useRef(onTokenChange);
+  const onErrorRef = useRef(onError);
   const [loading, setLoading] = useState(Boolean(siteKey));
+
+  useEffect(() => {
+    onTokenChangeRef.current = onTokenChange;
+  }, [onTokenChange]);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
 
   useEffect(() => {
     if (!siteKey || !containerRef.current) return undefined;
     let mounted = true;
+    setLoading(true);
 
     ensureTurnstileScript()
       .then((turnstile) => {
@@ -75,14 +86,14 @@ export default function TurnstileWidget({
           sitekey: siteKey,
           theme,
           callback: (token) => {
-            onTokenChange?.(String(token || ""));
+            onTokenChangeRef.current?.(String(token || ""));
           },
           "expired-callback": () => {
-            onTokenChange?.("");
+            onTokenChangeRef.current?.("");
           },
           "error-callback": () => {
-            onTokenChange?.("");
-            onError?.("Doğrulama yüklenemedi. Lütfen tekrar deneyin.");
+            onTokenChangeRef.current?.("");
+            onErrorRef.current?.("Doğrulama yüklenemedi. Lütfen tekrar deneyin.");
           },
         });
         setLoading(false);
@@ -90,8 +101,8 @@ export default function TurnstileWidget({
       .catch(() => {
         if (!mounted) return;
         setLoading(false);
-        onTokenChange?.("");
-        onError?.("Doğrulama servisi yüklenemedi. Lütfen tekrar deneyin.");
+        onTokenChangeRef.current?.("");
+        onErrorRef.current?.("Doğrulama servisi yüklenemedi. Lütfen tekrar deneyin.");
       });
 
     return () => {
@@ -106,7 +117,7 @@ export default function TurnstileWidget({
       }
       widgetIdRef.current = null;
     };
-  }, [onError, onTokenChange, siteKey, theme]);
+  }, [siteKey, theme]);
 
   useEffect(() => {
     if (!siteKey || resetSignal === 0) return;
@@ -114,11 +125,11 @@ export default function TurnstileWidget({
     if (!turnstile || widgetIdRef.current == null) return;
     try {
       turnstile.reset(widgetIdRef.current);
-      onTokenChange?.("");
+      onTokenChangeRef.current?.("");
     } catch {
       // ignore reset failures
     }
-  }, [onTokenChange, resetSignal, siteKey]);
+  }, [resetSignal, siteKey]);
 
   if (!siteKey) return null;
 
