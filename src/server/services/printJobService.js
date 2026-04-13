@@ -40,15 +40,23 @@ function collectSelectionProductIds(items = []) {
 async function buildSelectionProductNameMap(items = [], options = {}) {
   const ids = collectSelectionProductIds(items);
   if (!ids.length) return new Map();
-  const query = Product.find({ _id: { $in: ids } }).select("name");
-  if (options.session) query.session(options.session);
-  const products = await query.lean();
-  return new Map(
-    products.map((product) => [
-      product?._id?.toString?.() || "",
-      product?.name || "",
-    ])
-  );
+  try {
+    const query = Product.find({ _id: { $in: ids } }).select("name");
+    if (options.session) query.session(options.session);
+    const products = await query.lean();
+    return new Map(
+      products.map((product) => [
+        product?._id?.toString?.() || "",
+        product?.name || "",
+      ])
+    );
+  } catch (error) {
+    console.error("Failed to resolve print selection product names", {
+      ids,
+      error: error?.message || error,
+    });
+    return new Map();
+  }
 }
 
 function normalizeSelections(selections = [], productNameMap = new Map()) {
@@ -133,104 +141,213 @@ function normalizeAccountingStockUsage(stockUsage = []) {
 export async function buildPrintJobSnapshot(order, options = {}) {
   if (!order) return null;
 
-  const selectionProductNameMap = await buildSelectionProductNameMap(
-    order.items,
-    options
-  );
+  try {
+    const selectionProductNameMap = await buildSelectionProductNameMap(
+      order.items,
+      options
+    );
 
-  return {
-    orderNumber: order.orderNumber || order._id?.toString?.() || "",
-    createdAt: order.createdAt || new Date(),
-    note: order.note || "",
-    status: order.status || "pending",
-    customerEmail:
-      order.customer?.email ||
-      order.user?.email ||
-      order.payment?.payer?.email ||
-      "",
-    user: pickUserSnapshot(order.user),
-    customer: {
-      fullName: order.customer?.fullName || "",
-      email: order.customer?.email || "",
-      phone: order.customer?.phone || "",
-      isGuest: order.customer?.isGuest === true,
-    },
-    address: {
-      fullName: order.address?.fullName || "",
-      phone: order.address?.phone || "",
-      country: order.address?.country || "",
-      city: order.address?.city || "",
-      district: order.address?.district || "",
-      postalCode: order.address?.postalCode || "",
-      addressLine: order.address?.addressLine || "",
-    },
-    payment: {
-      method: order.payment?.method || "",
-      provider: order.payment?.provider || null,
-      status: order.payment?.status || "",
-      paidAt: order.payment?.paidAt || null,
-      currency: order.payment?.currency || "TRY",
-      amount: Number(order.payment?.amount || order.total || 0) || 0,
-      txnId: order.payment?.txnId || "",
-    },
-    items: Array.isArray(order.items)
-      ? order.items.map((item) => ({
-          kind: item.kind || "product",
-          ref: item.ref?.toString?.() || item.ref || "",
-          name: item.name || "",
-          unitPrice: Number(item.unitPrice || 0) || 0,
-          originalUnitPrice: Number(item.originalUnitPrice || 0) || 0,
-          qty: Number(item.qty || 1) || 1,
-          image: item.image || "",
-          variant: item.variant
-            ? {
-                color: item.variant.color || null,
-                size: item.variant.size || null,
-                attribute: item.variant.attribute || null,
-              }
-            : null,
-          pricing: normalizeItemPricing(item.pricing),
-          selections: normalizeSelections(
-            item.selections,
-            selectionProductNameMap
-          ),
-        }))
-      : [],
-    subtotal: Number(order.subtotal || 0) || 0,
-    coupon: order?.coupon?.code
-      ? {
-          code: order.coupon.code || null,
-          percentage: Number(order.coupon.percentage || 0) || 0,
-          discountAmount: Number(order.coupon.discountAmount || 0) || 0,
-        }
-      : null,
-    pricing: order?.pricing
-      ? {
-          baseSubtotal: Number(order.pricing.baseSubtotal || 0) || 0,
-          standardDiscountAmount:
-            Number(order.pricing.standardDiscountAmount || 0) || 0,
-          stackedDiscountAmount:
-            Number(order.pricing.stackedDiscountAmount || 0) || 0,
-          couponDiscountAmount:
-            Number(order.pricing.couponDiscountAmount || 0) || 0,
-          stacked: order.pricing.stacked
-            ? {
-                percentage: Number(order.pricing.stacked.percentage || 0) || 0,
-                quantity: Number(order.pricing.stacked.quantity || 0) || 0,
-              }
-            : null,
-        }
-      : null,
-    shipping: Number(order.shipping || 0) || 0,
-    shippingName: order.shippingName || "Standart Kargo",
-    total: Number(order.total || 0) || 0,
-    accounting: {
-      stockApplied: order.accounting?.stockApplied === true,
-      couponConsumed: order.accounting?.couponConsumed === true,
-      stockUsage: normalizeAccountingStockUsage(order.accounting?.stockUsage),
-      accountedAt: order.accounting?.accountedAt || null,
-    },
-  };
+    return {
+      orderNumber: order.orderNumber || order._id?.toString?.() || "",
+      createdAt: order.createdAt || new Date(),
+      note: order.note || "",
+      status: order.status || "pending",
+      customerEmail:
+        order.customer?.email ||
+        order.user?.email ||
+        order.payment?.payer?.email ||
+        "",
+      user: pickUserSnapshot(order.user),
+      customer: {
+        fullName: order.customer?.fullName || "",
+        email: order.customer?.email || "",
+        phone: order.customer?.phone || "",
+        isGuest: order.customer?.isGuest === true,
+      },
+      address: {
+        fullName: order.address?.fullName || "",
+        phone: order.address?.phone || "",
+        country: order.address?.country || "",
+        city: order.address?.city || "",
+        district: order.address?.district || "",
+        postalCode: order.address?.postalCode || "",
+        addressLine: order.address?.addressLine || "",
+      },
+      payment: {
+        method: order.payment?.method || "",
+        provider: order.payment?.provider || null,
+        status: order.payment?.status || "",
+        paidAt: order.payment?.paidAt || null,
+        currency: order.payment?.currency || "TRY",
+        amount: Number(order.payment?.amount || order.total || 0) || 0,
+        txnId: order.payment?.txnId || "",
+      },
+      items: Array.isArray(order.items)
+        ? order.items.map((item) => ({
+            kind: item.kind || "product",
+            ref: item.ref?.toString?.() || item.ref || "",
+            name: item.name || "",
+            unitPrice: Number(item.unitPrice || 0) || 0,
+            originalUnitPrice: Number(item.originalUnitPrice || 0) || 0,
+            qty: Number(item.qty || 1) || 1,
+            image: item.image || "",
+            variant: item.variant
+              ? {
+                  color: item.variant.color || null,
+                  size: item.variant.size || null,
+                  attribute: item.variant.attribute || null,
+                }
+              : null,
+            pricing: normalizeItemPricing(item.pricing),
+            selections: normalizeSelections(
+              item.selections,
+              selectionProductNameMap
+            ),
+          }))
+        : [],
+      subtotal: Number(order.subtotal || 0) || 0,
+      coupon: order?.coupon?.code
+        ? {
+            code: order.coupon.code || null,
+            percentage: Number(order.coupon.percentage || 0) || 0,
+            discountAmount: Number(order.coupon.discountAmount || 0) || 0,
+          }
+        : null,
+      pricing: order?.pricing
+        ? {
+            baseSubtotal: Number(order.pricing.baseSubtotal || 0) || 0,
+            standardDiscountAmount:
+              Number(order.pricing.standardDiscountAmount || 0) || 0,
+            stackedDiscountAmount:
+              Number(order.pricing.stackedDiscountAmount || 0) || 0,
+            couponDiscountAmount:
+              Number(order.pricing.couponDiscountAmount || 0) || 0,
+            stacked: order.pricing.stacked
+              ? {
+                  percentage: Number(order.pricing.stacked.percentage || 0) || 0,
+                  quantity: Number(order.pricing.stacked.quantity || 0) || 0,
+                }
+              : null,
+          }
+        : null,
+      shipping: Number(order.shipping || 0) || 0,
+      shippingName: order.shippingName || "Standart Kargo",
+      total: Number(order.total || 0) || 0,
+      accounting: {
+        stockApplied: order.accounting?.stockApplied === true,
+        couponConsumed: order.accounting?.couponConsumed === true,
+        stockUsage: normalizeAccountingStockUsage(order.accounting?.stockUsage),
+        accountedAt: order.accounting?.accountedAt || null,
+      },
+    };
+  } catch (error) {
+    console.error("Failed to build rich print job snapshot, using fallback", {
+      orderId: order?._id?.toString?.() || "",
+      orderNumber: order?.orderNumber || "",
+      error: error?.message || error,
+    });
+
+    return {
+      orderNumber: order.orderNumber || order._id?.toString?.() || "",
+      createdAt: order.createdAt || new Date(),
+      note: order.note || "",
+      status: order.status || "pending",
+      customerEmail:
+        order.customer?.email ||
+        order.user?.email ||
+        order.payment?.payer?.email ||
+        "",
+      user: pickUserSnapshot(order.user),
+      customer: {
+        fullName: order.customer?.fullName || "",
+        email: order.customer?.email || "",
+        phone: order.customer?.phone || "",
+        isGuest: order.customer?.isGuest === true,
+      },
+      address: {
+        fullName: order.address?.fullName || "",
+        phone: order.address?.phone || "",
+        country: order.address?.country || "",
+        city: order.address?.city || "",
+        district: order.address?.district || "",
+        postalCode: order.address?.postalCode || "",
+        addressLine: order.address?.addressLine || "",
+      },
+      payment: {
+        method: order.payment?.method || "",
+        provider: order.payment?.provider || null,
+        status: order.payment?.status || "",
+        paidAt: order.payment?.paidAt || null,
+        currency: order.payment?.currency || "TRY",
+        amount: Number(order.payment?.amount || order.total || 0) || 0,
+        txnId: order.payment?.txnId || "",
+      },
+      items: Array.isArray(order.items)
+        ? order.items.map((item) => ({
+            kind: item.kind || "product",
+            ref: item.ref?.toString?.() || item.ref || "",
+            name: item.name || "",
+            unitPrice: Number(item.unitPrice || 0) || 0,
+            originalUnitPrice: Number(item.originalUnitPrice || 0) || 0,
+            qty: Number(item.qty || 1) || 1,
+            image: item.image || "",
+            variant: item.variant
+              ? {
+                  color: item.variant.color || null,
+                  size: item.variant.size || null,
+                  attribute: item.variant.attribute || null,
+                }
+              : null,
+            pricing: normalizeItemPricing(item.pricing),
+            selections: Array.isArray(item.selections)
+              ? item.selections.map((selection) => ({
+                  productId:
+                    selection?.productId?.toString?.() || selection?.productId || "",
+                  productName: "",
+                  color: selection?.color || null,
+                  size: selection?.size || null,
+                  attribute: selection?.attribute || null,
+                  qtyInSet: Number(selection?.qtyInSet || 1) || 1,
+                }))
+              : [],
+          }))
+        : [],
+      subtotal: Number(order.subtotal || 0) || 0,
+      coupon: order?.coupon?.code
+        ? {
+            code: order.coupon.code || null,
+            percentage: Number(order.coupon.percentage || 0) || 0,
+            discountAmount: Number(order.coupon.discountAmount || 0) || 0,
+          }
+        : null,
+      pricing: order?.pricing
+        ? {
+            baseSubtotal: Number(order.pricing.baseSubtotal || 0) || 0,
+            standardDiscountAmount:
+              Number(order.pricing.standardDiscountAmount || 0) || 0,
+            stackedDiscountAmount:
+              Number(order.pricing.stackedDiscountAmount || 0) || 0,
+            couponDiscountAmount:
+              Number(order.pricing.couponDiscountAmount || 0) || 0,
+            stacked: order.pricing.stacked
+              ? {
+                  percentage: Number(order.pricing.stacked.percentage || 0) || 0,
+                  quantity: Number(order.pricing.stacked.quantity || 0) || 0,
+                }
+              : null,
+          }
+        : null,
+      shipping: Number(order.shipping || 0) || 0,
+      shippingName: order.shippingName || "Standart Kargo",
+      total: Number(order.total || 0) || 0,
+      accounting: {
+        stockApplied: order.accounting?.stockApplied === true,
+        couponConsumed: order.accounting?.couponConsumed === true,
+        stockUsage: normalizeAccountingStockUsage(order.accounting?.stockUsage),
+        accountedAt: order.accounting?.accountedAt || null,
+      },
+    };
+  }
 }
 
 export function canOrderCreatePrintJob(order) {
