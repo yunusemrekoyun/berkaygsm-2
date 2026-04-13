@@ -21,21 +21,23 @@ export default function SuccessPage() {
     .trim()
     .toLowerCase();
   const messageParam = String(searchParams.get("message") || "").trim();
-  // Başarılı ödeme callback'i bu email'i redirect URL'ye ekler; misafir trackOrder
-  // doğrulaması için kullanılır. Kayıtlı kullanıcılar JWT ile eriştiğinden etkilenmez.
+  // Başarılı ödeme callback'i bu email'i redirect URL'ye ekler.
+  // Public trackOrder şu an sipariş koduyla çalıştığı için bu alan zorunlu değil,
+  // ancak redirect yapısı geriye dönük uyumluluk için korunur.
   const emailParam = String(searchParams.get("email") || "").trim();
   const [order, setOrder] = useState(null);
   const { clearCart, clearCoupon } = useCart() || {};
   const hasSession = hasAuthSession();
+  const hasCallbackStatus = Boolean(statusParam);
 
   useEffect(() => {
-    if (!orderId && !hasSession) {
+    if (!orderId && !hasCallbackStatus && !hasSession) {
       navigate(
         `/account?view=login&redirect=${encodeURIComponent("/checkout/success")}`,
         { replace: true }
       );
     }
-  }, [hasSession, navigate, orderId]);
+  }, [hasCallbackStatus, hasSession, navigate, orderId]);
 
   useEffect(() => {
     let mounted = true;
@@ -59,7 +61,7 @@ export default function SuccessPage() {
     return () => {
       mounted = false;
     };
-  }, [orderId]);
+  }, [emailParam, orderId]);
 
   const derivedStatus = order
     ? String(order?.payment?.status || "").toLowerCase() === "failed"

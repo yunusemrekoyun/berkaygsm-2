@@ -96,8 +96,7 @@ export function canOrderCreatePrintJob(order) {
   const paymentStatus = String(order.payment?.status || "").toLowerCase();
   const orderStatus = String(order.status || "").toLowerCase();
   if (paymentStatus !== "success") return false;
-  if (["cancelled", "failed"].includes(orderStatus)) return false;
-  return true;
+  return ["paid", "shipped", "completed"].includes(orderStatus);
 }
 
 export function shapePrintJob(job) {

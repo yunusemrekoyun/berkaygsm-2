@@ -43,7 +43,7 @@ async function findOrderByIdOrNumber(orderIdOrNumber) {
 export async function claimPrintJob(req, res) {
   try {
     const agentId = normalizeString(
-      req.body?.agentId || req.printAgentId,
+      req.printAgentId || req.body?.agentId,
       "print-agent"
     );
     const printerName = normalizeString(

@@ -706,6 +706,23 @@ function buildPaymentSnapshotFromRetrieveResult(retrieveResult, paymentStatus) {
   };
 }
 
+function toMinorUnits(value) {
+  return Math.round(Number(value || 0) * 100);
+}
+
+export function isInstallmentPaidPriceValid(expectedTotal, paymentSnapshot) {
+  const expected = toMinorUnits(expectedTotal || 0);
+  const basketPrice = toMinorUnits(paymentSnapshot?.price || 0);
+  const paidPrice = toMinorUnits(paymentSnapshot?.paidPrice || 0);
+  const installment = Math.max(1, Number(paymentSnapshot?.installment || 1) || 1);
+
+  if (Math.abs(expected - basketPrice) > 1) return false;
+  if (installment <= 1) {
+    return Math.abs(expected - paidPrice) <= 1;
+  }
+  return paidPrice >= expected;
+}
+
 function buildAddressPayload(addressSnap) {
   return {
     address: truncateText(addressSnap?.addressLine || "-", 400),
@@ -835,9 +852,7 @@ async function finalizePaymentSession(sessionDoc, retrieveResult, source) {
   }
 
   const expectedTotal = roundCurrency(sessionDoc.pricing?.total || 0);
-  const retrievedPrice = paymentSnapshot.price;
-  const retrievedPaidPrice = paymentSnapshot.paidPrice;
-  if (expectedTotal !== retrievedPrice || expectedTotal !== retrievedPaidPrice) {
+  if (!isInstallmentPaidPriceValid(expectedTotal, paymentSnapshot)) {
     await markSessionFailure(
       sessionDoc._id,
       "Ödeme tutarı doğrulanamadı. Sipariş manuel kontrole alındı.",
@@ -864,12 +879,17 @@ async function finalizePaymentSession(sessionDoc, retrieveResult, source) {
         };
       }
 
+      const activeReservedStockEntries = hasActiveStockReservation(currentSession)
+        ? getSessionReservationEntries(currentSession)
+        : [];
+
       const prepared = await buildOrderPreparation({
         userId:
           currentSession.user?.toString?.() || currentSession.user || null,
         addressSnapshot: currentSession.addressSnapshot,
         items: currentSession.items,
         couponCode: currentSession.couponCode || null,
+        reservedStockEntries: activeReservedStockEntries,
       });
 
       if (!comparePricingSnapshots(prepared.summary, currentSession.pricing)) {
@@ -898,9 +918,7 @@ async function finalizePaymentSession(sessionDoc, retrieveResult, source) {
           ? null
           : Number(retrieveResult.fraudStatus);
 
-      let reservedStockEntries = hasActiveStockReservation(currentSession)
-        ? getSessionReservationEntries(currentSession)
-        : [];
+      let reservedStockEntries = activeReservedStockEntries;
 
       if (!reservedStockEntries.length) {
         const reservationResult = await reservePreparedStock(prepared.details, {
@@ -939,7 +957,7 @@ async function finalizePaymentSession(sessionDoc, retrieveResult, source) {
           currency: String(
             retrieveResult.currency || currentSession.pricing?.currency || "TRY"
           ),
-          amount: retrievedPaidPrice,
+          amount: paymentSnapshot.paidPrice,
           payer: {
             email: currentSession.customer?.email || null,
             name:
@@ -1001,6 +1019,7 @@ async function finalizePaymentSession(sessionDoc, retrieveResult, source) {
         status: "manual_review",
         phase: "finalize",
         code: error.code || "",
+        payment: paymentSnapshot,
       }
     );
     return { status: "manual_review" };

@@ -54,7 +54,7 @@ export default function ProductDetail({ product = {} }) {
   }, [product.images]);
 
   const inventory = useMemo(() => product.inventory || [], [product.inventory]);
-  const { addToCart, items: cartItems = [] } = useCart();
+  const { addToCart } = useCart();
 
   const colorOptions = useMemo(() => {
     if (product.showColors === false) return [];
@@ -216,26 +216,10 @@ export default function ProductDetail({ product = {} }) {
     selectedSize,
   ]);
 
-  const cartQtyForVariant = useMemo(() => {
-    if (!productId) return 0;
-    return cartItems.reduce((sum, item) => {
-      const sameProduct =
-        item?.kind !== "set" &&
-        String(item?.productId || item?.id || "") === String(productId);
-      const sameColor = normalize(item?.color) === normalize(selectedColor);
-      const sameSize = normalize(item?.size) === normalize(selectedSize);
-      const sameAttribute =
-        normalize(item?.attribute) === normalize(selectedAttribute);
-      return sameProduct && sameColor && sameSize && sameAttribute
-        ? sum + (Number(item?.qty) || 0)
-        : sum;
-    }, 0);
-  }, [cartItems, productId, selectedAttribute, selectedColor, selectedSize]);
-
   const availableStock = useMemo(() => {
     if (currentStock === null) return null;
-    return Math.max(0, currentStock - cartQtyForVariant);
-  }, [cartQtyForVariant, currentStock]);
+    return Math.max(0, currentStock);
+  }, [currentStock]);
 
   useEffect(() => {
     if (

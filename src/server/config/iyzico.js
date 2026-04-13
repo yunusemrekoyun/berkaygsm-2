@@ -1,5 +1,6 @@
 const SANDBOX_BASE_URL = "https://sandbox-api.iyzipay.com";
 const LIVE_BASE_URL = "https://api.iyzipay.com";
+const DEFAULT_ENABLED_INSTALLMENTS = [1, 2, 3, 6, 9, 12];
 
 function toBoolean(value, fallback = false) {
   if (value === undefined || value === null || value === "") return fallback;
@@ -19,6 +20,25 @@ function ensureAbsoluteUrl(url) {
   } catch {
     return "";
   }
+}
+
+function parseEnabledInstallments(value) {
+  if (Array.isArray(value)) {
+    const normalized = value
+      .map((item) => Number(item))
+      .filter((item) => Number.isInteger(item) && item > 0);
+    return normalized.length ? [...new Set(normalized)] : DEFAULT_ENABLED_INSTALLMENTS;
+  }
+
+  const raw = String(value || "").trim();
+  if (!raw) return DEFAULT_ENABLED_INSTALLMENTS;
+
+  const normalized = raw
+    .split(",")
+    .map((item) => Number(String(item || "").trim()))
+    .filter((item) => Number.isInteger(item) && item > 0);
+
+  return normalized.length ? [...new Set(normalized)] : DEFAULT_ENABLED_INSTALLMENTS;
 }
 
 export function getIyzicoConfig() {
@@ -47,7 +67,9 @@ export function getIyzicoConfig() {
       5,
       Number(process.env.IYZICO_SESSION_TTL_MINUTES || 30) || 30
     ),
-    enabledInstallments: [1],
+    enabledInstallments: parseEnabledInstallments(
+      process.env.IYZICO_ENABLED_INSTALLMENTS
+    ),
   };
 }
 

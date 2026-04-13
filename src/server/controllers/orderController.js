@@ -888,6 +888,31 @@ async function hydrateMissingProductStockBuckets(
   });
 }
 
+function buildReservedStockEntryMap(stockEntries = []) {
+  const reservedMap = new Map();
+
+  for (const entry of Array.isArray(stockEntries) ? stockEntries : []) {
+    const productId = String(entry?.productId || "").trim();
+    if (!productId) continue;
+
+    const variantKey = makeVariantKey({
+      color: entry?.color ?? null,
+      size: entry?.size ?? null,
+      attribute: entry?.attribute ?? null,
+    });
+    const reservedQty = Math.max(
+      0,
+      Math.floor(Number(entry?.qty || 0) || 0)
+    );
+    if (!variantKey || reservedQty <= 0) continue;
+
+    const key = `${productId}::${variantKey}`;
+    reservedMap.set(key, (reservedMap.get(key) || 0) + reservedQty);
+  }
+
+  return reservedMap;
+}
+
 function mergeVariantNeed(targetMap, productId, variantKey, qty, source) {
   const pid = String(productId || "").trim();
   const key = String(variantKey || "").trim();
@@ -912,8 +937,10 @@ async function validateCombinedTrackedStock({
   productStockMap,
   catalogNeedMap,
   setNeedMap,
+  reservedStockEntries = [],
 }) {
   const combinedNeedMap = new Map();
+  const reservedStockMap = buildReservedStockEntryMap(reservedStockEntries);
 
   for (const [pid, variants] of catalogNeedMap.entries()) {
     for (const [vkey, entry] of variants.entries()) {
@@ -956,13 +983,15 @@ async function validateCombinedTrackedStock({
               Number(
                 inventoryRow?.stockCatalog ??
                   inventoryRow?.stock ??
-                  inventoryRow?.qtyOnHand ??
+                inventoryRow?.qtyOnHand ??
                   0
               ) || 0
             )
           );
+      const reserved = reservedStockMap.get(`${pid}::${variantKey}`) || 0;
+      const effectiveAvailable = available + reserved;
 
-      if (available < requirement.totalQty) {
+      if (effectiveAvailable < requirement.totalQty) {
         const hasDirect = requirement.directQty > 0;
         const hasSet = requirement.setQty > 0;
         const message =
@@ -973,10 +1002,13 @@ async function validateCombinedTrackedStock({
               : "Ürün için yeterli stok yok";
 
         fail(400, message, {
+          code: "INSUFFICIENT_STOCK",
           productId: pid,
           variant: decodeVariantKey(variantKey),
           needed: requirement.totalQty,
-          available,
+          available: effectiveAvailable,
+          availableNow: available,
+          reserved,
           directQty: requirement.directQty,
           setQty: requirement.setQty,
         });
@@ -991,6 +1023,7 @@ async function buildOrderPreparation({
   addressSnapshot = null,
   items = [],
   couponCode = null,
+  reservedStockEntries = [],
 }) {
   if (!Array.isArray(items) || items.length === 0) {
     fail(400, "Sepet boş");
@@ -1205,6 +1238,7 @@ async function buildOrderPreparation({
     productStockMap,
     catalogNeedMap,
     setNeedMap,
+    reservedStockEntries,
   });
 
   let couponSummary = null;
@@ -1773,7 +1807,9 @@ function variantKeyOf(row) {
 export {
   buildOrderPreparation,
   buildPreparedStockUsageEntries,
+  buildReservedStockEntryMap,
   finalizeOrder,
+  validateCombinedTrackedStock,
   reservePreparedStock,
   releaseReservedStock,
   shapeOrder,
@@ -1789,6 +1825,7 @@ function fail(status, message, extra = null) {
   error.status = status;
   if (extra && Object.keys(extra || {}).length) {
     error.extra = extra;
+    if (extra.code) error.code = extra.code;
   }
   throw error;
 }
@@ -1972,37 +2009,15 @@ export async function getOrder(req, res) {
   }
 }
 
-/** GET /api/orders/track/:idOrNumber?email=<customer-email>
+/** GET /api/orders/track/:idOrNumber
  *
- * Public sipariş takibi. Sipariş numarası veya ID yanı sıra müşteri emaili
- * zorunludur; eşleşmezse 404 döner (sipariş varlığı ifşa edilmez).
+ * Public sipariş takibi. Sipariş numarası veya ID ile çalışır.
  * Response `shapePublicOrder` ile maskelenmiş gelir.
  */
 export async function trackOrder(req, res) {
   try {
-    const emailParam = String(req.query.email || "").trim().toLowerCase();
-    if (!emailParam) {
-      return res
-        .status(400)
-        .json({ message: "Sipariş takibi için e-posta adresi gerekli" });
-    }
-
     const order = await findOrderByIdOrNumber(req.params.idOrNumber);
     if (!order) return res.status(404).json({ message: "Sipariş bulunamadı" });
-
-    // Siparişin kayıtlı email adresiyle karşılaştır (customer snapshot → payer).
-    const orderEmail = String(
-      order.customer?.email ||
-        order.payment?.payer?.email ||
-        ""
-    )
-      .trim()
-      .toLowerCase();
-
-    if (!orderEmail || emailParam !== orderEmail) {
-      // Email eşleşmediğinde sipariş varlığını gizlemek için 404 kullanılır.
-      return res.status(404).json({ message: "Sipariş bulunamadı" });
-    }
 
     res.json({ order: shapePublicOrder(order) });
   } catch (err) {

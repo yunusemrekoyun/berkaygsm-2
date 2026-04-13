@@ -40,7 +40,7 @@ const PAYMENT_METHOD_LABELS = {
 const PRINT_JOB_STATUS_LABELS = {
   pending: "Sırada",
   processing: "Yazdırılıyor",
-  printed: "Yazdırıldı",
+  printed: "Yazıcıya Gönderildi",
   failed: "Hata",
   cancelled: "İptal",
 };
@@ -426,7 +426,7 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
                             </div>
                             {currentPrintJob.printedAt && (
                               <div>
-                                Yazdırıldı:{" "}
+                                Yazıcıya gönderildi:{" "}
                                 <strong className="text-primary">
                                   {formatOrderDateTime(currentPrintJob.printedAt)}
                                 </strong>

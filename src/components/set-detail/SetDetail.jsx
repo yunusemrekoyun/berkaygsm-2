@@ -15,7 +15,7 @@ export default function SetDetail({ setDoc }) {
   // Hook'lar her zaman çağrılıyor (ESLint hatası çözümü)
   const [qty, setQty] = useState(1);
   const [isFav, setIsFav] = useState(false);
-  const { items: cartItems = [] } = useCart() || {};
+  useCart();
   const navigate = useNavigate();
   const t = useStaticTranslation();
   const favoritesCopy = t("favorites") || {};
@@ -54,20 +54,10 @@ export default function SetDetail({ setDoc }) {
     return Number.isFinite(minPossible) ? minPossible : Infinity;
   }, [setDoc?.products, setDoc?.stock]);
 
-  const cartQtyForSet = useMemo(() => {
-    if (!setDoc?.id) return 0;
-    return cartItems.reduce((sum, item) => {
-      const sameSet =
-        item?.kind === "set" &&
-        String(item?.setId || item?.id || "") === String(setDoc.id);
-      return sameSet ? sum + (Number(item?.qty) || 0) : sum;
-    }, 0);
-  }, [cartItems, setDoc?.id]);
-
   const availableStock = useMemo(() => {
     if (!Number.isFinite(maxStock)) return Infinity;
-    return Math.max(0, maxStock - cartQtyForSet);
-  }, [cartQtyForSet, maxStock]);
+    return Math.max(0, maxStock);
+  }, [maxStock]);
 
   useEffect(() => {
     if (!Number.isFinite(availableStock)) return;
