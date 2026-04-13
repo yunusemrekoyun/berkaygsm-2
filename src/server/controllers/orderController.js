@@ -38,10 +38,14 @@ import {
   buildOrderCouponContext,
   buildOrderStockUsageEntries,
   deriveOrderAccountingState,
+  pickAccountingStockUsageSnapshot,
   shouldOrderHaveAccountingEffects,
 } from "../utils/orderAccounting.js";
 
 const PAYMENT_CURRENCY = (process.env.PAYMENT_CURRENCY || "TRY").toUpperCase();
+const DEFAULT_INVOICE_IDENTITY_NUMBER = "11111111111";
+const DEFAULT_INVOICE_TYPE = "Bireysel";
+const DEFAULT_INVOICE_TAX_OFFICE = "\u00c7inili";
 
 function generateOrderNumber() {
   const now = new Date();
@@ -97,6 +101,22 @@ function normalize(v) {
   return s ? s.toLowerCase() : null;
 }
 
+function normalizeInvoiceIdentityNumber(value) {
+  const digits = String(value || "").replace(/\D+/g, "");
+  return digits.length === 11 ? digits : DEFAULT_INVOICE_IDENTITY_NUMBER;
+}
+
+function normalizeInvoiceSnapshot(snapshot = null) {
+  const source = snapshot && typeof snapshot === "object" ? snapshot : {};
+  return {
+    identityNumber: normalizeInvoiceIdentityNumber(source.identityNumber),
+    type: String(source.type || DEFAULT_INVOICE_TYPE).trim() || DEFAULT_INVOICE_TYPE,
+    taxOffice:
+      String(source.taxOffice || DEFAULT_INVOICE_TAX_OFFICE).trim() ||
+      DEFAULT_INVOICE_TAX_OFFICE,
+  };
+}
+
 function shapeOrder(doc, printJob = null) {
   if (!doc) return null;
   const rawUser = doc.user;
@@ -137,6 +157,18 @@ function shapeOrder(doc, printJob = null) {
       phone: customerPhone,
       isGuest: customerSnapshot?.isGuest === true || !userId,
     },
+    invoice: doc.invoice
+      ? {
+          identityNumber:
+            doc.invoice.identityNumber || DEFAULT_INVOICE_IDENTITY_NUMBER,
+          type: doc.invoice.type || DEFAULT_INVOICE_TYPE,
+          taxOffice: doc.invoice.taxOffice || DEFAULT_INVOICE_TAX_OFFICE,
+        }
+      : {
+          identityNumber: DEFAULT_INVOICE_IDENTITY_NUMBER,
+          type: DEFAULT_INVOICE_TYPE,
+          taxOffice: DEFAULT_INVOICE_TAX_OFFICE,
+        },
     items: doc.items.map((i) => ({
       kind: i.kind,
       ref: i.ref?.toString?.() || i.ref,
@@ -302,6 +334,13 @@ function shapePublicOrder(doc) {
       phone: maskPhone(shaped.address.phone),
       // Tam adres satırı public response'da gizlenir; şehir/ilçe yeterlidir.
       addressLine: shaped.address.addressLine ? "***" : "",
+    };
+  }
+
+  if (shaped.invoice) {
+    shaped.invoice = {
+      ...shaped.invoice,
+      identityNumber: "***",
     };
   }
 
@@ -1659,6 +1698,7 @@ async function finalizeOrder(prepared, options = {}) {
 
   let payment;
   let status = options.statusOverride || "pending";
+  const invoice = normalizeInvoiceSnapshot(options.invoiceSnapshot);
 
   if (options.paymentOverride) {
     payment = {
@@ -1707,6 +1747,7 @@ async function finalizeOrder(prepared, options = {}) {
         String(addressSnap?.phone || "").trim(),
       isGuest: options.customerSnapshot?.isGuest === true || !userId,
     },
+    invoice,
     items: orderItems,
     address: addressSnap,
     note: orderNote,
@@ -2201,11 +2242,18 @@ export async function updateOrderStatus(req, res) {
 
       const nextShouldApplyAccounting = shouldOrderHaveAccountingEffects(order);
       const stockEntries = buildOrderStockUsageEntries(order);
+      const existingAccountingStockUsage = Array.isArray(order.accounting?.stockUsage)
+        ? order.accounting.stockUsage
+        : [];
       const couponContext = buildOrderCouponContext(order);
       const orderUserId = order.user?._id?.toString?.() || order.user?.toString?.() || order.user;
 
       let nextStockApplied = accountingState.stockApplied;
       let nextCouponConsumed = accountingState.couponConsumed;
+      let nextAccountingStockUsage = pickAccountingStockUsageSnapshot({
+        existingUsage: existingAccountingStockUsage,
+        fallbackUsage: stockEntries,
+      });
 
       const registerRollback = (callback) => {
         if (tx?.atomic === false && typeof callback === "function") {
@@ -2220,6 +2268,11 @@ export async function updateOrderStatus(req, res) {
             stockEntries,
           });
           nextStockApplied = stockResult.applied;
+          nextAccountingStockUsage = pickAccountingStockUsageSnapshot({
+            existingUsage: existingAccountingStockUsage,
+            appliedUsage: stockResult.stockEntries,
+            fallbackUsage: stockEntries,
+          });
           registerRollback(async () => {
             if (stockResult.stockEntries.length) {
               await restoreStockUsageSnapshot(stockResult.stockEntries);
@@ -2230,6 +2283,10 @@ export async function updateOrderStatus(req, res) {
         if (!nextShouldApplyAccounting && accountingState.stockApplied) {
           await restoreStockUsageSnapshot(stockEntries, session);
           nextStockApplied = false;
+          nextAccountingStockUsage = pickAccountingStockUsageSnapshot({
+            existingUsage: existingAccountingStockUsage,
+            fallbackUsage: stockEntries,
+          });
           registerRollback(async () => {
             if (stockEntries.length) {
               await applyOrderStockAccounting(order, { stockEntries });
@@ -2280,7 +2337,7 @@ export async function updateOrderStatus(req, res) {
         setOrderAccounting(order, {
           stockApplied: nextStockApplied,
           couponConsumed: nextCouponConsumed,
-          stockUsage: stockEntries,
+          stockUsage: nextAccountingStockUsage,
           accountedAt: nextShouldApplyAccounting
             ? accountingState.accountedAt || order.payment?.paidAt || new Date()
             : accountingState.accountedAt || null,

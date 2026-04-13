@@ -143,6 +143,15 @@ const CustomerSnapshotSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const OrderInvoiceSchema = new mongoose.Schema(
+  {
+    identityNumber: { type: String, default: "11111111111" },
+    type: { type: String, default: "Bireysel" },
+    taxOffice: { type: String, default: "\u00c7inili" },
+  },
+  { _id: false }
+);
+
 const PayerSchema = new mongoose.Schema(
   {
     email: { type: String, default: null },
@@ -213,6 +222,7 @@ const OrderSchema = new mongoose.Schema(
       default: null,
     },
     customer: { type: CustomerSnapshotSchema, default: () => ({}) },
+    invoice: { type: OrderInvoiceSchema, default: () => ({}) },
 
     items: { type: [OrderItemSchema], default: [] },
 

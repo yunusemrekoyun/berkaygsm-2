@@ -54,6 +54,15 @@ const SessionCustomerSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const SessionInvoiceSchema = new mongoose.Schema(
+  {
+    identityNumber: { type: String, default: "11111111111" },
+    type: { type: String, default: "Bireysel" },
+    taxOffice: { type: String, default: "\u00c7inili" },
+  },
+  { _id: false }
+);
+
 const SessionPricingSchema = new mongoose.Schema(
   {
     currency: { type: String, default: "TRY" },
@@ -171,6 +180,7 @@ const PaymentSessionSchema = new mongoose.Schema(
       index: true,
     },
     customer: { type: SessionCustomerSchema, default: () => ({}) },
+    invoice: { type: SessionInvoiceSchema, default: () => ({}) },
     order: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Order",

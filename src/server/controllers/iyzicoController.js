@@ -80,6 +80,14 @@ function normalizeIdentityNumber(value) {
   return digits.length === 11 ? digits : "11111111111";
 }
 
+function buildInvoiceSnapshot(identityNumber) {
+  return {
+    identityNumber: normalizeIdentityNumber(identityNumber),
+    type: "Bireysel",
+    taxOffice: "\u00c7inili",
+  };
+}
+
 function splitFullName(fullName) {
   const raw = String(fullName || "").trim();
   if (!raw) return { name: "", surname: "" };
@@ -944,6 +952,7 @@ async function finalizePaymentSession(sessionDoc, retrieveResult, source) {
         session: mongoSession,
         note: currentSession.note || "",
         customerSnapshot: currentSession.customer || null,
+        invoiceSnapshot: currentSession.invoice || buildInvoiceSnapshot(null),
         applyStockDeductions: false,
         stockUsageEntries: reservedStockEntries,
         statusOverride: fraudStatus === 1 ? "paid" : "pending",
@@ -1107,6 +1116,12 @@ export async function initializeIyzicoPayment(req, res) {
         (!requiredStockEntries.length && !existingReservationEntries.length));
 
     if (canReuseExistingSession) {
+      await PaymentSession.findByIdAndUpdate(existingSession._id, {
+        $set: {
+          invoice: buildInvoiceSnapshot(identityNumber),
+        },
+      });
+
       return res.json({
         payment: {
           provider: "iyzico",
@@ -1174,6 +1189,7 @@ export async function initializeIyzicoPayment(req, res) {
               status: "initialized",
               user: req.userId || null,
               customer: buyerContext.customer,
+              invoice: buildInvoiceSnapshot(identityNumber),
               conversationId,
               basketId,
               token: initializeResult.token,

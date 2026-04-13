@@ -184,6 +184,7 @@ import {
   getAdminVisitAnalyticsOverview,
   trackVisit,
 } from "./controllers/analyticsController.js";
+import { getAdminDashboardOverview } from "./controllers/dashboardController.js";
 import {
   claimPrintJob,
   completePrintJob,
@@ -396,6 +397,11 @@ export const routes = [
   route("POST", ["analytics", "track-visit"], [trackVisit]),
 
   // analytics (admin)
+  route(
+    "GET",
+    ["dashboard", "overview"],
+    [requireAuth, requireRole("admin"), getAdminDashboardOverview]
+  ),
   route(
     "GET",
     ["analytics", "overview"],

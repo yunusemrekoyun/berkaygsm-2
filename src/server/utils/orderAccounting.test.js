@@ -3,6 +3,7 @@ import {
   buildOrderCouponContext,
   buildOrderStockUsageEntries,
   deriveOrderAccountingState,
+  pickAccountingStockUsageSnapshot,
   shouldOrderHaveAccountingEffects,
 } from "./orderAccounting.js";
 
@@ -155,5 +156,64 @@ describe("orderAccounting", () => {
         payment: { status: "success" },
       })
     ).toBe(false);
+  });
+
+  it("prefers detailed accounting stock snapshots over simplified fallback entries", () => {
+    expect(
+      pickAccountingStockUsageSnapshot({
+        existingUsage: [
+          {
+            productId: "p1",
+            qty: 1,
+            sku: "SKU-1",
+            previousQtyOnHand: 10,
+            remainingQtyOnHand: 9,
+          },
+        ],
+        fallbackUsage: [
+          {
+            productId: "p1",
+            qty: 1,
+          },
+        ],
+      })
+    ).toEqual([
+      {
+        productId: "p1",
+        qty: 1,
+        sku: "SKU-1",
+        previousQtyOnHand: 10,
+        remainingQtyOnHand: 9,
+      },
+    ]);
+
+    expect(
+      pickAccountingStockUsageSnapshot({
+        existingUsage: [
+          {
+            productId: "p1",
+            qty: 1,
+          },
+        ],
+        appliedUsage: [
+          {
+            productId: "p1",
+            qty: 1,
+            sku: "SKU-2",
+            previousQtyOnHand: 4,
+            remainingQtyOnHand: 3,
+          },
+        ],
+        fallbackUsage: [],
+      })
+    ).toEqual([
+      {
+        productId: "p1",
+        qty: 1,
+        sku: "SKU-2",
+        previousQtyOnHand: 4,
+        remainingQtyOnHand: 3,
+      },
+    ]);
   });
 });

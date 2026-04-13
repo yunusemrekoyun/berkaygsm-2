@@ -149,3 +149,23 @@ export function buildOrderStockUsageEntries(order = {}) {
 
   return Array.from(entries.values());
 }
+
+export function pickAccountingStockUsageSnapshot({
+  existingUsage = [],
+  appliedUsage = [],
+  fallbackUsage = [],
+} = {}) {
+  if (Array.isArray(appliedUsage) && appliedUsage.length) {
+    return appliedUsage;
+  }
+
+  if (Array.isArray(existingUsage) && existingUsage.length) {
+    return existingUsage;
+  }
+
+  if (Array.isArray(fallbackUsage) && fallbackUsage.length) {
+    return fallbackUsage;
+  }
+
+  return [];
+}

@@ -19,6 +19,9 @@ import { formatOrderDateTime } from "./orderPrintTemplate.js";
 import { formatPaymentMethodLabel } from "../../utils/paymentLabels.js";
 
 const VAT_RATE = 0.2;
+const DEFAULT_INVOICE_IDENTITY_NUMBER = "11111111111";
+const DEFAULT_INVOICE_TYPE = "Bireysel";
+const DEFAULT_INVOICE_TAX_OFFICE = "\u00c7inili";
 
 const ORDER_STATUS_LABELS = {
   pending: "Beklemede",
@@ -100,40 +103,44 @@ function buildAddressLine(address) {
 }
 
 function deriveInvoiceIdentity(order) {
-  return firstFilled(
-    order?.invoice?.identityNumber,
-    order?.invoice?.taxNumber,
-    order?.invoice?.tckn,
-    order?.invoice?.vkn,
-    order?.address?.identityNumber,
-    order?.address?.identityNo,
-    order?.address?.tckn,
-    order?.address?.vkn,
-    order?.customer?.identityNumber,
-    order?.customer?.taxNumber,
-    order?.customer?.tckn,
-    order?.customer?.vkn,
-    order?.payment?.payer?.identityNumber,
-    order?.payment?.payer?.taxNumber,
-    order?.payment?.payer?.tckn,
-    order?.payment?.payer?.vkn,
-    order?.user?.identityNumber,
-    order?.user?.taxNumber,
-    order?.user?.tckn,
-    order?.user?.vkn
+  return (
+    firstFilled(
+      order?.invoice?.identityNumber,
+      order?.invoice?.taxNumber,
+      order?.invoice?.tckn,
+      order?.invoice?.vkn,
+      order?.address?.identityNumber,
+      order?.address?.identityNo,
+      order?.address?.tckn,
+      order?.address?.vkn,
+      order?.customer?.identityNumber,
+      order?.customer?.taxNumber,
+      order?.customer?.tckn,
+      order?.customer?.vkn,
+      order?.payment?.payer?.identityNumber,
+      order?.payment?.payer?.taxNumber,
+      order?.payment?.payer?.tckn,
+      order?.payment?.payer?.vkn,
+      order?.user?.identityNumber,
+      order?.user?.taxNumber,
+      order?.user?.tckn,
+      order?.user?.vkn
+    ) || DEFAULT_INVOICE_IDENTITY_NUMBER
   );
 }
 
-function deriveInvoiceType(order, identityNumber) {
-  const explicit = firstFilled(
-    order?.invoice?.type,
-    order?.address?.invoiceType,
-    order?.customer?.invoiceType
+function deriveInvoiceType() {
+  return DEFAULT_INVOICE_TYPE;
+}
+
+function deriveTaxOffice(order) {
+  return (
+    firstFilled(
+      order?.invoice?.taxOffice,
+      order?.address?.taxOffice,
+      order?.customer?.taxOffice
+    ) || DEFAULT_INVOICE_TAX_OFFICE
   );
-  if (explicit) return explicit;
-  if (identityNumber.length === 11) return "Bireysel";
-  if (identityNumber.length === 10) return "Kurumsal";
-  return "";
 }
 
 function getVatBreakdown(grossAmount) {
@@ -185,9 +192,9 @@ function buildCopySummary(summary) {
     `Müşteri: ${summary.customerName}`,
     `E-posta: ${summary.customerEmail || "-"}`,
     `Telefon: ${summary.customerPhone || "-"}`,
-    `TCKN / VKN: ${summary.identityNumber || "-"}`,
-    `Fatura Tipi: ${summary.invoiceType || "Henüz yok"}`,
-    `Vergi Dairesi: ${summary.taxOffice || "-"}`,
+    `TCKN: ${summary.identityNumber}`,
+    `Fatura Tipi: ${summary.invoiceType}`,
+    `Vergi Dairesi: ${summary.taxOffice}`,
     `Adres: ${summary.addressLine}`,
     `Kargo: ${summary.shippingName} (${money(summary.shippingGross)})`,
     `Ara Toplam (İndirim Öncesi): ${money(summary.baseSubtotal)}`,
@@ -440,12 +447,8 @@ export default function OrderInvoiceModal({ orderId, onClose, admin = false }) {
       firstFilled(order.customer?.phone, order.address?.phone, order.user?.phone)
     );
     const identityNumber = deriveInvoiceIdentity(order);
-    const invoiceType = deriveInvoiceType(order, identityNumber);
-    const taxOffice = firstFilled(
-      order?.invoice?.taxOffice,
-      order?.address?.taxOffice,
-      order?.customer?.taxOffice
-    );
+    const invoiceType = deriveInvoiceType();
+    const taxOffice = deriveTaxOffice(order);
 
     const missingFields = [
       !identityNumber && {
@@ -848,7 +851,7 @@ export default function OrderInvoiceModal({ orderId, onClose, admin = false }) {
                     <div className="rounded-2xl border border-[var(--color-border-admin)] bg-white p-4">
                       <MetaRow label="Ad Soyad" value={summary.customerName} />
                       <MetaRow
-                        label="TCKN / VKN"
+                        label="TCKN"
                         value={summary.identityNumber || "Henüz yok"}
                         mono
                         muted={!summary.identityNumber}
