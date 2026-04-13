@@ -7,6 +7,7 @@ import {
   X,
 } from "lucide-react";
 import { orderApi } from "../../api/orders";
+import { customerReceiptConfigApi } from "../../api/customerReceiptConfig.js";
 import { printJobApi } from "../../api/printJobs";
 import OrderPrintSheet from "./OrderPrintSheet.jsx";
 import {
@@ -127,6 +128,7 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
     requeueing: false,
   });
   const [feedback, setFeedback] = useState(null);
+  const [customerReceiptConfig, setCustomerReceiptConfig] = useState(null);
 
   useEffect(() => {
     if (!orderId) return;
@@ -157,6 +159,27 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
       mounted = false;
     };
   }, [orderId, admin]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const config = await customerReceiptConfigApi.getConfig();
+        if (!cancelled) {
+          setCustomerReceiptConfig(config);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Customer receipt config get error:", error);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const printJobLookupId = getOrderLookupId(order, orderId);
 
@@ -191,7 +214,10 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
     };
   }, [admin, printJobLookupId]);
 
-  const printModel = useMemo(() => buildOrderPrintModel(order), [order]);
+  const printModel = useMemo(
+    () => buildOrderPrintModel(order, { customerReceiptConfig }),
+    [order, customerReceiptConfig]
+  );
   const currentPrintJob = order?.printJob || null;
   const printJobBadge = getPrintJobBadge(currentPrintJob?.status);
 

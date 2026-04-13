@@ -75,6 +75,11 @@ const OrderItemPricingSchema = new mongoose.Schema(
 
 const OrderStockUsageSchema = new mongoose.Schema(
   {
+    stockItemId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "StockItem",
+      default: null,
+    },
     productId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
@@ -89,6 +94,9 @@ const OrderStockUsageSchema = new mongoose.Schema(
       enum: ["product", "set_selection"],
       default: "product",
     },
+    sku: { type: String, default: "" },
+    previousQtyOnHand: { type: Number, default: null },
+    remainingQtyOnHand: { type: Number, default: null },
     productName: { type: String, default: "" },
     image: { type: String, default: "" },
   },

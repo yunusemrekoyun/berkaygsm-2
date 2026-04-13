@@ -555,12 +555,22 @@ function buildStockUsageSnapshot(stockUsage = new Map()) {
   return Array.from(stockUsage.values()).map((usage) => {
     const variant = decodeVariantKey(usage.variantKey);
     return {
+      stockItemId: usage.stockItemId || null,
       productId: usage.productId,
       color: variant.color,
       size: variant.size,
       attribute: variant.attribute,
       qty: usage.qty,
       source: usage.source || "product",
+      sku: usage.sku || "",
+      previousQtyOnHand:
+        Number.isFinite(Number(usage.previousQtyOnHand))
+          ? Number(usage.previousQtyOnHand)
+          : null,
+      remainingQtyOnHand:
+        Number.isFinite(Number(usage.remainingQtyOnHand))
+          ? Number(usage.remainingQtyOnHand)
+          : null,
       productName: usage.productName || "",
       image: usage.image || "",
     };
@@ -796,12 +806,22 @@ async function applyOrderStockAccounting(order, options = {}) {
 
     bucket.itemMap.set(variantKey, nextRow);
     appliedUsage.push({
+      stockItemId: nextRow._id,
       productId,
       color: variant.color,
       size: variant.size,
       attribute: variant.attribute,
       qty,
       source: entry?.source || "product",
+      sku: nextRow.sku || "",
+      previousQtyOnHand:
+        Number.isFinite(Number(previousRow?.qtyOnHand))
+          ? Number(previousRow.qtyOnHand)
+          : null,
+      remainingQtyOnHand:
+        Number.isFinite(Number(nextRow?.qtyOnHand))
+          ? Number(nextRow.qtyOnHand)
+          : null,
       productName: entry?.productName || "",
       image: entry?.image || "",
     });
@@ -1535,10 +1555,20 @@ async function finalizeOrder(prepared, options = {}) {
     }
     const current = stockUsage.get(stockId) || {
       id: stockId,
+      stockItemId: stockId,
       productId: pid,
       variantKey: key,
       qty: 0,
       source: "product",
+      sku: stockDoc.sku || "",
+      previousQtyOnHand:
+        Number.isFinite(Number(stockDoc.qtyOnHand))
+          ? Number(stockDoc.qtyOnHand)
+          : null,
+      remainingQtyOnHand:
+        Number.isFinite(Number(stockDoc.qtyOnHand))
+          ? Number(stockDoc.qtyOnHand)
+          : null,
       productName: productMap?.get(pid)?.name || "",
       image: productMap?.get(pid)?.images?.[0]?.url || "",
     };
@@ -1595,6 +1625,14 @@ async function finalizeOrder(prepared, options = {}) {
       if (bucket) {
         bucket.itemMap.set(usage.variantKey, result);
       }
+      usage.stockItemId = result._id;
+      usage.sku = result.sku || usage.sku || "";
+      usage.previousQtyOnHand = Number.isFinite(Number(previousRow?.qtyOnHand))
+        ? Number(previousRow.qtyOnHand)
+        : usage.previousQtyOnHand ?? null;
+      usage.remainingQtyOnHand = Number.isFinite(Number(result?.qtyOnHand))
+        ? Number(result.qtyOnHand)
+        : usage.remainingQtyOnHand ?? null;
 
       const product = productMap?.get(usage.productId) || null;
       await maybeCreateLowStockNotification({

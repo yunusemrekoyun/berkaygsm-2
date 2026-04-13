@@ -5,6 +5,7 @@ import LoadingOverlay from "../../ui/LoadingOverlay.jsx";
 import {
   ArrowLeftRight,
   RefreshCw,
+  ReceiptText,
   Search,
   Truck,
   User2,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import OrderDetailsModal from "../../orders/OrderDetailsModal";
 import OrderInvoiceModal from "../../orders/OrderInvoiceModal";
+import CustomerReceiptDesigner from "./CustomerReceiptDesigner.jsx";
 
 const STATUS_OPTIONS = [
   { value: "", label: "Tümü" },
@@ -71,6 +73,7 @@ export default function AdminOrdersPage() {
   const [selectedInvoiceOrderId, setSelectedInvoiceOrderId] = useState(null);
   const [busyOrderId, setBusyOrderId] = useState(null);
   const [banner, setBanner] = useState(null);
+  const [showCustomerReceiptDesigner, setShowCustomerReceiptDesigner] = useState(false);
 
   const fetchOrders = async (nextPage = page, nextFilters = filters) => {
     setLoading(true);
@@ -160,6 +163,15 @@ export default function AdminOrdersPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() =>
+              setShowCustomerReceiptDesigner((current) => !current)
+            }
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm hover:bg-[var(--color-bg-hover)]"
+          >
+            <ReceiptText className="h-4 w-4" />
+            Musteri Fisi
+          </button>
+          <button
             onClick={onRefresh}
             className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm hover:bg-[var(--color-bg-hover)]"
           >
@@ -175,6 +187,10 @@ export default function AdminOrdersPage() {
           onClose={() => setBanner(null)}
         />
       )}
+
+      {showCustomerReceiptDesigner ? (
+        <CustomerReceiptDesigner onBanner={setBanner} />
+      ) : null}
 
       <section className="relative rounded-3xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] p-4">
         <LoadingOverlay show={loading} />

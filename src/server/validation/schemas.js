@@ -199,6 +199,13 @@ export const printJobFailSchema = z.object({
   retryable: boolish,
 });
 
+export const customerReceiptConfigSchema = z.object({
+  slogan: optionalTrimmed(z.string().max(120)),
+  message: optionalTrimmed(z.string().max(600)),
+  instagramUrl: optionalTrimmed(z.string().max(160)),
+  tiktokUrl: optionalTrimmed(z.string().max(160)),
+});
+
 export const contactMessageSchema = z.object({
   name: z.string().trim().min(2, "Ad Soyad zorunlu").max(120),
   email: z.string().trim().email("Geçerli bir e-posta adresi girin").max(160),

@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Order from "../models/Order.js";
 import { buildOrderLabelTspl } from "../utils/printLabelTspl.js";
+import { resolveCustomerReceiptConfig } from "./customerReceiptConfigController.js";
 import {
   canOrderCreatePrintJob,
   claimNextPendingPrintJob,
@@ -60,12 +61,16 @@ export async function claimPrintJob(req, res) {
       return res.status(204).send();
     }
 
+    const customerReceiptConfig = await resolveCustomerReceiptConfig();
+
     return res.json({
       job: shapePrintJob(job),
       document: {
         format: "tspl",
         content: buildOrderLabelTspl(job.snapshot, { printerName }),
+        template: job.template || "",
         snapshot: job.snapshot,
+        customerReceiptConfig,
       },
     });
   } catch (error) {

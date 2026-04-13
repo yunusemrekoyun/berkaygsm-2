@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { buildPrintJobSnapshot, canOrderCreatePrintJob } from "./printJobService.js";
 
 describe("buildPrintJobSnapshot", () => {
-  it("includes coupon and pricing breakdown for print agents", () => {
-    const snapshot = buildPrintJobSnapshot({
+  it("includes coupon and pricing breakdown for print agents", async () => {
+    const snapshot = await buildPrintJobSnapshot({
       orderNumber: "AYY-20260319-ABCD",
       createdAt: "2026-03-19T10:00:00.000Z",
       address: {
@@ -47,8 +47,8 @@ describe("buildPrintJobSnapshot", () => {
     });
   });
 
-  it("includes member user data in the print snapshot when the order is account-based", () => {
-    const snapshot = buildPrintJobSnapshot({
+  it("includes member user data in the print snapshot when the order is account-based", async () => {
+    const snapshot = await buildPrintJobSnapshot({
       orderNumber: "AYY-20260411-USER1",
       createdAt: "2026-04-11T11:00:00.000Z",
       user: {
@@ -73,6 +73,7 @@ describe("buildPrintJobSnapshot", () => {
       total: 100,
     });
 
+    expect(snapshot.customerEmail).toBe("berkay@example.com");
     expect(snapshot.user).toEqual({
       id: "6617f5b8f31ad8a471111111",
       firstName: "Berkay",
@@ -80,14 +81,23 @@ describe("buildPrintJobSnapshot", () => {
       email: "berkay@example.com",
       phone: "05553334455",
     });
+    expect(snapshot.customer).toMatchObject({
+      fullName: "",
+      email: "",
+      phone: "",
+      isGuest: false,
+    });
   });
 
-  it("keeps guest address data and mixed product/set lines in the print snapshot", () => {
-    const snapshot = buildPrintJobSnapshot({
+  it("keeps guest address data and mixed product/set lines in the print snapshot", async () => {
+    const snapshot = await buildPrintJobSnapshot({
       orderNumber: "AYY-20260411-MIX1",
       createdAt: "2026-04-11T10:30:00.000Z",
       user: null,
       note: "Lutfen zile iki kez basin ve guvenlige birakmayin.",
+      customer: {
+        email: "guest@example.com",
+      },
       address: {
         fullName: "Misafir Musteri",
         phone: "05551112233",
@@ -141,7 +151,12 @@ describe("buildPrintJobSnapshot", () => {
       total: 899.7,
     });
 
+    expect(snapshot.customerEmail).toBe("guest@example.com");
     expect(snapshot.user).toBe(null);
+    expect(snapshot.customer).toMatchObject({
+      email: "guest@example.com",
+      isGuest: false,
+    });
     expect(snapshot.address).toMatchObject({
       fullName: "Misafir Musteri",
       phone: "05551112233",
@@ -167,6 +182,7 @@ describe("buildPrintJobSnapshot", () => {
     expect(snapshot.items[1].selections).toEqual([
       {
         productId: "sub-product-1",
+        productName: "",
         color: "Mavi",
         size: "Samsung S24",
         attribute: "Mat",
@@ -174,12 +190,119 @@ describe("buildPrintJobSnapshot", () => {
       },
       {
         productId: "sub-product-2",
+        productName: "",
         color: "Seffaf",
         size: "Samsung S24",
         attribute: null,
         qtyInSet: 2,
       },
     ]);
+  });
+
+  it("captures payment, item pricing and stock accounting details", async () => {
+    const snapshot = await buildPrintJobSnapshot({
+      orderNumber: "AYY-20260413-OPS1",
+      createdAt: "2026-04-13T08:30:00.000Z",
+      status: "paid",
+      customer: {
+        fullName: "Operasyon Test",
+        email: "ops@example.com",
+        phone: "05559998877",
+        isGuest: true,
+      },
+      address: {
+        fullName: "Operasyon Test",
+        phone: "05559998877",
+      },
+      payment: {
+        method: "online",
+        provider: "iyzico",
+        status: "success",
+        paidAt: "2026-04-13T08:31:00.000Z",
+        currency: "TRY",
+        amount: 799.9,
+        txnId: "txn-123",
+      },
+      items: [
+        {
+          kind: "product",
+          ref: "product-ops-1",
+          name: "Kilif",
+          unitPrice: 399.95,
+          originalUnitPrice: 499.95,
+          qty: 2,
+          pricing: {
+            baseUnitPrice: 499.95,
+            standard: {
+              name: "Hafta Sonu",
+              percentage: 10,
+              amount: 50,
+            },
+            stacked: {
+              percentage: 5,
+              quantity: 2,
+              amount: 25,
+            },
+            coupon: {
+              code: "CEP10",
+              percentage: 10,
+              amount: 25,
+            },
+          },
+        },
+      ],
+      subtotal: 799.9,
+      shipping: 0,
+      total: 799.9,
+      accounting: {
+        stockApplied: true,
+        couponConsumed: true,
+        accountedAt: "2026-04-13T08:31:30.000Z",
+        stockUsage: [
+          {
+            stockItemId: "stock-1",
+            productId: "product-ops-1",
+            color: "Siyah",
+            size: "iPhone 15",
+            qty: 2,
+            source: "product",
+            sku: "KF-15-SYH",
+            previousQtyOnHand: 12,
+            remainingQtyOnHand: 10,
+            productName: "Kilif",
+          },
+        ],
+      },
+    });
+
+    expect(snapshot.status).toBe("paid");
+    expect(snapshot.payment).toMatchObject({
+      method: "online",
+      provider: "iyzico",
+      status: "success",
+      txnId: "txn-123",
+      amount: 799.9,
+    });
+    expect(snapshot.items[0]).toMatchObject({
+      name: "Kilif",
+      originalUnitPrice: 499.95,
+      pricing: {
+        baseUnitPrice: 499.95,
+        standard: expect.objectContaining({ amount: 50 }),
+        stacked: expect.objectContaining({ amount: 25, quantity: 2 }),
+        coupon: expect.objectContaining({ code: "CEP10", amount: 25 }),
+      },
+    });
+    expect(snapshot.accounting).toMatchObject({
+      stockApplied: true,
+      couponConsumed: true,
+    });
+    expect(snapshot.accounting.stockUsage[0]).toMatchObject({
+      sku: "KF-15-SYH",
+      previousQtyOnHand: 12,
+      remainingQtyOnHand: 10,
+      productName: "Kilif",
+    });
   });
 
   it("creates print jobs only for paid-or-later successful orders", () => {

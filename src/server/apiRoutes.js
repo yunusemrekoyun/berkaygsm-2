@@ -192,6 +192,10 @@ import {
   requeueOrderPrintJob,
 } from "./controllers/printJobController.js";
 import {
+  getCustomerReceiptConfig,
+  updateCustomerReceiptConfig,
+} from "./controllers/customerReceiptConfigController.js";
+import {
   listAdminNotifications,
   markAdminNotificationsRead,
 } from "./controllers/adminNotificationController.js";
@@ -207,6 +211,7 @@ import {
   printJobClaimSchema,
   printJobCompleteSchema,
   printJobFailSchema,
+  customerReceiptConfigSchema,
   stockUpsertSchema,
   stockUpdateSchema,
   stockSyncSchema,
@@ -471,6 +476,17 @@ export const routes = [
     "POST",
     ["print-jobs", "order", ":orderId", "requeue"],
     [requireAuth, requireRole("admin"), requeueOrderPrintJob]
+  ),
+  route("GET", ["print", "customer-receipt-config"], [getCustomerReceiptConfig]),
+  route(
+    "PUT",
+    ["print", "customer-receipt-config"],
+    [
+      requireAuth,
+      requireRole("admin"),
+      validateBody(customerReceiptConfigSchema),
+      updateCustomerReceiptConfig,
+    ]
   ),
 
   // heroes

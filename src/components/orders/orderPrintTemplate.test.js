@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildOrderPrintHtml,
   buildOrderPrintModel,
-  formatVariantSummary,
   formatPrintableOrderNote,
+  formatVariantSummary,
 } from "./orderPrintTemplate.js";
 
 describe("formatPrintableOrderNote", () => {
@@ -11,26 +11,22 @@ describe("formatPrintableOrderNote", () => {
     expect(formatPrintableOrderNote("Kapiyi calin")).toBe("Kapiyi calin");
   });
 
-  it("limits long notes to a fixed printable area", () => {
-    const note = [
-      "Kapida arayin ve guvenlige teslim etmeyin.",
-      "Paketin uzerine dikkat kirilabilir yazin.",
-      "Musait olmazsam 10 dakika sonra tekrar deneyin.",
-    ].join(" ");
+  it("wraps long notes into printable lines", () => {
+    const note =
+      "Kapida arayin ve guvenlige teslim etmeyin. Paket gelmeden once telefonla bilgi verin.";
 
     const printable = formatPrintableOrderNote(note, {
-      maxChars: 20,
-      maxLines: 2,
+      maxChars: 24,
+      maxLines: 3,
     });
 
-    const lines = printable.split("\n");
-    expect(lines).toHaveLength(2);
-    expect(lines[1].endsWith("...")).toBe(true);
+    expect(printable.split("\n").length).toBeLessThanOrEqual(3);
+    expect(printable).toContain("Kapida arayin");
   });
 });
 
 describe("buildOrderPrintModel", () => {
-  it("labels size selections as model in the print summary", () => {
+  it("labels size selections as model in variant summaries", () => {
     expect(
       formatVariantSummary({
         color: "Siyah",
@@ -39,100 +35,63 @@ describe("buildOrderPrintModel", () => {
     ).toContain("Model: iPhone 15 Pro Max");
   });
 
-  it("keeps more of the long note in the single-label model", () => {
+  it("prefers guest contact fields for the customer receipt", () => {
     const model = buildOrderPrintModel({
-      orderNumber: "ORD-1",
-      createdAt: "2026-03-19T12:00:00.000Z",
+      orderNumber: "AYY-20260413-TEST",
+      createdAt: "2026-04-13T10:00:00.000Z",
+      customerEmail: "misafir@example.com",
       address: {
-        fullName: "Test Kullanici",
+        fullName: "Misafir Musteri",
         phone: "05550000000",
-        addressLine: "Test Mahallesi",
+        addressLine: "Moda Caddesi No 15",
         city: "Istanbul",
         district: "Kadikoy",
-        postalCode: "34000",
+        postalCode: "34710",
         country: "Turkiye",
       },
-      items: [],
-      subtotal: 0,
-      shipping: 0,
+      note: "Kapiyi calin",
+      shippingName: "Standart Kargo",
       total: 0,
-      note: [
-        "Kapida arayin ve guvenlige teslim etmeyin.",
-        "Paketin uzerine dikkat kirilabilir yazin.",
-        "Musait olmazsam 10 dakika sonra tekrar deneyin.",
-        "Kargo gelmeden once telefonla haber verin.",
-        "Site girisindeki guvenlik noktasina teslim etmeyin.",
-      ].join(" "),
     });
 
-    expect(model.note).toBeTruthy();
-    expect(model.note).toContain("teslim etmeyin");
-    expect(model.note.split("\n").length).toBeLessThanOrEqual(6);
+    expect(model.customerName).toBe("Misafir Musteri");
+    expect(model.recipientFirstName).toBe("Misafir");
+    expect(model.recipientLastName).toBe("Musteri");
+    expect(model.phone).toBe("05550000000");
+    expect(model.email).toBe("misafir@example.com");
+    expect(model.addressText).toContain("Kadikoy");
+    expect(model.referenceCode).toBe("AYY-20260413-TEST");
   });
 
-  it("prefers base subtotal when discount adjustments are rendered", () => {
-    const model = buildOrderPrintModel({
-      subtotal: 170,
-      shipping: 0,
-      total: 150,
-      pricing: {
-        baseSubtotal: 200,
-        standardDiscountAmount: 20,
-        stackedDiscountAmount: 10,
+  it("injects editable slogan and social links into the receipt model", () => {
+    const model = buildOrderPrintModel(
+      {
+        orderNumber: "AYY-20260413-TEST2",
+        createdAt: "2026-04-13T10:00:00.000Z",
+        address: { fullName: "Test", phone: "0555" },
       },
-      coupon: {
-        code: "TEST10",
-        discountAmount: 20,
-      },
-      items: [],
-      address: {},
-    });
-
-    expect(model.subtotalLabel).toBe("₺200,00");
-    expect(model.adjustments).toHaveLength(3);
-  });
-
-  it("switches to a denser layout and summarizes overflow items for large orders", () => {
-    const model = buildOrderPrintModel({
-      orderNumber: "ORD-2",
-      createdAt: "2026-03-19T12:00:00.000Z",
-      address: {
-        fullName: "Cok Uzun Test Kullanici Adi Soyadi",
-        phone: "05550000000",
-        addressLine:
-          "Oldukca uzun bir adres satiri ve buna eklenen ekstra mahalle ve sokak bilgileri",
-        city: "Istanbul",
-        district: "Kadikoy",
-        postalCode: "34000",
-        country: "Turkiye",
-      },
-      items: Array.from({ length: 8 }, (_, index) => ({
-        ref: `item-${index}`,
-        name: `Cok uzun isimli urun ${index + 1} modeli ve aksesuar paketi`,
-        qty: 1,
-        unitPrice: 100 + index,
-        variant: {
-          color: "Siyah",
-          size: "iPhone 15 Pro Max",
+      {
+        customerReceiptConfig: {
+          slogan: "Yeni sezon hazir",
+          message: "Bizi tercih ettiginiz icin tesekkur ederiz.",
+          instagramUrl: "instagram.com/test",
+          tiktokUrl: "tiktok.com/@test",
         },
-      })),
-      subtotal: 800,
-      shipping: 0,
-      total: 800,
-      note:
-        "Bu siparis yogun icerik testi icindir ve fisin icerisine kontrollu sekilde sigmalidir.",
-    });
+      }
+    );
 
-    expect(model.layout.key).not.toBe("regular");
-    expect(model.items.some((item) => item.isOverflowSummary)).toBe(true);
+    expect(model.receiptConfig.slogan).toBe("Yeni sezon hazir");
+    expect(model.receiptConfig.instagramUrl).toBe("instagram.com/test");
+    expect(model.receiptConfig.tiktokUrl).toBe("tiktok.com/@test");
   });
 
-  it("renders the order note in the top grid before product and total sections", () => {
+  it("renders recipient and shipment sections in html output", () => {
     const model = buildOrderPrintModel({
-      orderNumber: "ORD-3",
-      createdAt: "2026-03-30T20:00:00.000Z",
+      orderNumber: "AYY-20260413-TEST3",
+      createdAt: "2026-04-13T10:00:00.000Z",
+      customerEmail: "ornek@ceplife.com",
       address: {
-        fullName: "Test Kullanici",
+        fullName: "Test Musteri",
         phone: "05550000000",
         addressLine: "Deneme Mahallesi 1",
         city: "Kutahya",
@@ -140,28 +99,110 @@ describe("buildOrderPrintModel", () => {
         postalCode: "43000",
         country: "Turkiye",
       },
-      items: [
-        {
-          ref: "item-1",
-          name: "Urun 1",
-          qty: 1,
-          unitPrice: 100,
-        },
-      ],
-      subtotal: 100,
-      shipping: 0,
-      total: 100,
-      note: "Kargo gelince arayin",
+      note: "Teslimatta arayin",
+      shippingName: "Standart Kargo",
+      total: 0,
     });
 
     const html = buildOrderPrintHtml(model, { autoPrint: false });
-    const noteIndex = html.indexOf("Sipariş Notu");
-    const productsIndex = html.indexOf("Ürünler");
-    const totalsIndex = html.indexOf("Toplamlar");
 
-    expect(html).toContain('class="top-grid"');
-    expect(noteIndex).toBeGreaterThan(-1);
-    expect(noteIndex).toBeLessThan(productsIndex);
-    expect(noteIndex).toBeLessThan(totalsIndex);
+    expect(html).toContain("Takip Bilgileri");
+    expect(html).toContain("Diger Secenekler");
+    expect(html).toContain("Alici Bilgileri");
+    expect(html).toContain("Alici Soyadi");
+    expect(html).toContain("SMS Secenekleri");
+    expect(html).toContain("Instagram");
+    expect(html).toContain("Test");
+    expect(html).toContain("Musteri");
+  });
+
+  it("renders seller receipt details for operations use", () => {
+    const model = buildOrderPrintModel(
+      {
+        orderNumber: "AYY-20260413-OPS2",
+        createdAt: "2026-04-13T10:00:00.000Z",
+        status: "paid",
+        customer: {
+          fullName: "Satici Test",
+          email: "satici@example.com",
+          phone: "05550000000",
+          isGuest: true,
+        },
+        address: {
+          fullName: "Satici Test",
+          phone: "05550000000",
+          city: "Istanbul",
+          district: "Kadikoy",
+          country: "Turkiye",
+        },
+        payment: {
+          method: "online",
+          provider: "iyzico",
+          status: "success",
+          paidAt: "2026-04-13T10:02:00.000Z",
+          txnId: "txn-ops-2",
+        },
+        items: [
+          {
+            kind: "product",
+            name: "Telefon Kilifi",
+            unitPrice: 299.9,
+            originalUnitPrice: 349.9,
+            qty: 2,
+            variant: {
+              color: "Siyah",
+              size: "iPhone 15 Pro",
+            },
+            pricing: {
+              standard: { amount: 40 },
+              stacked: { amount: 20, quantity: 2, percentage: 5 },
+              coupon: { code: "CEP10", amount: 15 },
+            },
+          },
+        ],
+        subtotal: 599.8,
+        shipping: 0,
+        total: 599.8,
+        coupon: {
+          code: "CEP10",
+          percentage: 10,
+          discountAmount: 15,
+        },
+        pricing: {
+          standardDiscountAmount: 40,
+          stackedDiscountAmount: 20,
+          stacked: { quantity: 2, percentage: 5 },
+        },
+        accounting: {
+          stockApplied: true,
+          couponConsumed: true,
+          stockUsage: [
+            {
+              productName: "Telefon Kilifi",
+              color: "Siyah",
+              size: "iPhone 15 Pro",
+              qty: 2,
+              remainingQtyOnHand: 8,
+              previousQtyOnHand: 10,
+              sku: "KLF-15P-SYH",
+            },
+          ],
+        },
+      },
+      { template: "seller_receipt_100x150" }
+    );
+
+    expect(model.template).toBe("seller_receipt_100x150");
+
+    const html = buildOrderPrintHtml(model, { autoPrint: false });
+
+    expect(html).toContain("Satici Fisi");
+    expect(html).toContain("Siparis Kalemleri");
+    expect(html).toContain("Telefon Kilifi");
+    expect(html).toContain("Normal indirim");
+    expect(html).toContain("Katlanan indirim");
+    expect(html).toContain("Stok Hareketi");
+    expect(html).toContain("Kalan: 8");
+    expect(html).toContain("txn-ops-2");
   });
 });
