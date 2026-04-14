@@ -97,34 +97,46 @@ export async function createShipment(order) {
     order.address?.phone || order.customer?.phone || ""
   ).replace(/\D/g, "").replace(/^0+/, "").slice(0, 10);
 
-  // Piece barcode: sipariş numarasından üret (boş olamaz)
-  const pieceBarcode = `${order.orderNumber}-1`;
+  // Spec: barcode must be same as referenceId, uppercase
+  const referenceId = order.orderNumber.toUpperCase();
+  // Piece barcode: parça bazlı ayrı barkod
+  const pieceBarcode = `${referenceId}-P1`;
+  // desi ve kg integer olmalı (spec: int32), minimum 1
+  const desi = Math.max(1, Math.ceil(DEFAULT_DESI));
+  const kg = Math.max(1, Math.ceil(DEFAULT_KG));
 
   const body = {
     order: {
-      referenceId: order.orderNumber,
-      barcode: pieceBarcode,
+      referenceId,
+      barcode: referenceId,           // spec: "Barcode must be same with ReferenceId"
+      shipmentServiceType: 1,         // 1: STANDART_TESLİMAT
+      packagingType: 3,               // 3: PAKET
       content: "Ürün",
-      description: order.orderNumber,
-      // serviceType: kasıtlı gönderilmiyor — MNG varsayılan (standart) atar
+      description: referenceId,
+      paymentType: 1,                 // 1: GONDERICI_ODER (gönderici öder)
+      deliveryType: 1,                // 1: ADRESE_TESLIM
+      smsPreference1: 1,              // varış şubesine ulaşınca alıcıya SMS
+      smsPreference2: 0,
+      smsPreference3: 0,
+      isCOD: 0,
+      codAmount: 0,
     },
     orderPieceList: [
       {
         barcode: pieceBarcode,
-        weight: DEFAULT_KG,
-        desi: DEFAULT_DESI,
-        width: 0,
-        height: 0,
-        depth: 0,
+        desi,                          // int32
+        kg,                            // int32 (field adı "kg", "weight" değil)
         content: "Ürün",
       },
     ],
     recipient: {
-      name: order.address?.fullName || order.customer?.fullName || "",
+      fullName: order.address?.fullName || order.customer?.fullName || "",
       address: order.address?.addressLine || "",
-      city: order.address?.city || "",
-      district: order.address?.district || "",
-      phone: phone,
+      cityCode: 0,                    // CBS Info API'den alınabilir, 0 ile cityName kabul edilir
+      districtCode: 0,
+      cityName: order.address?.city || "",
+      districtName: order.address?.district || "",
+      mobilePhoneNumber: phone,
       email: order.customer?.email || "",
     },
   };
@@ -143,24 +155,18 @@ export async function createShipment(order) {
 
   const data = await res.json();
 
-  // Başarılı yanıtı logla — alan isimlerini ilk seferinde görmek için
-  console.log("MNG createOrder yanıtı:", JSON.stringify(data));
+  // Spec'e göre response: { orderInvoiceId, orderInvoiceDetailId, shipperBranchCode, referenceId }
+  // MNG barcode döndürmüyor — tracking için referenceId kullanılır
+  const invoiceId = data.orderInvoiceId || data.orderInvoiceDetailId || "";
+  const trackingUrl = buildTrackingUrl(referenceId);
 
-  // MNG yanıt alanları (farklı versiyonlarda farklı isimler gelebilir)
-  const barcode =
-    data.barcode || data.Barcode ||
-    data.shipmentBarcode || data.ShipmentBarcode ||
-    data.orderBarcode || data.OrderBarcode ||
-    data.barcodeNumber || data.BarcodeNumber ||
-    pieceBarcode; // fallback: kendi ürettiğimiz barcode
-  const shipmentId =
-    data.shipmentId || data.ShipmentId ||
-    data.orderId || data.OrderId || "";
-  const trackingUrl = buildTrackingUrl(barcode);
-  const estimatedDeliveryDate =
-    data.estimatedDeliveryDate || data.EstimatedDeliveryDate || null;
-
-  return { barcode, trackingUrl, shipmentId, referenceId: order.orderNumber, estimatedDeliveryDate };
+  return {
+    barcode: referenceId,             // takip barkodu = sipariş numarası
+    trackingUrl,
+    shipmentId: invoiceId,
+    referenceId,
+    estimatedDeliveryDate: null,
+  };
 }
 
 function buildTrackingUrl(barcode) {
