@@ -97,19 +97,26 @@ export async function createShipment(order) {
     order.address?.phone || order.customer?.phone || ""
   ).replace(/\D/g, "").replace(/^0+/, "").slice(0, 10);
 
+  // Piece barcode: sipariş numarasından üret (boş olamaz)
+  const pieceBarcode = `${order.orderNumber}-1`;
+
   const body = {
     order: {
       referenceId: order.orderNumber,
-      barcode: "",
-      serviceType: 1, // 1: Standart Teslimat
+      barcode: pieceBarcode,
+      content: "Ürün",
+      description: order.orderNumber,
+      // serviceType: kasıtlı gönderilmiyor — MNG varsayılan (standart) atar
     },
     orderPieceList: [
       {
+        barcode: pieceBarcode,
         weight: DEFAULT_KG,
         desi: DEFAULT_DESI,
         width: 0,
         height: 0,
         depth: 0,
+        content: "Ürün",
       },
     ],
     recipient: {
@@ -136,16 +143,20 @@ export async function createShipment(order) {
 
   const data = await res.json();
 
-  // Yanıt yapısı dokümana göre değişebilir; yaygın alanları yakala
+  // Başarılı yanıtı logla — alan isimlerini ilk seferinde görmek için
+  console.log("MNG createOrder yanıtı:", JSON.stringify(data));
+
+  // MNG yanıt alanları (farklı versiyonlarda farklı isimler gelebilir)
   const barcode =
-    data.barcode ||
-    data.Barcode ||
-    data.shipmentBarcode ||
-    data.orderBarcode ||
-    "";
+    data.barcode || data.Barcode ||
+    data.shipmentBarcode || data.ShipmentBarcode ||
+    data.orderBarcode || data.OrderBarcode ||
+    data.barcodeNumber || data.BarcodeNumber ||
+    pieceBarcode; // fallback: kendi ürettiğimiz barcode
   const shipmentId =
-    data.shipmentId || data.ShipmentId || data.orderId || "";
-  const trackingUrl = buildTrackingUrl(barcode || order.orderNumber);
+    data.shipmentId || data.ShipmentId ||
+    data.orderId || data.OrderId || "";
+  const trackingUrl = buildTrackingUrl(barcode);
   const estimatedDeliveryDate =
     data.estimatedDeliveryDate || data.EstimatedDeliveryDate || null;
 
