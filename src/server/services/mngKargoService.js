@@ -51,9 +51,11 @@ async function fetchToken() {
 
   const data = await res.json();
   // API genellikle { token: "...", expiresIn: 3600 } döner
-  const token = data.token || data.access_token || data.Token;
+  const token = data.jwt || data.token || data.access_token || data.Token;
   if (!token) throw new Error("MNG token yanıtı geçersiz: token alanı yok");
 
+  // MNG "jwtExpireDate" döndürür: "10.03.2020 16:05:00" formatında
+  // Bunu parse etmek yerine sabit 50 dakika kullan (güvenli tampon)
   const expiresIn = Number(data.expiresIn || data.expires_in || 3600);
   _cachedToken = token;
   // Sürenin %80'inde yenile (güvenli tampon)
