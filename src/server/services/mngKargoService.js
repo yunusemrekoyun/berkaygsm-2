@@ -120,6 +120,9 @@ export async function createShipment(order) {
       smsPreference3: 0,
       isCOD: 0,
       codAmount: 0,
+      marketPlaceShortCode: "",
+      marketPlaceSaleCode: "",
+      pudoId: "",
     },
     orderPieceList: [
       {
