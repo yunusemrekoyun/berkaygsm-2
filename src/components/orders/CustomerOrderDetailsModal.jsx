@@ -6,6 +6,7 @@ import {
   Package2,
   ReceiptText,
   TicketPercent,
+  Truck,
   X,
 } from "lucide-react";
 import { orderApi } from "../../api/orders";
@@ -443,6 +444,62 @@ export default function CustomerOrderDetailsModal({
                       </div>
                     </div>
                   </section>
+
+                  {(order?.status === "shipped" || order?.status === "completed") && (
+                    <section className="glass-surface-soft rounded-[26px] border border-blue-200 bg-blue-50 p-5 sm:p-6">
+                      <div className="flex items-center gap-2 text-base font-semibold text-blue-800">
+                        <Truck className="h-4 w-4 text-blue-600" />
+                        Kargo Takibi
+                      </div>
+                      <div className="mt-4 space-y-3 text-sm">
+                        {order.tracking?.barcode && (
+                          <div>
+                            <div className="text-xs uppercase tracking-[0.16em] text-blue-600/75">
+                              Barkod / Takip No
+                            </div>
+                            <div className="mt-1 font-medium text-blue-900">
+                              {order.tracking.barcode}
+                            </div>
+                          </div>
+                        )}
+                        {order.tracking?.statusLabel && (
+                          <div>
+                            <div className="text-xs uppercase tracking-[0.16em] text-blue-600/75">
+                              Kargo Durumu
+                            </div>
+                            <div className="mt-1 font-medium text-blue-900">
+                              {order.tracking.statusLabel}
+                            </div>
+                          </div>
+                        )}
+                        {order.tracking?.estimatedDeliveryDate && (
+                          <div>
+                            <div className="text-xs uppercase tracking-[0.16em] text-blue-600/75">
+                              Tahmini Teslimat
+                            </div>
+                            <div className="mt-1 font-medium text-blue-900">
+                              {order.tracking.estimatedDeliveryDate}
+                            </div>
+                          </div>
+                        )}
+                        {order.tracking?.trackingUrl ? (
+                          <a
+                            href={order.tracking.trackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                          >
+                            <Truck className="h-4 w-4" />
+                            Kargom Nerede
+                          </a>
+                        ) : (
+                          <p className="text-xs text-blue-700">
+                            Kargo takip bilgisi henüz oluşturulmadı.
+                          </p>
+                        )}
+                      </div>
+                    </section>
+                  )}
 
                   <section className="glass-surface-soft rounded-[26px] border border-border bg-white p-5 sm:p-6">
                     <div className="flex items-center gap-2 text-base font-semibold text-primary">

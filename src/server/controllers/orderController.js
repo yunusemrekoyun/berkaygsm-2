@@ -34,6 +34,7 @@ import { maybeCreateLowStockNotification } from "../services/adminNotificationSe
 import {
   sendOrderShippedEmail,
 } from "../services/emailService.js";
+import { createShipment } from "../services/mngKargoService.js";
 import {
   buildOrderCouponContext,
   buildOrderStockUsageEntries,
@@ -279,6 +280,19 @@ function shapeOrder(doc, printJob = null) {
       : null,
     status: doc.status,
     payment: doc.payment,
+    tracking: doc.tracking?.barcode
+      ? {
+          provider: doc.tracking.provider || "mng",
+          barcode: doc.tracking.barcode,
+          trackingUrl: doc.tracking.trackingUrl || null,
+          shipmentId: doc.tracking.shipmentId || null,
+          statusCode: doc.tracking.statusCode ?? null,
+          statusLabel: doc.tracking.statusLabel || null,
+          estimatedDeliveryDate: doc.tracking.estimatedDeliveryDate || null,
+          shippedAt: doc.tracking.shippedAt || null,
+          deliveredAt: doc.tracking.deliveredAt || null,
+        }
+      : null,
     printJob: shapePrintJob(printJob || doc.printJob || null),
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
@@ -2374,6 +2388,9 @@ export async function updateOrderStatus(req, res) {
         shouldSendShippedEmail:
           previousStatus !== "shipped" &&
           String(order.status || "").toLowerCase() === "shipped",
+        shouldCreateMngShipment:
+          previousStatus !== "shipped" &&
+          String(order.status || "").toLowerCase() === "shipped",
       };
     });
 
@@ -2382,6 +2399,33 @@ export async function updateOrderStatus(req, res) {
       "firstName lastName email phone"
     );
     if (!order) return res.status(404).json({ message: "Sipariş bulunamadı" });
+
+    if (updateResult?.shouldCreateMngShipment) {
+      try {
+        const shipment = await createShipment(order);
+        order.tracking = {
+          provider: "mng",
+          barcode: shipment.barcode || null,
+          trackingUrl: shipment.trackingUrl || null,
+          shipmentId: shipment.shipmentId || null,
+          referenceId: shipment.referenceId || order.orderNumber,
+          statusCode: 1,
+          statusLabel: "Gönderi Hazırlandı",
+          estimatedDeliveryDate: shipment.estimatedDeliveryDate || null,
+          shippedAt: new Date(),
+          deliveredAt: null,
+          lastSyncedAt: new Date(),
+        };
+        await order.save();
+      } catch (mngError) {
+        // MNG hatası siparişi engellemez — sadece loglanır
+        console.error("MNG kargo oluşturma hatası:", {
+          orderId: order._id?.toString?.(),
+          orderNumber: order.orderNumber,
+          error: mngError?.message || mngError,
+        });
+      }
+    }
 
     if (updateResult?.shouldSendShippedEmail) {
       await Promise.allSettled([

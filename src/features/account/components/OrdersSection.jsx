@@ -135,6 +135,16 @@ export default function OrdersSection({ copy = {} }) {
                 <div className="text-sm text-primary font-semibold">
                   {totalLabel}: ₺{total}
                 </div>
+                {status === "shipped" && order.tracking?.trackingUrl && (
+                  <a
+                    href={order.tracking.trackingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100"
+                  >
+                    {copy.trackOrder || "Kargom Nerede"}
+                  </a>
+                )}
                 <button
                   onClick={() => setSelectedId(id)}
                   className="inline-flex rounded-full border border-border px-3 py-1.5 text-sm text-primary hover:bg-surface-hover"

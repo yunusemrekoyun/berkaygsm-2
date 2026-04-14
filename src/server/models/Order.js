@@ -261,6 +261,20 @@ const OrderSchema = new mongoose.Schema(
       index: true,
     },
 
+    tracking: {
+      provider: { type: String, default: "mng" },
+      barcode: { type: String, default: null },
+      trackingUrl: { type: String, default: null },
+      shipmentId: { type: String, default: null },
+      referenceId: { type: String, default: null },
+      statusCode: { type: Number, default: null },
+      statusLabel: { type: String, default: null },
+      estimatedDeliveryDate: { type: String, default: null },
+      shippedAt: { type: Date, default: null },
+      deliveredAt: { type: Date, default: null },
+      lastSyncedAt: { type: Date, default: null },
+    },
+
     payment: { type: PaymentSchema, default: () => ({}) },
     pricing: { type: OrderPricingSchema, default: null },
     accounting: {
