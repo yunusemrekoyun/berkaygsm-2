@@ -118,6 +118,22 @@ function normalizeInvoiceSnapshot(snapshot = null) {
   };
 }
 
+function hasTrackingInfo(tracking = null) {
+  if (!tracking || typeof tracking !== "object") return false;
+  return [
+    tracking.provider,
+    tracking.barcode,
+    tracking.trackingUrl,
+    tracking.shipmentId,
+    tracking.referenceId,
+    tracking.statusLabel,
+    tracking.estimatedDeliveryDate,
+    tracking.shippedAt,
+    tracking.deliveredAt,
+    tracking.lastSyncedAt,
+  ].some(Boolean) || tracking.statusCode !== undefined && tracking.statusCode !== null;
+}
+
 function shapeOrder(doc, printJob = null) {
   if (!doc) return null;
   const rawUser = doc.user;
@@ -280,17 +296,19 @@ function shapeOrder(doc, printJob = null) {
       : null,
     status: doc.status,
     payment: doc.payment,
-    tracking: doc.tracking?.barcode
+    tracking: hasTrackingInfo(doc.tracking)
       ? {
           provider: doc.tracking.provider || "mng",
-          barcode: doc.tracking.barcode,
+          barcode: doc.tracking.barcode || null,
           trackingUrl: doc.tracking.trackingUrl || null,
           shipmentId: doc.tracking.shipmentId || null,
+          referenceId: doc.tracking.referenceId || null,
           statusCode: doc.tracking.statusCode ?? null,
           statusLabel: doc.tracking.statusLabel || null,
           estimatedDeliveryDate: doc.tracking.estimatedDeliveryDate || null,
           shippedAt: doc.tracking.shippedAt || null,
           deliveredAt: doc.tracking.deliveredAt || null,
+          lastSyncedAt: doc.tracking.lastSyncedAt || null,
         }
       : null,
     printJob: shapePrintJob(printJob || doc.printJob || null),
@@ -2408,7 +2426,7 @@ export async function updateOrderStatus(req, res) {
           barcode: shipment.barcode || null,
           trackingUrl: shipment.trackingUrl || null,
           shipmentId: shipment.shipmentId || null,
-          referenceId: shipment.referenceId || order.orderNumber,
+          referenceId: shipment.referenceId || null,
           statusCode: 1,
           statusLabel: "Gönderi Hazırlandı",
           estimatedDeliveryDate: shipment.estimatedDeliveryDate || null,

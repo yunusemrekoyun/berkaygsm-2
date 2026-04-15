@@ -80,6 +80,97 @@ function ibmHeaders(token) {
   };
 }
 
+function normalizeString(value) {
+  const normalized = String(value ?? "").trim();
+  return normalized || null;
+}
+
+function asObjectList(payload) {
+  if (Array.isArray(payload)) {
+    return payload.filter((item) => item && typeof item === "object");
+  }
+  if (payload && typeof payload === "object") {
+    return [payload];
+  }
+  return [];
+}
+
+function firstDefined(...values) {
+  for (const value of values) {
+    if (value === undefined || value === null) continue;
+    if (typeof value === "string" && !value.trim()) continue;
+    return value;
+  }
+  return null;
+}
+
+export function parseCreateOrderResponse(payload, fallbackReferenceId = "") {
+  const [entry = null] = asObjectList(payload);
+  const referenceId = normalizeString(
+    firstDefined(entry?.referenceId, fallbackReferenceId)
+  );
+  const shipmentId = normalizeString(
+    firstDefined(
+      entry?.orderInvoiceId,
+      entry?.orderInvoiceDetailId,
+      entry?.shipmentId,
+      entry?.shipmentNumber
+    )
+  );
+
+  return {
+    shipmentId,
+    referenceId,
+    orderInvoiceId: normalizeString(entry?.orderInvoiceId),
+    orderInvoiceDetailId: normalizeString(entry?.orderInvoiceDetailId),
+    shipperBranchCode: normalizeString(entry?.shipperBranchCode),
+    raw: entry,
+  };
+}
+
+export function normalizeShipmentRecord(payload, fallbackReferenceId = "") {
+  const [entry = null] = asObjectList(payload);
+  const shipment = entry?.shipment && typeof entry.shipment === "object"
+    ? entry.shipment
+    : null;
+
+  return {
+    raw: entry,
+    shipment: shipment || null,
+    referenceId: normalizeString(
+      firstDefined(entry?.referenceId, shipment?.referenceId, fallbackReferenceId)
+    ),
+    shipmentId: normalizeString(
+      firstDefined(
+        entry?.shipmentId,
+        entry?.orderInvoiceId,
+        entry?.orderInvoiceDetailId,
+        shipment?.shipmentId,
+        shipment?.shipmentNumber
+      )
+    ),
+    barcode: normalizeString(
+      firstDefined(entry?.barcode, shipment?.barcode, shipment?.shipmentNumber)
+    ),
+    trackingUrl: normalizeString(
+      firstDefined(entry?.trackingUrl, shipment?.trackingUrl)
+    ),
+    statusCode: firstDefined(
+      entry?.shipmentStatusCode,
+      entry?.statusCode,
+      shipment?.shipmentStatusCode,
+      shipment?.statusCode
+    ),
+    estimatedDeliveryDate: normalizeString(
+      firstDefined(
+        entry?.estimatedDeliveryDate,
+        shipment?.estimatedDeliveryDate,
+        shipment?.deliveryDate
+      )
+    ),
+  };
+}
+
 // --- Kargo Kaydı Oluşturma ---
 
 /**
@@ -160,23 +251,34 @@ export async function createShipment(order) {
 
   const data = await res.json();
 
-  // Spec'e göre response: { orderInvoiceId, orderInvoiceDetailId, shipperBranchCode, referenceId }
-  // MNG barcode döndürmüyor — tracking için referenceId kullanılır
-  const invoiceId = data.orderInvoiceId || data.orderInvoiceDetailId || "";
-  const trackingUrl = buildTrackingUrl(referenceId);
+  const parsed = parseCreateOrderResponse(data, referenceId);
+
+  console.log("MNG createOrder response:", JSON.stringify(data, null, 2));
+  console.log("MNG createOrder parsed:", {
+    orderNumber: order.orderNumber,
+    referenceId: parsed.referenceId,
+    shipmentId: parsed.shipmentId,
+    orderInvoiceId: parsed.orderInvoiceId,
+    orderInvoiceDetailId: parsed.orderInvoiceDetailId,
+    shipperBranchCode: parsed.shipperBranchCode,
+  });
+
+  if (!parsed.shipmentId) {
+    console.warn("MNG createOrder response missing shipment id fields", {
+      orderNumber: order.orderNumber,
+      referenceId,
+      responseType: Array.isArray(data) ? "array" : typeof data,
+      responseLength: Array.isArray(data) ? data.length : undefined,
+    });
+  }
 
   return {
-    barcode: referenceId,             // takip barkodu = sipariş numarası
-    trackingUrl,
-    shipmentId: invoiceId,
-    referenceId,
+    barcode: null,
+    trackingUrl: null,
+    shipmentId: parsed.shipmentId,
+    referenceId: parsed.referenceId || referenceId,
     estimatedDeliveryDate: null,
   };
-}
-
-function buildTrackingUrl(barcode) {
-  if (!barcode) return null;
-  return `https://www.mngkargo.com.tr/gonderi-sorgula?barcode=${encodeURIComponent(barcode)}`;
 }
 
 // --- Durum Senkronizasyonu (Cron) ---
@@ -244,5 +346,10 @@ export async function fetchShipmentByReference(referenceId) {
   if (!res.ok) return null;
   const data = await res.json();
   const list = Array.isArray(data) ? data : [];
-  return list.find((item) => item.shipment?.referenceId === referenceId) || null;
+  return (
+    list.find(
+      (item) =>
+        normalizeShipmentRecord(item, referenceId).referenceId === referenceId
+    ) || null
+  );
 }

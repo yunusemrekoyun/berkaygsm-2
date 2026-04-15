@@ -21,6 +21,7 @@ import { connectDB } from "../../../../server/config/db.js";
 import {
   fetchStatusChangedShipments,
   MNG_STATUS,
+  normalizeShipmentRecord,
 } from "../../../../server/services/mngKargoService.js";
 
 const CRON_SECRET = process.env.MNG_CRON_SECRET || "";
@@ -56,8 +57,12 @@ export async function GET(request) {
   let errors = 0;
 
   for (const item of shipments) {
-    const referenceId = item.shipment?.referenceId;
-    const statusCode = item.shipment?.shipmentStatusCode;
+    const normalized = normalizeShipmentRecord(item);
+    const referenceId = normalized.referenceId;
+    const statusCode =
+      normalized.statusCode !== null && normalized.statusCode !== undefined
+        ? Number(normalized.statusCode)
+        : null;
     if (!referenceId) continue;
 
     try {
@@ -69,17 +74,24 @@ export async function GET(request) {
 
       // tracking alanını güncelle
       if (!order.tracking) order.tracking = {};
+      order.tracking.provider = order.tracking.provider || "mng";
+      order.tracking.referenceId =
+        normalized.referenceId || order.tracking.referenceId || null;
+      order.tracking.shipmentId =
+        normalized.shipmentId || order.tracking.shipmentId || null;
       order.tracking.statusCode = statusCode ?? order.tracking.statusCode;
       order.tracking.statusLabel = statusLabel || order.tracking.statusLabel;
+      order.tracking.estimatedDeliveryDate =
+        normalized.estimatedDeliveryDate ||
+        order.tracking.estimatedDeliveryDate ||
+        null;
       order.tracking.lastSyncedAt = new Date();
 
-      // MNG'nin gerçek takip URL'ini kaydet (kurye teslim aldıktan sonra dolar)
-      const mngTrackingUrl = item.trackingUrl || item.shipment?.trackingUrl || null;
-      if (mngTrackingUrl) {
-        order.tracking.trackingUrl = mngTrackingUrl;
-        // Gerçek MNG barkodunu da güncelle (varsa)
-        const mngBarcode = item.shipment?.shipmentId || item.shipment?.shipmentNumber || null;
-        if (mngBarcode) order.tracking.barcode = String(mngBarcode);
+      if (normalized.trackingUrl) {
+        order.tracking.trackingUrl = normalized.trackingUrl;
+      }
+      if (normalized.barcode) {
+        order.tracking.barcode = normalized.barcode;
       }
 
       if (isDelivered && !order.tracking.deliveredAt) {
