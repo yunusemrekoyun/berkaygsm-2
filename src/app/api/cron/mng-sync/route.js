@@ -73,6 +73,15 @@ export async function GET(request) {
       order.tracking.statusLabel = statusLabel || order.tracking.statusLabel;
       order.tracking.lastSyncedAt = new Date();
 
+      // MNG'nin gerçek takip URL'ini kaydet (kurye teslim aldıktan sonra dolar)
+      const mngTrackingUrl = item.trackingUrl || item.shipment?.trackingUrl || null;
+      if (mngTrackingUrl) {
+        order.tracking.trackingUrl = mngTrackingUrl;
+        // Gerçek MNG barkodunu da güncelle (varsa)
+        const mngBarcode = item.shipment?.shipmentId || item.shipment?.shipmentNumber || null;
+        if (mngBarcode) order.tracking.barcode = String(mngBarcode);
+      }
+
       if (isDelivered && !order.tracking.deliveredAt) {
         order.tracking.deliveredAt = new Date();
       }

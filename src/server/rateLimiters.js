@@ -2,6 +2,15 @@ import RateLimitBucket from "./models/RateLimitBucket.js";
 
 const memoryBuckets = new Map();
 
+// Expired in-memory buckets are never accessed again (key includes window index),
+// so they accumulate indefinitely. Sweep every 5 minutes to prevent OOM.
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of memoryBuckets) {
+    if (entry.expiresAt <= now) memoryBuckets.delete(key);
+  }
+}, 5 * 60 * 1000).unref();
+
 function resolveKey(req) {
   const ip = req.ip || "unknown";
   const method = String(req.method || "GET").toUpperCase();

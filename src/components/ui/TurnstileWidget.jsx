@@ -131,6 +131,27 @@ export default function TurnstileWidget({
     }
   }, [resetSignal, siteKey]);
 
+  // Safari restores pages from bfcache (back/forward navigation) with the old
+  // React state intact — including an already-used or expired Turnstile token.
+  // Reset the widget whenever the page is brought back from bfcache.
+  useEffect(() => {
+    if (!siteKey) return;
+    const handlePageShow = (e) => {
+      if (!e.persisted) return;
+      onTokenChangeRef.current?.("");
+      const turnstile = window.turnstile;
+      if (turnstile && widgetIdRef.current != null) {
+        try {
+          turnstile.reset(widgetIdRef.current);
+        } catch {
+          // ignore
+        }
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, [siteKey]);
+
   if (!siteKey) return null;
 
   return (

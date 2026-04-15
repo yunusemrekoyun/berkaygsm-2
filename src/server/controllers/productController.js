@@ -434,6 +434,14 @@ async function buildProductDiscountMap(products = []) {
   return computeProductDiscountMap(activeDiscounts, products);
 }
 
+function stripInternalInventoryFields(presented) {
+  if (Array.isArray(presented.inventory)) {
+    presented.inventory = presented.inventory.map(({ stockItemId, sku, note, ...pub }) => pub);
+  }
+  delete presented.__v;
+  return presented;
+}
+
 function presentProduct(
   doc,
   lang,
@@ -609,6 +617,7 @@ export async function listProducts(req, res) {
     const category = req.query.category;
     const view = String(req.query.view || "").trim().toLowerCase();
     const isCardView = view === "card";
+    const isAdmin = Boolean(req.user?.role === "admin");
 
     const filter = {};
     if (search) filter.name = { $regex: search, $options: "i" };
@@ -639,11 +648,12 @@ export async function listProducts(req, res) {
     const discountMap = await buildProductDiscountMap(items);
 
     res.json({
-      products: items.map((item) =>
-        presentProduct(item, lang, discountMap.get(resolveDocId(item)) || null, {
+      products: items.map((item) => {
+        const presented = presentProduct(item, lang, discountMap.get(resolveDocId(item)) || null, {
           includeTranslations: !isCardView,
-        })
-      ),
+        });
+        return isAdmin ? presented : stripInternalInventoryFields(presented);
+      }),
       pagination: {
         page,
         limit,
@@ -679,7 +689,8 @@ export async function getProduct(req, res) {
     await annotateProductsWithSetUsage([product]);
     const discountMap = await buildProductDiscountMap([product]);
     const discount = discountMap.get(resolveDocId(product)) || null;
-    res.json({ product: presentProduct(product, lang, discount) });
+    const presented = presentProduct(product, lang, discount);
+    res.json({ product: isAdmin ? presented : stripInternalInventoryFields(presented) });
   } catch (err) {
     res.status(500).json({ message: err.message || "Getirme başarısız" });
   }

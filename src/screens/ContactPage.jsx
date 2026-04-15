@@ -160,6 +160,12 @@ export default function ContactPage() {
   const [submitError, setSubmitError] = useState(null);
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaResetCounter, setCaptchaResetCounter] = useState(0);
+  // Drive captcha visibility from the build-time env var, not the API config.
+  // The server always requires a token when the secret key is configured, so
+  // tying the widget to config.security.captchaEnabled (which can be missing
+  // on API errors) caused the widget to disappear while the server still
+  // expected a token, silently breaking the contact form.
+  const captchaEnabled = Boolean(TURNSTILE_SITE_KEY);
   const { lang } = useStorefrontLang();
   const t = useStaticTranslation();
   const breadcrumbs = t("breadcrumbs") || {};
@@ -212,7 +218,7 @@ export default function ContactPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!config.formEnabled || submitting) return;
-    if (config.security?.captchaEnabled && !captchaToken) {
+    if (captchaEnabled && !captchaToken) {
       setSubmitError("Lütfen doğrulama adımını tamamlayın.");
       return;
     }
@@ -403,7 +409,7 @@ export default function ContactPage() {
                   autoComplete="off"
                 />
 
-                {config.security?.captchaEnabled ? (
+                {captchaEnabled ? (
                   <TurnstileWidget
                     siteKey={TURNSTILE_SITE_KEY}
                     resetSignal={captchaResetCounter}

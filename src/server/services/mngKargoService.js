@@ -42,6 +42,7 @@ async function fetchToken() {
       password: PASSWORD,
       identityType: 1,
     }),
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!res.ok) {
@@ -149,6 +150,7 @@ export async function createShipment(order) {
     method: "POST",
     headers: ibmHeaders(token),
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!res.ok) {
@@ -210,7 +212,7 @@ export async function fetchStatusChangedShipments(since) {
   const statusDateTime = `${statusDate}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
 
   const url = `${BASE_URL}/bulkqueryapi/getStatusChangedShipments/${statusDate}/${statusDateTime}`;
-  const res = await fetch(url, { headers: ibmHeaders(token) });
+  const res = await fetch(url, { headers: ibmHeaders(token), signal: AbortSignal.timeout(15_000) });
 
   if (res.status === 404) return []; // O tarihte değişen yoktur
   if (!res.ok) {
@@ -237,7 +239,7 @@ export async function fetchShipmentByReference(referenceId) {
 
   // Bugünün gönderilerini getir, referenceId ile filtrele
   const url = `${BASE_URL}/bulkqueryapi/getShipmentByDate/${dateStr}`;
-  const res = await fetch(url, { headers: ibmHeaders(token) });
+  const res = await fetch(url, { headers: ibmHeaders(token), signal: AbortSignal.timeout(15_000) });
 
   if (!res.ok) return null;
   const data = await res.json();

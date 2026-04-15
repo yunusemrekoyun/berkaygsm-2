@@ -9,7 +9,12 @@
       "Bash(curl -s \"https://testapi.mngkargo.com.tr/mngapi/swagger/v1/swagger.json\" -w \"\\\\nHTTP_STATUS:%{http_code}\")",
       "Bash(curl -s -L https://sandbox.mngkargo.com.tr/tr/product/4611/api/4595 -H 'User-Agent: Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' -H 'Accept-Language: tr,en;q=0.9' --max-time 30)",
       "Bash(curl -s -L https://sandbox.mngkargo.com.tr/tr/product/4611/api/4595 -H 'User-Agent: Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36' --max-time 30)",
-      "Bash(awk 'NR==268{print}' \"C:/Users/Yunus Emre/Desktop/Works/berkaygsm-clone/mng_page.html\")"
+      "Bash(awk 'NR==268{print}' \"C:/Users/Yunus Emre/Desktop/Works/berkaygsm-clone/mng_page.html\")",
+      "Bash(curl -s -w \"\\\\n---STATUS:%{http_code}\" https://www.ceplife.com/api/categories)",
+      "Bash(curl -s -w \"\\\\n---STATUS:%{http_code}\" https://www.ceplife.com/api/auth/register -X POST -H \"Content-Type: application/json\" -d '{\"email\":\"notanemail\",\"password\":\"123\"}')",
+      "Bash(curl -s -w \"\\\\n---STATUS:%{http_code}\" https://www.ceplife.com/api/orders/mine -H \"Content-Type: application/json\")",
+      "Bash(curl -s -w \"\\\\n---STATUS:%{http_code}\" https://www.ceplife.com/api/orders/admin -H \"Content-Type: application/json\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://www.ceplife.com/api/auth/login -X POST -H \"Content-Type: application/json\" -d '{\"email\":\"ratelimitest@test.com\",\"password\":\"wrongpass999\"}')"
     ]
   }
 }

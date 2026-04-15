@@ -274,7 +274,7 @@ export const routes = [
   route("GET", ["maintenance-announcements", "unsubscribe"], [unsubscribeMaintenanceAnnouncements]),
 
   // products
-  route("GET", ["products"], [listProducts]),
+  route("GET", ["products"], [optionalAuth, listProducts]),
   route(
     "POST",
     ["products"],
@@ -285,7 +285,7 @@ export const routes = [
     }
   ),
   route("GET", ["products", ":idOrSlug", "sets"], [listProductSets]),
-  route("GET", ["products", ":idOrSlug"], [getProduct]),
+  route("GET", ["products", ":idOrSlug"], [optionalAuth, getProduct]),
   route(
     "PUT",
     ["products", ":idOrSlug"],

@@ -52,11 +52,14 @@ export async function verifyTurnstileToken({
       .trim()
       .toLowerCase();
 
+    // Strip leading "www." before comparing so that ceplife.com and
+    // www.ceplife.com are treated as the same registered domain.
+    const stripWww = (h) => h.replace(/^www\./, "");
     if (
       result?.success &&
       normalizedExpected &&
       hostname &&
-      hostname !== normalizedExpected
+      stripWww(hostname) !== stripWww(normalizedExpected)
     ) {
       logger.warn(
         {
