@@ -19,6 +19,7 @@ import {
   Truck,
   ShieldCheck,
   LayoutDashboard,
+  Ticket,
 } from "lucide-react";
 
 function SectionBlock({ title, subtitle, children }) {
@@ -247,6 +248,14 @@ export default function AdminSettingsPageInner() {
                   : "İlk kampanyayı oluştur"
               }
               loading={loadingCampaigns}
+            />
+
+            <SettingsCard
+              to="/admin/settings/announcement-banner"
+              icon={Ticket}
+              mediaIcon={Ticket}
+              title="Kayan Duyuru Şeridi"
+              description="Sitenin en üstünde kayan metin — indirim, kargo, kampanya haberleri"
             />
           </SectionBlock>
 

@@ -200,6 +200,11 @@ import {
   listAdminNotifications,
   markAdminNotificationsRead,
 } from "./controllers/adminNotificationController.js";
+import {
+  getAnnouncementBannerPublic,
+  getAnnouncementBannerManage,
+  updateAnnouncementBannerManage,
+} from "./controllers/announcementBannerController.js";
 
 import { optionalAuth, requireAuth } from "./middleware/auth.js";
 import { requireMediaWritesEnabled } from "./middleware/mediaFreeze.js";
@@ -530,6 +535,11 @@ export const routes = [
   route("PUT", ["shipping"], [requireAuth, requireRole("admin"), updateShippingConfig]),
   route("GET", ["site-mode", "manage"], [requireAuth, requireRole("admin"), getSiteModeManage]),
   route("PUT", ["site-mode", "manage"], [requireAuth, requireRole("admin"), updateSiteModeManage]),
+
+  // announcement banner
+  route("GET", ["announcement-banner"], [getAnnouncementBannerPublic]),
+  route("GET", ["announcement-banner", "manage"], [requireAuth, requireRole("admin"), getAnnouncementBannerManage]),
+  route("PUT", ["announcement-banner", "manage"], [requireAuth, requireRole("admin"), updateAnnouncementBannerManage]),
 
   // discounts
   route("GET", ["discounts"], [requireAuth, requireRole("admin"), listDiscounts]),

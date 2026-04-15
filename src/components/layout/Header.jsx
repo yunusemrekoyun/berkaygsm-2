@@ -32,6 +32,7 @@ const BRAND_LOGO_SRC = "/ceplife-logo-cropped.png";
 export default function Header({
   initialCategoryTree = null,
   initialLang = DEFAULT_LANG,
+  bannerHeight = 0,
 }) {
   const navigate = useNavigate();
   const router = useRouter();
@@ -309,7 +310,7 @@ export default function Header({
 
   return (
     <>
-      <header className="fixed left-0 right-0 top-0 z-[120]">
+      <header className="fixed left-0 right-0 z-[120]" style={{ top: bannerHeight }}>
         <div className="rounded-t-2xl border-b border-border glass-surface glass-surface-strong">
           {/* Mobile top */}
           <div className="md:hidden border-b border-border/70 px-4 py-3">

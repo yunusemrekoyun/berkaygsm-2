@@ -4,16 +4,20 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Header from "./Header";
 import Footer from "./Footer";
+import AnnouncementBanner from "./AnnouncementBanner.jsx";
 import GlobalLoadingOverlay from "../ui/GlobalLoadingOverlay.jsx";
 import CookieConsentBanner from "../privacy/CookieConsentBanner.jsx";
 import { CookieConsentProvider } from "../../context/CookieConsentContext.jsx";
+
+const BANNER_HEIGHT = 36; // px — keep in sync with AnnouncementBanner.jsx
 
 const GsapScrollProvider = dynamic(
   () => import("../animations/GsapScrollProvider.jsx"),
   { ssr: false }
 );
 
-export default function RootLayout({ children, initialCategoryTree = null }) {
+export default function RootLayout({ children, initialCategoryTree = null, initialBanner = null }) {
+  const hasBanner = Boolean(initialBanner?.isEnabled && initialBanner?.text);
   const [enableAnimations, setEnableAnimations] = useState(false);
 
   useEffect(() => {
@@ -70,8 +74,11 @@ export default function RootLayout({ children, initialCategoryTree = null }) {
             <GsapScrollProvider />
           ) : null}
           <GlobalLoadingOverlay />
-          <Header initialCategoryTree={initialCategoryTree} />
-          <main className="pb-20 pt-[112px] md:pb-0 md:pt-[136px]">
+          <AnnouncementBanner banner={initialBanner} />
+          <Header initialCategoryTree={initialCategoryTree} bannerHeight={hasBanner ? BANNER_HEIGHT : 0} />
+          <main
+            className={`pb-20 md:pb-0 ${hasBanner ? "pt-[148px] md:pt-[172px]" : "pt-[112px] md:pt-[136px]"}`}
+          >
             {children}
           </main>
           <Footer />
