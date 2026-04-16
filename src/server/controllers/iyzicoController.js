@@ -17,6 +17,7 @@ import {
   sendOrderCustomerEmail,
   sendPaymentManualReviewAdminEmail,
 } from "../services/emailService.js";
+import { sendOrderReceivedSms } from "../services/smsService.js";
 import {
   assertIyzicoConfigured,
   getIyzicoCallbackUrl,
@@ -1447,6 +1448,7 @@ async function sendOrderConfirmationEmails(orderId) {
   await Promise.allSettled([
     sendOrderCustomerEmail({ order, user }),
     sendOrderAdminEmail({ order, user }),
+    sendOrderReceivedSms(order),
   ]);
 
   return { ok: true };

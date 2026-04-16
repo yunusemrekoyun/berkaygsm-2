@@ -23,6 +23,7 @@ import {
   MNG_STATUS,
   normalizeShipmentRecord,
 } from "../../../../server/services/mngKargoService.js";
+import { sendOrderShippedSms } from "../../../../server/services/smsService.js";
 
 const CRON_SECRET = process.env.MNG_CRON_SECRET || "";
 
@@ -90,9 +91,12 @@ export async function GET(request) {
       if (normalized.trackingUrl) {
         order.tracking.trackingUrl = normalized.trackingUrl;
       }
+
+      const hadBarcode = Boolean(order.tracking.barcode);
       if (normalized.barcode) {
         order.tracking.barcode = normalized.barcode;
       }
+      const barcodeJustArrived = !hadBarcode && Boolean(order.tracking.barcode);
 
       if (isDelivered && !order.tracking.deliveredAt) {
         order.tracking.deliveredAt = new Date();
@@ -106,6 +110,12 @@ export async function GET(request) {
       order.markModified("tracking");
       await order.save();
       synced++;
+
+      if (barcodeJustArrived) {
+        sendOrderShippedSms(order).catch((err) =>
+          console.error("SMS (kargo) gönderilemedi:", { orderId: order._id?.toString(), error: err?.message })
+        );
+      }
     } catch (err) {
       console.error("MNG sync: sipariş güncellenemedi:", {
         referenceId,

@@ -57,3 +57,5 @@ pids
 .eslintcache
 printer-agent/
 .claude/worktrees/sweet-jang/
+.claude/settings.local.json
+.claude/settings.local.json

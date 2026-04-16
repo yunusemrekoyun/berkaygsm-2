@@ -19,7 +19,10 @@
       "Bash(xargs -I {} basename {})",
       "WebSearch",
       "WebFetch(domain:www.iletimerkezi.com)",
-      "WebFetch(domain:www.netgsm.com.tr)"
+      "WebFetch(domain:www.netgsm.com.tr)",
+      "WebFetch(domain:www.toplusmsapi.com)",
+      "WebFetch(domain:www.a2psmsapi.com)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
