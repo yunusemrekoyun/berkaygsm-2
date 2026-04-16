@@ -19,9 +19,9 @@ export default function AdminModal({
         aria-hidden="true"
       />
       <div
-        className={`relative w-full ${widthClass} max-h-[92vh] overflow-hidden rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-2xl sm:max-h-[90vh]`}
+        className={`relative flex w-full flex-col ${widthClass} max-h-[90dvh] overflow-hidden rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-2xl`}
       >
-        <header className="flex items-start justify-between gap-3 border-b border-[var(--color-border-admin)] px-4 py-4 sm:px-6">
+        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--color-border-admin)] px-4 py-4 sm:px-6">
           <div>
             <h2 className="text-lg font-semibold text-[var(--color-text-admin)]">
               {title}
@@ -40,7 +40,7 @@ export default function AdminModal({
             <X className="h-5 w-5" />
           </button>
         </header>
-        <div className="max-h-[72vh] overflow-y-auto px-4 py-4 sm:max-h-[70vh] sm:px-6 sm:py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {children}
         </div>
         {footer && (

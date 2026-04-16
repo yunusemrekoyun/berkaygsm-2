@@ -342,7 +342,7 @@ export default function OrderDetailsModal({ orderId, onClose, admin = false }) {
     <div className="fixed inset-0 z-[200]">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
 
-      <div className="absolute inset-2 flex flex-col overflow-hidden rounded-[24px] border border-border bg-white shadow-[0_30px_120px_rgba(15,23,42,0.25)] sm:inset-4 lg:inset-5 xl:left-1/2 xl:top-6 xl:bottom-6 xl:w-[min(1120px,calc(100vw-64px))] xl:-translate-x-1/2">
+      <div className="absolute inset-3 flex flex-col overflow-hidden rounded-[20px] border border-border bg-white shadow-[0_30px_120px_rgba(15,23,42,0.25)] sm:inset-4 sm:rounded-[24px] lg:inset-5 xl:left-1/2 xl:top-6 xl:bottom-6 xl:w-[min(1120px,calc(100vw-64px))] xl:-translate-x-1/2">
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-4 py-4 sm:px-6 sm:py-5">
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary">

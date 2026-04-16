@@ -292,7 +292,7 @@ export default function StockManagerPanel({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-3">
           {loading ? (
             <div className="py-12 text-center text-sm opacity-50">Yükleniyor…</div>
           ) : (

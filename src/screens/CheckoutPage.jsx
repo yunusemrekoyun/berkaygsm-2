@@ -521,7 +521,7 @@ export default function CheckoutPage() {
                             fullName: event.target.value,
                           }))
                         }
-                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2.5 text-sm text-primary outline-none"
                         required
                       />
                     </label>
@@ -539,7 +539,7 @@ export default function CheckoutPage() {
                             email: event.target.value,
                           }))
                         }
-                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2.5 text-sm text-primary outline-none"
                         required
                       />
                     </label>
@@ -556,7 +556,7 @@ export default function CheckoutPage() {
                             phone: formatTrPhoneForInput(event.target.value),
                           }))
                         }
-                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2.5 text-sm text-primary outline-none"
                         inputMode="numeric"
                         autoComplete="tel"
                         required
@@ -575,7 +575,7 @@ export default function CheckoutPage() {
                             country: event.target.value,
                           }))
                         }
-                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2.5 text-sm text-primary outline-none"
                         required
                       />
                     </label>
@@ -592,7 +592,7 @@ export default function CheckoutPage() {
                             addressLine1: event.target.value,
                           }))
                         }
-                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2.5 text-sm text-primary outline-none"
                         required
                       />
                     </label>
@@ -609,7 +609,7 @@ export default function CheckoutPage() {
                             addressLine2: event.target.value,
                           }))
                         }
-                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2.5 text-sm text-primary outline-none"
                       />
                     </label>
 
@@ -625,7 +625,7 @@ export default function CheckoutPage() {
                             city: event.target.value,
                           }))
                         }
-                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2.5 text-sm text-primary outline-none"
                         required
                       />
                     </label>
@@ -642,7 +642,7 @@ export default function CheckoutPage() {
                             state: event.target.value,
                           }))
                         }
-                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2.5 text-sm text-primary outline-none"
                       />
                     </label>
 
@@ -658,7 +658,7 @@ export default function CheckoutPage() {
                             postalCode: event.target.value,
                           }))
                         }
-                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none"
+                        className="w-full rounded-lg border border-border bg-contact-bg px-3 py-2.5 text-sm text-primary outline-none"
                       />
                     </label>
                   </div>

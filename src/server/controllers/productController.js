@@ -1001,6 +1001,89 @@ export async function deleteProduct(req, res) {
   }
 }
 
+export async function bulkUpdatePrice(req, res) {
+  try {
+    const { scope, categoryIds, productIds, adjustType, value } = req.body;
+
+    // --- Validation ---
+    if (!["all", "category", "product"].includes(scope)) {
+      return res.status(400).json({ message: "Geçersiz kapsam (scope)" });
+    }
+    if (!["percent", "fixed"].includes(adjustType)) {
+      return res.status(400).json({ message: "Geçersiz zam türü (adjustType)" });
+    }
+    const numValue = Number(value);
+    if (!Number.isFinite(numValue) || numValue <= 0) {
+      return res.status(400).json({ message: "Zam değeri sıfırdan büyük bir sayı olmalı" });
+    }
+    if (adjustType === "percent" && numValue > 1000) {
+      return res.status(400).json({ message: "Yüzdelik zam 1000'i geçemez" });
+    }
+
+    // --- Build filter ---
+    let filter = {};
+    if (scope === "category") {
+      if (!Array.isArray(categoryIds) || categoryIds.length === 0) {
+        return res.status(400).json({ message: "Kategori seçilmedi" });
+      }
+      const validIds = categoryIds.filter((id) => isId(String(id)));
+      if (!validIds.length) {
+        return res.status(400).json({ message: "Geçersiz kategori ID'si" });
+      }
+      filter = { category: { $in: validIds.map((id) => new mongoose.Types.ObjectId(String(id))) } };
+    } else if (scope === "product") {
+      if (!Array.isArray(productIds) || productIds.length === 0) {
+        return res.status(400).json({ message: "Ürün seçilmedi" });
+      }
+      const validIds = productIds.filter((id) => isId(String(id)));
+      if (!validIds.length) {
+        return res.status(400).json({ message: "Geçersiz ürün ID'si" });
+      }
+      filter = { _id: { $in: validIds.map((id) => new mongoose.Types.ObjectId(String(id))) } };
+    }
+
+    // --- Aggregation pipeline update ---
+    const pricePipeline =
+      adjustType === "percent"
+        ? [
+            {
+              $set: {
+                price: {
+                  $max: [
+                    0,
+                    {
+                      $round: [
+                        { $multiply: ["$price", { $add: [1, numValue / 100] }] },
+                        2,
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          ]
+        : [
+            {
+              $set: {
+                price: {
+                  $max: [0, { $round: [{ $add: ["$price", numValue] }, 2] }],
+                },
+              },
+            },
+          ];
+
+    const result = await Product.updateMany(filter, pricePipeline);
+
+    return res.json({
+      ok: true,
+      updated: result.modifiedCount,
+      message: `${result.modifiedCount} ürünün fiyatı güncellendi`,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Fiyat güncellenemedi" });
+  }
+}
+
 export async function listProductSets(req, res) {
   try {
     const lang = normalizeLang(req.query.lang || DEFAULT_LANG);

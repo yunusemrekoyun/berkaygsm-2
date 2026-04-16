@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { PlusCircle, RefreshCw, Search } from "lucide-react";
+import { PlusCircle, RefreshCw, Search, TrendingUp } from "lucide-react";
 import { categoryApi } from "../../api/categories";
 import { productApi } from "../../api/products";
 import { stocksApi } from "../../api/stocks"; // ✅ yeni: stokları buradan okuyacağız
 import ProductTable from "../../components/admin/products/ProductTable";
 import ProductForm from "../../components/admin/products/ProductForm";
 import ProductTranslationModal from "../../components/admin/products/ProductTranslationModal.jsx";
+import BulkPriceModal from "../../components/admin/products/BulkPriceModal.jsx";
 import { flattenCategoryTree } from "../../utils/catalog.js";
 import AlertBanner from "../../components/ui/AlertBanner.jsx";
 import { useConfirm } from "../../components/ui/ConfirmDialog.jsx";
@@ -225,6 +226,7 @@ export default function AdminProducts() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState(null);
+  const [bulkPriceOpen, setBulkPriceOpen] = useState(false);
   const [translationState, setTranslationState] = useState({
     open: false,
     loading: false,
@@ -676,6 +678,12 @@ export default function AdminProducts() {
             <RefreshCw className="h-4 w-4" /> Yenile
           </button>
           <button
+            onClick={() => setBulkPriceOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
+          >
+            <TrendingUp className="h-4 w-4" /> Zam Uygula
+          </button>
+          <button
             onClick={handleCreateClick}
             className="inline-flex items-center gap-2 rounded-full bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[var(--color-accent-hover)]"
           >
@@ -793,6 +801,13 @@ export default function AdminProducts() {
           onUpdated={handleTranslationsUpdated}
         />
       )}
+
+      <BulkPriceModal
+        open={bulkPriceOpen}
+        onClose={() => setBulkPriceOpen(false)}
+        onSuccess={() => loadProducts(pagination.page)}
+        categories={categoryOptions}
+      />
 
       {deleteDialog && (
         <DeleteProductResolutionModal

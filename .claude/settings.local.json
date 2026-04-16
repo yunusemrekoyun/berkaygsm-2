@@ -14,7 +14,12 @@
       "Bash(curl -s -w \"\\\\n---STATUS:%{http_code}\" https://www.ceplife.com/api/auth/register -X POST -H \"Content-Type: application/json\" -d '{\"email\":\"notanemail\",\"password\":\"123\"}')",
       "Bash(curl -s -w \"\\\\n---STATUS:%{http_code}\" https://www.ceplife.com/api/orders/mine -H \"Content-Type: application/json\")",
       "Bash(curl -s -w \"\\\\n---STATUS:%{http_code}\" https://www.ceplife.com/api/orders/admin -H \"Content-Type: application/json\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://www.ceplife.com/api/auth/login -X POST -H \"Content-Type: application/json\" -d '{\"email\":\"ratelimitest@test.com\",\"password\":\"wrongpass999\"}')"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://www.ceplife.com/api/auth/login -X POST -H \"Content-Type: application/json\" -d '{\"email\":\"ratelimitest@test.com\",\"password\":\"wrongpass999\"}')",
+      "Bash(grep -l \"Order\\\\|Payment\" /Applications/Works/berkaygsm-clone/src/server/models/*.js)",
+      "Bash(xargs -I {} basename {})",
+      "WebSearch",
+      "WebFetch(domain:www.iletimerkezi.com)",
+      "WebFetch(domain:www.netgsm.com.tr)"
     ]
   }
 }

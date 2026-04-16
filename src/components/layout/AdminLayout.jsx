@@ -278,7 +278,7 @@ function SidebarHeader({ collapsed, onToggle }) {
       </Link>
       <button
         onClick={onToggle}
-        className="hidden md:inline-flex rounded-lg p-2 text-white/80 hover:bg-white/10"
+        className="hidden md:inline-flex rounded-lg p-2.5 text-white/80 hover:bg-white/10"
         aria-label={collapsed ? "Menüyü genişlet" : "Menüyü daralt"}
       >
         {collapsed ? (
@@ -352,7 +352,7 @@ function TopBar({ breadcrumbs, onMenuToggle, me, onLogout }) {
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <button
             onClick={onMenuToggle}
-            className="flex rounded-lg p-2 text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] md:hidden"
+            className="flex rounded-lg p-2.5 text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)] md:hidden"
             aria-label="Menüyü Aç"
           >
             <Menu className="h-6 w-6" />
@@ -475,7 +475,7 @@ function MobileDrawer({ open, onClose, menu, me, onLogout }) {
           </Link>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-white hover:bg-white/10"
+            className="rounded-lg p-2.5 text-white hover:bg-white/10"
             aria-label="Menüyü Kapat"
           >
             <X className="h-6 w-6" />

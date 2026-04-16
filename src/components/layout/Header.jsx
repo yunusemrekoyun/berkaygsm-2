@@ -596,7 +596,7 @@ export default function Header({
       )}
 
       {trackingPromptOpen && (
-        <div className="fixed inset-0 z-[170]">
+        <div className="fixed inset-0 z-[170] flex items-center justify-center overflow-y-auto px-4 py-8">
           <div
             className="absolute inset-0 bg-slate-950/45 backdrop-blur-[1px]"
             onClick={() => {
@@ -606,7 +606,7 @@ export default function Header({
             }}
             aria-hidden
           />
-          <div className="absolute left-1/2 top-1/2 w-[min(92vw,440px)] -translate-x-1/2 -translate-y-1/2 rounded-[28px] border border-border bg-white p-5 shadow-[0_30px_120px_rgba(15,23,42,0.24)] sm:p-6">
+          <div className="relative w-full max-w-[440px] rounded-[28px] border border-border bg-white p-5 shadow-[0_30px_120px_rgba(15,23,42,0.24)] sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary">

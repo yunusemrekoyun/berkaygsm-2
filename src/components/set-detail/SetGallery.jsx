@@ -21,7 +21,7 @@ export default function SetGallery({ images = [], title = "" }) {
           width={1600}
           height={1200}
           sizes="(max-width: 768px) 100vw, 60vw"
-          className="h-[420px] w-full object-cover md:h-[480px]"
+          className="h-[260px] w-full object-cover sm:h-[360px] md:h-[480px]"
           draggable="false"
         />
       </div>

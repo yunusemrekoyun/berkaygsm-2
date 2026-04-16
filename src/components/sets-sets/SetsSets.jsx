@@ -12,7 +12,7 @@ export default function SetsSets({
   tabs = [],
   items = [],
   loading = false,
-  emptyLabel = "Bu filtreye uygun paket bulunamadı.",
+  emptyLabel = "Yeni ürün setleri için bizleri takip etmeyi unutmayın. En kısa sürede setler güncellenecektir.",
   cardCopy = {},
   allLabel = "Tümü",
 }) {

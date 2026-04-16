@@ -53,7 +53,7 @@ export default function SetTable({
 
   return (
     <>
-      <div className="admin-table-container overflow-hidden rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-sm">
+      <div className="admin-table-container overflow-x-auto rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] shadow-sm">
         <table className="admin-table min-w-full divide-y divide-[var(--color-border-admin)]/70 text-sm">
           <thead className="bg-[var(--color-bg-hover)]/60 text-[var(--color-text-admin-muted)]">
             <tr>

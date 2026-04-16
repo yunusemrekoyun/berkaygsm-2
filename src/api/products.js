@@ -250,6 +250,14 @@ export const productApi = {
     });
   },
 
+  async bulkUpdatePrice({ scope, categoryIds, productIds, adjustType, value }) {
+    return http("/products/bulk-price", {
+      method: "PATCH",
+      body: { scope, categoryIds, productIds, adjustType, value },
+      auth: true,
+    });
+  },
+
   async sets(idOrSlug, lang = DEFAULT_LANG) {
     const identifier = normalizeIdOrSlug(idOrSlug);
     if (!identifier) {

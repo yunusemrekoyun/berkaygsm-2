@@ -44,14 +44,14 @@ export default function Footer() {
         </div>
 
         {/* Üst mini ikonlar */}
-        <div className="flex flex-wrap items-center justify-center gap-4 pb-6 text-sm text-secondary">
-          <span className="glass-chip flex min-w-[140px] items-center justify-center gap-2 rounded-full bg-surface-light px-4 py-2 text-accent">
+        <div className="flex flex-wrap items-center justify-center gap-3 pb-6 text-sm text-secondary sm:gap-4">
+          <span className="glass-chip flex min-w-[120px] items-center justify-center gap-2 rounded-full bg-surface-light px-4 py-2 text-accent sm:min-w-[140px]">
             <Mail className="h-4 w-4" />
             <span className="font-medium">
               {links.email || OFFICIAL_SUPPORT_EMAIL}
             </span>
           </span>
-          <span className="glass-chip flex min-w-[140px] items-center justify-center gap-2 rounded-full bg-surface-light px-4 py-2 text-accent">
+          <span className="glass-chip flex min-w-[120px] items-center justify-center gap-2 rounded-full bg-surface-light px-4 py-2 text-accent sm:min-w-[140px]">
             <Phone className="h-4 w-4" />
             <span className="font-medium">{links.phone || OFFICIAL_PHONE}</span>
           </span>

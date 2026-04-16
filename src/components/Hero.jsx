@@ -226,14 +226,14 @@ export default function Hero({
         <>
           <button
             onClick={() => go(-1)}
-            className="absolute left-4 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/30 px-3 py-2 text-white backdrop-blur hover:bg-black/40"
+            className="absolute left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur hover:bg-black/40 sm:left-4"
             aria-label={prevLabel}
           >
             ‹
           </button>
           <button
             onClick={() => go(1)}
-            className="absolute right-4 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/30 px-3 py-2 text-white backdrop-blur hover:bg-black/40"
+            className="absolute right-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur hover:bg-black/40 sm:right-4"
             aria-label={nextLabel}
           >
             ›

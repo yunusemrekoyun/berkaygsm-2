@@ -29,7 +29,7 @@ export default function DiscountTable({
   }
 
   return (
-    <div className="admin-table-container overflow-hidden rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)]">
+    <div className="admin-table-container overflow-x-auto rounded-2xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)]">
       <table className="admin-table min-w-full divide-y divide-[var(--color-border-admin)]/80">
         <thead className="bg-[var(--color-bg-hover)]/60">
           <tr>

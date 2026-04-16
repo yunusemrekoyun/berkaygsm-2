@@ -35,7 +35,7 @@ function PanelCard({
           {onCopy && (
             <button
               type="button"
-              className="rounded-full border border-[var(--color-border-admin)] px-3 py-1 text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
+              className="rounded-full border border-[var(--color-border-admin)] px-3 py-2 text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
               onClick={onCopy}
             >
               Türkçeden kopyala
@@ -44,7 +44,7 @@ function PanelCard({
           {onReset && (
             <button
               type="button"
-              className="rounded-full border border-[var(--color-border-admin)] px-3 py-1 text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
+              className="rounded-full border border-[var(--color-border-admin)] px-3 py-2 text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
               onClick={onReset}
             >
               Sıfırla
@@ -54,7 +54,7 @@ function PanelCard({
             <button
               type="button"
               disabled={saving}
-              className="rounded-full bg-[var(--color-primary)] px-4 py-1.5 text-[var(--color-text-on-primary)] font-semibold disabled:opacity-70"
+              className="rounded-full bg-[var(--color-primary)] px-4 py-2 text-[var(--color-text-on-primary)] font-semibold disabled:opacity-70"
               onClick={onSave}
             >
               {saving ? (

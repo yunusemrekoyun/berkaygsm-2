@@ -12,6 +12,7 @@ import {
   updateProduct,
   deleteProduct,
   listProductSets,
+  bulkUpdatePrice,
 } from "./controllers/productController.js";
 import {
   createCategory,
@@ -280,6 +281,7 @@ export const routes = [
 
   // products
   route("GET", ["products"], [optionalAuth, listProducts]),
+  route("PATCH", ["products", "bulk-price"], [requireAuth, requireRole("admin"), bulkUpdatePrice]),
   route(
     "POST",
     ["products"],
