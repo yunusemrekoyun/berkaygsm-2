@@ -106,7 +106,7 @@ export default function Categories({
           </button>
           <div
             ref={scrollRef}
-            className="flex snap-x snap-mandatory gap-8 overflow-x-auto pb-4 md:pb-6 md:no-scrollbar"
+            className="flex snap-x snap-mandatory gap-8 overflow-x-auto pb-4 md:pb-6 no-scrollbar"
             data-animate="stagger"
             data-animate-children="[data-category-card]"
             data-stagger="0.08"

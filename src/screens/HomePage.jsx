@@ -319,15 +319,17 @@ export default function HomePage({
           />
         </div>
       </section>
-      <HomeSets
-        variant="compact"
-        title={sectionCopy.setsTitle}
-        subtitle={sectionCopy.setsSubtitle}
-        tabs={setTabs}
-        items={sets}
-        viewAllHref="/sets"
-        loading={loadingSets}
-      />
+      {(loadingSets || sets.length > 0) && (
+        <HomeSets
+          variant="compact"
+          title={sectionCopy.setsTitle}
+          subtitle={sectionCopy.setsSubtitle}
+          tabs={setTabs}
+          items={sets}
+          viewAllHref="/sets"
+          loading={loadingSets}
+        />
+      )}
       <HomeProductComments items={commentsToRender} />
       <HomeCampaigns items={campaignsToRender} loading={loadingCampaigns} />
       <HomeContact />

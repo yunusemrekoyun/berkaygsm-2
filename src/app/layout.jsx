@@ -35,9 +35,70 @@ const DEFAULT_THEME_VARS = {
   "--color-border-admin": "#bae6fd",
 };
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.ceplife.com";
+
 export const metadata = {
-  title: "CepLife",
-  description: "CepLife telefon aksesuar mağazası",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "CepLife — Telefon Aksesuarları",
+    template: "%s | CepLife",
+  },
+  description:
+    "Telefonunuz için en kaliteli kılıf, ekran koruyucu, şarj aleti ve aksesuar. Hızlı kargo, güvenli ödeme, uygun fiyat.",
+  keywords: ["telefon kılıfı", "ekran koruyucu", "telefon aksesuarı", "kılıf", "cep telefonu aksesuarı"],
+  openGraph: {
+    siteName: "CepLife",
+    type: "website",
+    locale: "tr_TR",
+    url: SITE_URL,
+    title: "CepLife — Telefon Aksesuarları",
+    description:
+      "Telefonunuz için en kaliteli kılıf, ekran koruyucu, şarj aleti ve aksesuar. Hızlı kargo, güvenli ödeme, uygun fiyat.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CepLife — Telefon Aksesuarları",
+    description:
+      "Telefonunuz için en kaliteli kılıf, ekran koruyucu, şarj aleti ve aksesuar.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+  alternates: {
+    canonical: SITE_URL,
+  },
+};
+
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "CepLife",
+  url: SITE_URL,
+  logo: `${SITE_URL}/ceplife-logo-cropped.png`,
+  contactPoint: {
+    "@type": "ContactPoint",
+    telephone: "+905522174343",
+    contactType: "customer service",
+    availableLanguage: "Turkish",
+  },
+  sameAs: [],
+};
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "CepLife",
+  url: SITE_URL,
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: `${SITE_URL}/shop?q={search_term_string}`,
+    },
+    "query-input": "required name=search_term_string",
+  },
 };
 
 export default function RootLayout({ children }) {
@@ -49,6 +110,16 @@ export default function RootLayout({ children }) {
       style={DEFAULT_THEME_VARS}
       className={`${brandSans.variable} ${brandSerif.variable}`}
     >
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
+      </head>
       <body className="font-sans">
         <Providers enableVercelInsights={enableVercelInsights}>
           {children}

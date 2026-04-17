@@ -2154,7 +2154,7 @@ export async function listOrders(req, res) {
       filter.user = req.query.user;
     }
     if (req.query.q) {
-      const q = String(req.query.q).trim();
+      const q = String(req.query.q).trim().slice(0, 50);
       if (q) {
         const sanitized = q.replace(/[^a-zA-Z0-9]/g, "");
         const pattern = sanitized.split("").join("[-\\s]*");
