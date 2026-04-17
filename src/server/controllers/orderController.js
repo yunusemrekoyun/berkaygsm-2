@@ -353,25 +353,28 @@ function shapePublicOrder(doc) {
   if (!shaped) return shaped;
 
   if (shaped.customer) {
+    const cust = shaped.customer?.toObject?.() ?? shaped.customer;
     shaped.customer = {
-      ...shaped.customer,
-      email: maskEmail(shaped.customer.email),
-      phone: maskPhone(shaped.customer.phone),
+      ...cust,
+      email: maskEmail(cust.email),
+      phone: maskPhone(cust.phone),
     };
   }
 
   if (shaped.address) {
+    const addr = shaped.address?.toObject?.() ?? shaped.address;
     shaped.address = {
-      ...shaped.address,
-      phone: maskPhone(shaped.address.phone),
+      ...addr,
+      phone: maskPhone(addr.phone),
       // Tam adres satırı public response'da gizlenir; şehir/ilçe yeterlidir.
-      addressLine: shaped.address.addressLine ? "***" : "",
+      addressLine: addr.addressLine ? "***" : "",
     };
   }
 
   if (shaped.invoice) {
+    const inv = shaped.invoice?.toObject?.() ?? shaped.invoice;
     shaped.invoice = {
-      ...shaped.invoice,
+      ...inv,
       identityNumber: "***",
     };
   }

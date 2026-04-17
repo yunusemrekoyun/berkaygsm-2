@@ -17,6 +17,10 @@ const HASH = (process.env.ILETIMERKEZI_HASH || "").trim();
 const SENDER = (process.env.ILETIMERKEZI_SENDER || "").trim();
 const SUPPORT_PHONE = (process.env.SUPPORT_PHONE || "").trim();
 
+function isEnabled() {
+  return (process.env.SMS_SYSTEM || "").trim().toLowerCase() === "active";
+}
+
 function isConfigured() {
   return Boolean(KEY && HASH && SENDER);
 }
@@ -69,6 +73,10 @@ function extractStatus(data, httpStatus) {
  * @returns {Promise<{ ok: boolean, orderId?: string, error?: string, code?: number }>}
  */
 export async function sendSms(phone, text) {
+  if (!isEnabled()) {
+    return { ok: false, error: "SMS sistemi devre dışı" };
+  }
+
   if (!isConfigured()) {
     console.warn(
       "SMS: ILETIMERKEZI_KEY/HASH/SENDER tanımlanmamış, SMS atlanıyor.",
