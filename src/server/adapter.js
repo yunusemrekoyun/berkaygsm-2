@@ -169,6 +169,7 @@ class ResponseMock {
         httpOnly: options.httpOnly ?? false,
         secure: options.secure ?? false,
         sameSite: options.sameSite || "lax",
+        ...(options.domain ? { domain: options.domain } : {}),
         path: options.path || "/",
         maxAge: normalizedMaxAge,
       });

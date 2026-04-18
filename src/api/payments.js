@@ -1,7 +1,7 @@
 import { http } from "./client.js";
 
 export const paymentApi = {
-  async initializeIyzicoCheckout({
+  async initializePaynetCheckout({
     addressId,
     addressSnapshot = null,
     guestCustomer = null,
@@ -11,8 +11,6 @@ export const paymentApi = {
     identityNumber = null,
     auth = true,
   }) {
-    // addressId yalnızca gerçek bir değer varsa eklenir; null/undefined gönderilirse
-    // Zod şeması (z.string().optional()) reddeder — misafir akışında bu alan olmaz.
     const body = { items };
     if (addressId) body.addressId = addressId;
     if (couponCode != null) body.couponCode = couponCode;
@@ -20,7 +18,7 @@ export const paymentApi = {
     if (guestCustomer) body.guestCustomer = guestCustomer;
     if (note) body.note = note;
     if (identityNumber) body.identityNumber = identityNumber;
-    return http("/payments/iyzico/initialize", {
+    return http("/payments/paynet/initialize", {
       method: "POST",
       auth,
       body,

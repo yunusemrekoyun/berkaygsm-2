@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import mongoose from "mongoose";
 import Order from "../models/Order.js";
 import UserDetails from "../models/UserDetails.js";
@@ -53,7 +54,7 @@ function generateOrderNumber() {
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, "0");
   const d = String(now.getDate()).padStart(2, "0");
-  const rand = Math.random().toString(36).slice(-4).toUpperCase();
+  const rand = crypto.randomBytes(3).toString("hex").toUpperCase();
   return `AYY-${y}${m}${d}-${rand}`;
 }
 
@@ -342,6 +343,24 @@ function maskPhone(phone) {
   if (!raw) return "";
   if (raw.length <= 5) return "***";
   return `${raw.slice(0, 3)}****${raw.slice(-2)}`;
+}
+
+function normalizeLookupEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function matchesPublicTrackingEmail(order, email) {
+  const lookupEmail = normalizeLookupEmail(email);
+  if (!lookupEmail) return false;
+
+  const userEmail =
+    order?.user && typeof order.user === "object" ? order.user.email : null;
+
+  return [
+    order?.customer?.email,
+    order?.payment?.payer?.email,
+    userEmail,
+  ].some((candidate) => normalizeLookupEmail(candidate) === lookupEmail);
 }
 
 /**
@@ -1880,7 +1899,7 @@ export async function createOrder(req, res) {
     return res.status(503).json({
       code: "DIRECT_ORDER_CREATION_DISABLED",
       message:
-        "Doğrudan sipariş oluşturma kapalı. Checkout akışı Iyzico ödeme oturumu üzerinden ilerlemeli.",
+        "Doğrudan sipariş oluşturma kapalı. Checkout akışı Paynet ödeme oturumu üzerinden ilerlemeli.",
     });
   } catch (err) {
     if (err.status) {
@@ -1928,6 +1947,7 @@ export {
   releaseReservedStock,
   shapeOrder,
   summarizeOrderItems,
+  matchesPublicTrackingEmail,
   normalizeCode,
   roundCurrency,
   PAYMENT_CURRENCY,
@@ -2130,7 +2150,10 @@ export async function getOrder(req, res) {
  */
 export async function trackOrder(req, res) {
   try {
-    const order = await findOrderByIdOrNumber(req.params.idOrNumber);
+    const order = await findPublicTrackOrder(
+      req.params.idOrNumber,
+      req.query?.email
+    );
     if (!order) return res.status(404).json({ message: "Sipariş bulunamadı" });
 
     res.json({ order: shapePublicOrder(order) });
@@ -2207,6 +2230,31 @@ async function findOrderByIdOrNumber(idOrNumber, session = null) {
   const byNumberQuery = Order.findOne({ orderNumber: idOrNumber });
   if (session) byNumberQuery.session(session);
   return byNumberQuery;
+}
+
+async function findPublicTrackOrder(idOrNumber, email, session = null) {
+  const lookupEmail = normalizeLookupEmail(email);
+  if (!lookupEmail) return null;
+
+  let order = null;
+  if (isObjectIdLike(idOrNumber)) {
+    const byIdQuery = Order.findById(idOrNumber).populate("user", "email");
+    if (session) byIdQuery.session(session);
+    order = await byIdQuery;
+  }
+
+  if (!order) {
+    const byNumberQuery = Order.findOne({ orderNumber: idOrNumber }).populate(
+      "user",
+      "email"
+    );
+    if (session) byNumberQuery.session(session);
+    order = await byNumberQuery;
+  }
+
+  if (!order) return null;
+  if (!matchesPublicTrackingEmail(order, lookupEmail)) return null;
+  return order;
 }
 
 /** Admin: GET /api/orders/:id */

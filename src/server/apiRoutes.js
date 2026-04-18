@@ -93,10 +93,11 @@ import {
   updateOrderStatus,
 } from "./controllers/orderController.js";
 import {
-  initializeIyzicoPayment,
-  handleIyzicoCallback,
-  handleIyzicoWebhook,
-} from "./controllers/iyzicoController.js";
+  initializePaynetPayment,
+  handlePaynetCallback,
+  handlePaynetReturn,
+  handlePaynetConfigCheck,
+} from "./controllers/paynetController.js";
 import {
   listHeroes,
   createHero,
@@ -214,7 +215,7 @@ import { requireRole } from "./middleware/roles.js";
 import { validateBody } from "./middleware/validate.js";
 import {
   orderCreateSchema,
-  iyzicoInitializeSchema,
+  paynetInitializeSchema,
   printJobClaimSchema,
   printJobCompleteSchema,
   printJobFailSchema,
@@ -231,7 +232,6 @@ import {
   mediaUploadLimiter,
   mediaSignatureLimiter,
   contactMessageLimiter,
-  webhookLimiter,
   callbackLimiter,
 } from "./rateLimiters.js";
 
@@ -439,13 +439,14 @@ export const routes = [
   // payments
   route(
     "POST",
-    ["payments", "iyzico", "initialize"],
-    [strictLimiter, optionalAuth, validateBody(iyzicoInitializeSchema), initializeIyzicoPayment]
+    ["payments", "paynet", "initialize"],
+    [strictLimiter, optionalAuth, validateBody(paynetInitializeSchema), initializePaynetPayment]
   ),
-  route("GET", ["payments", "iyzico", "callback"], [callbackLimiter, handleIyzicoCallback]),
-  route("POST", ["payments", "iyzico", "callback"], [callbackLimiter, handleIyzicoCallback]),
-  // webhookLimiter: iyzico sunucu IP başına 60 req/dk — imza doğrulaması handler içinde ilk adım
-  route("POST", ["payments", "iyzico", "webhook"], [webhookLimiter, handleIyzicoWebhook]),
+  route("GET", ["payments", "paynet", "callback"], [callbackLimiter, handlePaynetCallback]),
+  route("POST", ["payments", "paynet", "callback"], [callbackLimiter, handlePaynetCallback]),
+  route("GET", ["payments", "paynet", "return"], [callbackLimiter, handlePaynetReturn]),
+  route("POST", ["payments", "paynet", "return"], [callbackLimiter, handlePaynetReturn]),
+  route("GET", ["payments", "paynet", "config-check"], [requireAuth, requireRole("admin"), handlePaynetConfigCheck]),
 
   // orders
   route(

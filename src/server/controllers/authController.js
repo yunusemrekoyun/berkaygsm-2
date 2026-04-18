@@ -36,6 +36,32 @@ const secureCookieDefault =
 
 const sameSiteDefault = resolveSameSite(process.env.COOKIE_SAMESITE || "strict");
 
+function getCookieDomain() {
+  const explicit = String(process.env.COOKIE_DOMAIN || "").trim();
+  if (explicit) return explicit;
+
+  const candidates = [
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.PAYNET_CALLBACK_BASE_URL,
+    process.env.MAIL_PUBLIC_BASE_URL,
+  ];
+
+  for (const candidate of candidates) {
+    const raw = String(candidate || "").trim();
+    if (!raw) continue;
+    try {
+      const host = new URL(raw).hostname.toLowerCase();
+      if (host === "ceplife.com" || host === "www.ceplife.com") {
+        return ".ceplife.com";
+      }
+    } catch {
+      // ignore invalid URL candidates
+    }
+  }
+
+  return undefined;
+}
+
 function getAccessTokenSecret() {
   const secret = String(process.env.JWT_ACCESS_SECRET || "").trim();
   if (!secret) {
@@ -82,6 +108,7 @@ function clearRefreshCookie(res) {
     sameSite: getRefreshCookieSameSite(),
     secure: secureCookieDefault,
     httpOnly: true,
+    ...(getCookieDomain() ? { domain: getCookieDomain() } : {}),
   };
   res.clearCookie("refreshToken", {
     ...common,
@@ -99,6 +126,7 @@ function setRefreshCookie(res, token) {
     httpOnly: true,
     secure: secureCookieDefault,
     sameSite: getRefreshCookieSameSite(),
+    ...(getCookieDomain() ? { domain: getCookieDomain() } : {}),
     path: "/api/auth",
     maxAge: 1000 * 60 * 60 * 24 * 30,
   });

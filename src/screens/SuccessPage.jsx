@@ -21,9 +21,8 @@ export default function SuccessPage() {
     .trim()
     .toLowerCase();
   const messageParam = String(searchParams.get("message") || "").trim();
-  // Başarılı ödeme callback'i bu email'i redirect URL'ye ekler.
-  // Public trackOrder şu an sipariş koduyla çalıştığı için bu alan zorunlu değil,
-  // ancak redirect yapısı geriye dönük uyumluluk için korunur.
+  // Misafir sipariş sorgusu artık order no + email ile çalışır.
+  // Başarılı ödeme redirect'i guest checkout için email'i query'ye taşır.
   const emailParam = String(searchParams.get("email") || "").trim();
   const [order, setOrder] = useState(null);
   const { clearCart, clearCoupon } = useCart() || {};
@@ -49,6 +48,8 @@ export default function SuccessPage() {
         hasToken = await refreshAccessToken();
       }
 
+      if (!hasToken && !emailParam) return;
+
       try {
         const o = hasToken
           ? await orderApi.get(orderId)
@@ -71,18 +72,23 @@ export default function SuccessPage() {
 
   const paymentFailed = derivedStatus === "failed";
   const paymentReview = derivedStatus === "review";
+  const paymentPending = derivedStatus === "pending";
   const heading = paymentFailed
     ? "Ödeme tamamlanamadı"
     : paymentReview
       ? "Ödeme alındı, sipariş kontrol ediliyor"
-      : "Teşekkürler!";
+      : paymentPending
+        ? "Ödeme işleniyor..."
+        : "Teşekkürler!";
   const message = paymentFailed
     ? messageParam ||
       "Ödeme tamamlanamadı. Sipariş durumunu hesabınızdan kontrol edebilirsiniz."
     : paymentReview
       ? messageParam ||
         "Ödeme sonucu güvenlik kontrolüne alındı. Kısa süre içinde manuel olarak doğrulanacak."
-      : "Siparişiniz başarıyla oluşturuldu.";
+      : paymentPending
+        ? "Ödemeniz alındı, siparişiniz oluşturuluyor. Birkaç dakika içinde hesabınızda görünecek."
+        : "Siparişiniz başarıyla oluşturuldu.";
 
   useEffect(() => {
     if (!orderId || !order || derivedStatus !== "success") return;

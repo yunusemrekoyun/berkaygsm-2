@@ -561,24 +561,6 @@ export default function Header({
               </button>
             </div>
             <div className="flex-1 overflow-y-auto px-4 pb-6 pt-4">
-              <div className="glass-surface glass-surface-soft sticky top-0 z-10 mb-4 rounded-2xl border border-accent/30 px-4 py-3 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-accent">
-                  {t("header.sale")}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-primary">
-                  {saleCtaTitle}
-                </p>
-                <p className="mt-1 text-xs text-secondary">
-                  {saleCtaDescription}
-                </p>
-                <button
-                  type="button"
-                  onClick={handleSaleNavigate}
-                  className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-accent/40 bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent/90"
-                >
-                  {t("header.sale")}
-                </button>
-              </div>
               {loadingCategories ? (
                 <p className="text-sm text-secondary">
                   {t("header.loadingCategories")}
@@ -590,6 +572,20 @@ export default function Header({
               ) : (
                 renderMobileCategoryList(categoryTree)
               )}
+              <ul className="mt-1 space-y-1">
+                <li>
+                  <div className="group flex items-center rounded-xl px-3 py-2 text-sm transition hover:bg-surface" style={{ paddingLeft: 6 }}>
+                    <button
+                      type="button"
+                      onClick={handleSaleNavigate}
+                      className="flex-1 text-left font-medium text-accent"
+                    >
+                      {t("header.sale") || "İndirim"}
+                    </button>
+                    <span className="ml-2 text-accent">•</span>
+                  </div>
+                </li>
+              </ul>
             </div>
           </div>
         </div>

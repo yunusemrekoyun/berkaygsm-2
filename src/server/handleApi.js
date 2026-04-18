@@ -4,6 +4,7 @@ import { runHandlers } from "./adapter.js";
 import { generalLimiter } from "./rateLimiters.js";
 import { connectDB } from "./config/db.js";
 import { kickPaymentSessionMaintenance } from "./services/paymentSessionMaintenanceService.js";
+import { kickPaynetSessionMaintenance } from "./services/paynetSessionMaintenanceService.js";
 
 export async function handleApi(request, context = {}) {
   const paramsSource = context?.params;
@@ -22,6 +23,7 @@ export async function handleApi(request, context = {}) {
 
   await connectDB();
   void kickPaymentSessionMaintenance();
+  void kickPaynetSessionMaintenance();
 
   const handlers = [generalLimiter, ...match.handlers];
 

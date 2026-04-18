@@ -946,7 +946,7 @@ export async function sendPaymentManualReviewAdminEmail({
     preheader: `Manual review gereken ödeme: ${conversationId || sessionId}`,
     heading: "Ödeme manuel kontrole alındı",
     intro:
-      "Iyzico ödeme akışında otomatik finalize edilemeyen bir işlem tespit edildi. Müşteriyle gerektiğinde iletişime geçerek sipariş veya iade sürecini kontrol edin.",
+      "Ödeme akışında otomatik finalize edilemeyen bir işlem tespit edildi. Müşteriyle gerektiğinde iletişime geçerek sipariş veya iade sürecini kontrol edin.",
     bodyHtml,
     footerNote:
       "Bu bildirim CepLife ödeme sistemi tarafından otomatik gönderilmiştir.",

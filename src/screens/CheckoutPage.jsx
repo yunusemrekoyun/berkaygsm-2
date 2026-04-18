@@ -301,7 +301,7 @@ export default function CheckoutPage() {
     try {
       setSubmitting(true);
       setBanner(null);
-      const response = await paymentApi.initializeIyzicoCheckout({
+      const response = await paymentApi.initializePaynetCheckout({
         addressId: isAuthenticated ? addressId : null,
         addressSnapshot: isGuestCheckout
           ? buildGuestAddressSnapshot(guestForm)
@@ -315,13 +315,13 @@ export default function CheckoutPage() {
         auth: isAuthenticated,
       });
 
-      const checkoutUrl = String(response?.payment?.checkoutUrl || "").trim();
-      if (!checkoutUrl) {
-        throw new Error("Iyzico ödeme sayfası alınamadı");
+      const paymentUrl = String(response?.payment?.paymentUrl || "").trim();
+      if (!paymentUrl) {
+        throw new Error("Ödeme sayfası alınamadı");
       }
 
       if (typeof window !== "undefined") {
-        window.location.assign(checkoutUrl);
+        window.location.assign(paymentUrl);
       }
     } catch (error) {
       const { message } = parseError(error);
@@ -858,7 +858,7 @@ export default function CheckoutPage() {
                 className="mt-1 w-full rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(14,165,233,0.22)] transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
               >
                 {submitting
-                  ? "Iyzico sayfasina yonlendiriliyor..."
+                  ? "Ödeme sayfasına yönlendiriliyor..."
                   : "Güvenli Ödeme"}
               </button>
             </div>

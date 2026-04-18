@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { validateCombinedTrackedStock } from "./orderController.js";
+import {
+  matchesPublicTrackingEmail,
+  validateCombinedTrackedStock,
+} from "./orderController.js";
 
 describe("validateCombinedTrackedStock", () => {
   it("accepts stock that is already reserved for the active payment session", async () => {
@@ -115,5 +118,53 @@ describe("validateCombinedTrackedStock", () => {
         setQty: 1,
       }),
     });
+  });
+});
+
+describe("matchesPublicTrackingEmail", () => {
+  it("matches normalized guest and payer emails", () => {
+    expect(
+      matchesPublicTrackingEmail(
+        {
+          customer: { email: "Guest@Example.com " },
+          payment: { payer: { email: "payer@example.com" } },
+        },
+        " guest@example.com "
+      )
+    ).toBe(true);
+
+    expect(
+      matchesPublicTrackingEmail(
+        {
+          customer: { email: "" },
+          payment: { payer: { email: "payer@example.com" } },
+        },
+        "PAYER@example.com"
+      )
+    ).toBe(true);
+  });
+
+  it("matches populated user email and rejects mismatches", () => {
+    expect(
+      matchesPublicTrackingEmail(
+        {
+          user: { email: "member@example.com" },
+        },
+        "member@example.com"
+      )
+    ).toBe(true);
+
+    expect(
+      matchesPublicTrackingEmail(
+        {
+          customer: { email: "guest@example.com" },
+          payment: { payer: { email: "payer@example.com" } },
+          user: { email: "member@example.com" },
+        },
+        "other@example.com"
+      )
+    ).toBe(false);
+
+    expect(matchesPublicTrackingEmail({}, "")).toBe(false);
   });
 });
