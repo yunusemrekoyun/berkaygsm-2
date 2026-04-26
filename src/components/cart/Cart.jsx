@@ -25,6 +25,7 @@ export default function Cart() {
     total = 0,
     grandTotal = 0,
     coupon = null,
+    couponInputVisible = true,
     couponDiscount = 0,
     couponMessage = null,
     pricing = {},
@@ -140,46 +141,56 @@ export default function Cart() {
               ))}
             </ul>
 
-            <div className="border-t border-border px-4 py-4 sm:px-5">
-              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-                <div className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-                  <input
-                    value={couponInput}
-                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                    placeholder={copy.couponPlaceholder || "Kupon kodu girin"}
-                    className="glass-input min-w-0 rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none placeholder:text-secondary/60"
-                  />
-                  <button
-                    onClick={handleApplyCoupon}
-                    className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover sm:min-w-[104px]"
-                  >
-                    {copy.apply || "Uygula"}
-                  </button>
-                  {coupon && (
-                    <button
-                      onClick={clearCoupon}
-                      className="rounded-lg border border-border px-3 py-2 text-sm text-primary hover:bg-surface-hover sm:min-w-[104px]"
-                    >
-                      {copy.clear || "Temizle"}
-                    </button>
-                  )}
-                </div>
+            {(couponInputVisible || coupon || couponMessage) && (
+              <div className="border-t border-border px-4 py-4 sm:px-5">
+                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+                  <div className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+                    {couponInputVisible && (
+                      <>
+                        <input
+                          value={couponInput}
+                          onChange={(e) =>
+                            setCouponInput(e.target.value.toUpperCase())
+                          }
+                          placeholder={
+                            copy.couponPlaceholder || "Kupon kodu girin"
+                          }
+                          className="glass-input min-w-0 rounded-lg border border-border bg-contact-bg px-3 py-2 text-sm text-primary outline-none placeholder:text-secondary/60"
+                        />
+                        <button
+                          onClick={handleApplyCoupon}
+                          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover sm:min-w-[104px]"
+                        >
+                          {copy.apply || "Uygula"}
+                        </button>
+                      </>
+                    )}
+                    {coupon && (
+                      <button
+                        onClick={clearCoupon}
+                        className="rounded-lg border border-border px-3 py-2 text-sm text-primary hover:bg-surface-hover sm:min-w-[104px]"
+                      >
+                        {copy.clear || "Temizle"}
+                      </button>
+                    )}
+                  </div>
 
-                <div className="flex min-h-[2.5rem] flex-col items-start justify-center gap-1 text-sm">
-                  {coupon && (
-                    <span className="font-medium text-accent">
-                      {formatStaticText(copy.appliedLabel, {
-                        code: coupon.code,
-                        percentage: coupon.percentage,
-                      })}
-                    </span>
-                  )}
-                  {couponMessage && (
-                    <span className="text-rose-500">{couponMessage}</span>
-                  )}
+                  <div className="flex min-h-[2.5rem] flex-col items-start justify-center gap-1 text-sm">
+                    {coupon && (
+                      <span className="font-medium text-accent">
+                        {formatStaticText(copy.appliedLabel, {
+                          code: coupon.code,
+                          percentage: coupon.percentage,
+                        })}
+                      </span>
+                    )}
+                    {couponMessage && (
+                      <span className="text-rose-500">{couponMessage}</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {(stackedSummary?.active || nextStackedTierMessage) && (
               <div className="border-t border-border px-4 py-4 sm:px-5">

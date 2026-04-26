@@ -742,10 +742,24 @@ function sanitizePaynetCallbackPayload(source) {
 
 function readCallbackParam(req, keys) {
   const list = Array.isArray(keys) ? keys : [keys];
-  const body = normalizeCallbackSource(req.body);
-  const query = normalizeCallbackSource(req.query);
+  const sources = [req.body, req.query];
+  for (const source of sources) {
+    const normalizedSource = normalizeCallbackSource(source);
+    for (const key of list) {
+      const value = normalizedSource?.[key];
+      if (value !== undefined && value !== null && value !== "") {
+        return value;
+      }
+    }
+  }
+  return undefined;
+}
+
+function readCallbackParamFromSource(source, keys) {
+  const list = Array.isArray(keys) ? keys : [keys];
+  const normalizedSource = normalizeCallbackSource(source);
   for (const key of list) {
-    const value = body?.[key] ?? query?.[key];
+    const value = normalizedSource?.[key];
     if (value !== undefined && value !== null && value !== "") {
       return value;
     }
@@ -860,6 +874,127 @@ function normalizePaynetReference(row) {
     .toLowerCase();
 }
 
+function parseProviderOrderIdFromSource(source) {
+  return String(
+    readCallbackParamFromSource(source, [
+      "order_id",
+      "orderId",
+      "payment_id",
+      "paymentId",
+      "mailorder_id",
+      "mailorderId",
+      "id",
+    ]) || ""
+  ).trim();
+}
+
+function parseProviderXactIdFromSource(source) {
+  return String(
+    readCallbackParamFromSource(source, ["xact_id", "transaction_id"]) || ""
+  ).trim();
+}
+
+function parseProviderAuthorizationCodeFromSource(source) {
+  return String(
+    readCallbackParamFromSource(source, [
+      "authorization_code",
+      "auth_code",
+    ]) || ""
+  ).trim();
+}
+
+async function resolvePaynetSessionFromCallback({ referanceNo, rawData }) {
+  const normalizedReferenceNo = String(referanceNo || "").trim();
+  if (normalizedReferenceNo) {
+    const sessionByReference = await PaynetSession.findOne({
+      referanceNo: normalizedReferenceNo,
+    });
+    if (sessionByReference) {
+      return {
+        session: sessionByReference,
+        referanceNo: sessionByReference.referanceNo,
+        lookup: "reference_no",
+      };
+    }
+  }
+
+  const providerXactId = parseProviderXactIdFromSource(rawData);
+  if (providerXactId) {
+    const sessionByXact = await PaynetSession.findOne({ providerXactId });
+    if (sessionByXact) {
+      return {
+        session: sessionByXact,
+        referanceNo: sessionByXact.referanceNo,
+        lookup: "provider_xact_id",
+      };
+    }
+  }
+
+  const providerOrderId = parseProviderOrderIdFromSource(rawData);
+  if (providerOrderId) {
+    const sessionByOrderId = await PaynetSession.findOne({ providerOrderId });
+    if (sessionByOrderId) {
+      return {
+        session: sessionByOrderId,
+        referanceNo: sessionByOrderId.referanceNo,
+        lookup: "provider_order_id",
+      };
+    }
+  }
+
+  const providerAuthorizationCode =
+    parseProviderAuthorizationCodeFromSource(rawData);
+  if (providerAuthorizationCode) {
+    const sessionByAuthorizationCode = await PaynetSession.findOne({
+      providerAuthorizationCode,
+    });
+    if (sessionByAuthorizationCode) {
+      return {
+        session: sessionByAuthorizationCode,
+        referanceNo: sessionByAuthorizationCode.referanceNo,
+        lookup: "provider_authorization_code",
+      };
+    }
+  }
+
+  if (providerXactId) {
+    try {
+      const { row } = await checkPaynetTransaction({ xactId: providerXactId });
+      const resolvedReferenceNo = String(
+        normalizePaynetReference(row) || ""
+      ).trim();
+
+      if (resolvedReferenceNo) {
+        const sessionFromTransaction = await PaynetSession.findOne({
+          referanceNo: resolvedReferenceNo,
+        });
+        if (sessionFromTransaction) {
+          return {
+            session: sessionFromTransaction,
+            referanceNo: sessionFromTransaction.referanceNo,
+            lookup: "transaction_check_xact_id",
+          };
+        }
+      }
+    } catch (error) {
+      logger.warn(
+        {
+          referanceNo: normalizedReferenceNo || null,
+          providerXactId,
+          error: error?.message || error,
+        },
+        "paynet: callback session resolution via transaction check failed"
+      );
+    }
+  }
+
+  return {
+    session: null,
+    referanceNo: normalizedReferenceNo,
+    lookup: null,
+  };
+}
+
 async function verifySuccessfulPaynetTransaction({ referanceNo, authCode }) {
   const { row } = await checkPaynetTransaction({
     referenceNo: referanceNo,
@@ -892,8 +1027,19 @@ async function verifySuccessfulPaynetTransaction({ referanceNo, authCode }) {
   };
 }
 
-async function processPaynetPayment(referanceNo, isSucceed, callbackAmount, authCode, rawData) {
-  const paynetSession = await PaynetSession.findOne({ referanceNo });
+async function processPaynetPayment(
+  referanceNo,
+  isSucceed,
+  callbackAmount,
+  authCode,
+  rawData,
+  resolvedSession = null
+) {
+  const paynetSession =
+    resolvedSession || (await PaynetSession.findOne({ referanceNo }));
+  const resolvedReferanceNo = String(
+    paynetSession?.referanceNo || referanceNo || ""
+  ).trim();
 
   if (!paynetSession) {
     return { ok: false, code: "SESSION_NOT_FOUND" };
@@ -925,10 +1071,26 @@ async function processPaynetPayment(referanceNo, isSucceed, callbackAmount, auth
   }
 
   // Mark callback received and clear fingerprint
+  const providerOrderId = parseProviderOrderIdFromSource(rawData);
+  const providerXactId =
+    parseProviderXactIdFromSource(rawData) || String(authCode || "").trim();
+  const providerAuthorizationCode =
+    parseProviderAuthorizationCodeFromSource(rawData) ||
+    String(authCode || "").trim();
+
   paynetSession.status = "callback_received";
   paynetSession.fingerprintKey = null;
   paynetSession.callbackData = sanitizePaynetCallbackPayload(rawData);
   paynetSession.callbackAt = new Date();
+  if (providerOrderId && !paynetSession.providerOrderId) {
+    paynetSession.providerOrderId = providerOrderId;
+  }
+  if (providerXactId && !paynetSession.providerXactId) {
+    paynetSession.providerXactId = providerXactId;
+  }
+  if (providerAuthorizationCode && !paynetSession.providerAuthorizationCode) {
+    paynetSession.providerAuthorizationCode = providerAuthorizationCode;
+  }
   await paynetSession.save();
 
   if (!isSucceed) {
@@ -941,7 +1103,7 @@ async function processPaynetPayment(referanceNo, isSucceed, callbackAmount, auth
   let verifiedTransaction = null;
   try {
     verifiedTransaction = await verifySuccessfulPaynetTransaction({
-      referanceNo,
+      referanceNo: resolvedReferanceNo,
       authCode,
     });
   } catch (error) {
@@ -1040,7 +1202,7 @@ async function processPaynetPayment(referanceNo, isSucceed, callbackAmount, auth
           method: "online",
           provider: "paynet",
           txnId: verifiedTransaction.txnId,
-          processorOrderId: referanceNo,
+          processorOrderId: providerOrderId || resolvedReferanceNo,
           paidAt: new Date(),
           status: "success",
           currency:
@@ -1140,20 +1302,44 @@ export async function handlePaynetCallback(req, res) {
 
   const referanceNo = parseReferenceNo(req);
   const baseUrl = resolvePublicBaseUrl();
+  const rawData = { ...(req.body || {}), ...(req.query || {}) };
+  const resolvedSession = await resolvePaynetSessionFromCallback({
+    referanceNo,
+    rawData,
+  });
+  const resolvedReferanceNo = String(
+    resolvedSession?.referanceNo || referanceNo || ""
+  ).trim();
 
-  if (!referanceNo) {
+  if (!resolvedSession?.session && !resolvedReferanceNo) {
+    logger.warn(
+      {
+        referanceNo: referanceNo || null,
+        providerOrderId: parseProviderOrderIdFromSource(rawData) || null,
+        providerXactId: parseProviderXactIdFromSource(rawData) || null,
+        providerAuthorizationCode:
+          parseProviderAuthorizationCodeFromSource(rawData) || null,
+      },
+      "paynet: callback session could not be resolved"
+    );
     if (isBrowserRequest(req)) {
       return sendRedirect(res, buildFailedRedirectUrl(baseUrl, "Referans numarası eksik."));
     }
-    return res.status(400).json({ ok: false, error: "reference_no eksik" });
+    return res.status(200).json({ ok: false, code: "SESSION_NOT_FOUND" });
   }
 
   const isSucceed = parseIsSucceed(req);
   const callbackAmount = parseCallbackAmount(req);
-  const authCode = parseAuthCode(req, referanceNo);
-  const rawData = { ...(req.body || {}), ...(req.query || {}) };
+  const authCode = parseAuthCode(req, resolvedReferanceNo || referanceNo);
 
-  const result = await processPaynetPayment(referanceNo, isSucceed, callbackAmount, authCode, rawData);
+  const result = await processPaynetPayment(
+    resolvedReferanceNo,
+    isSucceed,
+    callbackAmount,
+    authCode,
+    rawData,
+    resolvedSession.session || null
+  );
 
   // Browser redirect (Paynet redirects customer browser here)
   if (isBrowserRequest(req)) {
@@ -1165,7 +1351,9 @@ export async function handlePaynetCallback(req, res) {
     }
     if (result.ok && result.alreadyDone) {
       // Order finalized but orderId not in this response — let /return handle it
-      const session = await PaynetSession.findOne({ referanceNo }).lean();
+      const session = await PaynetSession.findOne({
+        referanceNo: resolvedReferanceNo,
+      }).lean();
       const oid = session?.order?.toString?.();
       if (oid) {
         return sendRedirect(

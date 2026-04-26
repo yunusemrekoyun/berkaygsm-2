@@ -116,6 +116,7 @@ export default function ProductForm({
   const [attributeValues, setAttributeValues] = useState([]);
   const [showAttribute, setShowAttribute] = useState(false);
   const [inventory, setInventory] = useState([]);
+  const stockDirtyRef = useRef(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [isActive, setIsActive] = useState(true);
   const [imageItems, setImageItems] = useState([]);
@@ -127,6 +128,7 @@ export default function ProductForm({
 
   useEffect(() => {
     if (!open) return;
+    stockDirtyRef.current = false;
     setName(initialProduct?.name ?? "");
     setPrice(initialProduct?.price != null ? String(initialProduct.price) : "");
     setCategoryId(resolveCategoryId(initialProduct?.category));
@@ -350,6 +352,7 @@ export default function ProductForm({
   };
 
   const handleStockChange = (comboKey, value) => {
+    stockDirtyRef.current = true;
     const numeric = Math.max(0, Math.floor(Number(value)));
     setInventory((prev) =>
       prev.map((item) =>
@@ -427,7 +430,7 @@ export default function ProductForm({
       }));
 
       // Ürün + stok ayrı gönderilecek → üst komponentte stocksApi.replace çağrısı yapılır
-      await onSubmit?.({ productPayload, stockLines });
+      await onSubmit?.({ productPayload, stockLines, stockDirty: stockDirtyRef.current });
       onClose?.();
     } catch (err) {
       const message = extractMessage(err) || "Ürün kaydedilemedi";
@@ -635,11 +638,11 @@ export default function ProductForm({
               title="Renkler"
               description="İsteğe bağlı renk örnekleri ekleyin."
               checked={showColors}
-              onToggle={() => setShowColors((prev) => !prev)}
+              onToggle={() => { stockDirtyRef.current = true; setShowColors((prev) => !prev); }}
             >
               <ColorSelector
                 values={colors}
-                onChange={setColors}
+                onChange={(v) => { stockDirtyRef.current = true; setColors(v); }}
                 disabled={!showColors}
               />
               <p className="text-[11px] text-[var(--color-text-admin-muted)]">
@@ -652,12 +655,12 @@ export default function ProductForm({
               title="Modeller"
               description="Uyumlu telefon modellerini yönetin."
               checked={showSizes}
-              onToggle={() => setShowSizes((prev) => !prev)}
+              onToggle={() => { stockDirtyRef.current = true; setShowSizes((prev) => !prev); }}
             >
               <TagInput
                 label="Model seçenekleri"
                 values={sizes}
-                onChange={setSizes}
+                onChange={(v) => { stockDirtyRef.current = true; setSizes(v); }}
                 placeholder="Model ekleyip Enter’a basın"
                 helper="Örnek: iPhone 15, Galaxy S24, Pixel 8"
                 disabled={!showSizes}
@@ -668,7 +671,7 @@ export default function ProductForm({
               title="Ürün özelliği"
               description="Uzunluk veya materyal gibi özel bir seçenek ekleyin."
               checked={showAttribute}
-              onToggle={() => setShowAttribute((prev) => !prev)}
+              onToggle={() => { stockDirtyRef.current = true; setShowAttribute((prev) => !prev); }}
             >
               <label className="block">
                 <span className="mb-1 block text-sm font-medium text-[var(--color-text-admin)]">
@@ -676,7 +679,7 @@ export default function ProductForm({
                 </span>
                 <input
                   value={attributeTitle}
-                  onChange={(event) => setAttributeTitle(event.target.value)}
+                  onChange={(event) => { stockDirtyRef.current = true; setAttributeTitle(event.target.value); }}
                   disabled={!showAttribute}
                   className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2 text-sm text-[var(--color-text-admin)] outline-none focus:border-[var(--color-text-admin)] disabled:opacity-60"
                   placeholder="Örn. Kablo uzunluğu"
@@ -685,7 +688,7 @@ export default function ProductForm({
               <TagInput
                 label="Özellik seçenekleri"
                 values={attributeValues}
-                onChange={setAttributeValues}
+                onChange={(v) => { stockDirtyRef.current = true; setAttributeValues(v); }}
                 placeholder="Seçenek ekleyip Enter’a basın"
                 helper="Özellik başlığının altında gösterilir."
                 disabled={!showAttribute || !attributeTitle.trim()}

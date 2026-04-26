@@ -1,6 +1,18 @@
 import { http } from "./client.js";
 
 export const couponApi = {
+  async getConfig() {
+    const data = await http("/coupons/config");
+    return data.config || null;
+  },
+  async updateConfig(payload) {
+    const data = await http("/coupons/config", {
+      method: "PUT",
+      body: payload,
+      auth: true,
+    });
+    return data.config || null;
+  },
   async mine() {
     const data = await http("/coupons/mine", { auth: true });
     return data.coupons || [];

@@ -243,6 +243,7 @@ export default function CartProvider({ children }) {
   const [shippingLoading, setShippingLoading] = useState(true);
   const [coupon, setCoupon] = useState(null);
   const [couponMessage, setCouponMessage] = useState(null);
+  const [couponInputVisible, setCouponInputVisible] = useState(true);
   const [stackedDiscountConfig, setStackedDiscountConfig] = useState(null);
 
   useEffect(() => {
@@ -321,6 +322,23 @@ export default function CartProvider({ children }) {
         }
       } finally {
         if (mounted) setShippingLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const config = await couponApi.getConfig();
+        if (mounted && config) {
+          setCouponInputVisible(config.cartInputVisible !== false);
+        }
+      } catch {
+        if (mounted) setCouponInputVisible(true);
       }
     })();
     return () => {
@@ -678,6 +696,7 @@ export default function CartProvider({ children }) {
         subTotal,
         total,
         coupon,
+        couponInputVisible,
         couponApplicable,
         couponMessage,
         couponDiscount,

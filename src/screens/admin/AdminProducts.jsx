@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PlusCircle, RefreshCw, Search, TrendingUp } from "lucide-react";
 import { categoryApi } from "../../api/categories";
 import { productApi } from "../../api/products";
@@ -139,6 +139,30 @@ const resolveProductObjectId = (input) => {
   return extractObjectId(input) || "";
 };
 
+/**
+ * Stok değişip değişmediğini kontrol eder.
+ * originalInventory: handleEditProduct'ta DB'den yüklenen stok ({ color, size, attributeValue, stock })
+ * stockLines: form submit'ten gelen stok ({ color, size, attributeValue, qtyOnHand })
+ * Yalnızca stok miktarı veya varyant yapısı değişmişse true döner.
+ */
+function hasStockChanged(stockLines, originalInventory) {
+  if (!Array.isArray(originalInventory)) return true;
+  if (stockLines.length !== originalInventory.length) return true;
+
+  const originalMap = new Map();
+  originalInventory.forEach((item) => {
+    const key = [item.color ?? "", item.size ?? "", item.attributeValue ?? ""].join("||");
+    originalMap.set(key, Number(item.stock) || 0);
+  });
+
+  return stockLines.some((line) => {
+    const key = [line.color ?? "", line.size ?? "", line.attributeValue ?? ""].join("||");
+    const originalQty = originalMap.get(key);
+    if (originalQty === undefined) return true;
+    return originalQty !== (Number(line.qtyOnHand) || 0);
+  });
+}
+
 const normalizeStockLines = (stockLines = []) => {
   if (!Array.isArray(stockLines)) return [];
   const map = new Map();
@@ -225,6 +249,7 @@ export default function AdminProducts() {
   });
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const originalInventoryRef = useRef(null);
   const [deleteDialog, setDeleteDialog] = useState(null);
   const [bulkPriceOpen, setBulkPriceOpen] = useState(false);
   const [translationState, setTranslationState] = useState({
@@ -333,6 +358,7 @@ export default function AdminProducts() {
   };
 
   const handleCreateClick = () => {
+    originalInventoryRef.current = null;
     setEditingProduct(null);
     setModalOpen(true);
   };
@@ -365,6 +391,7 @@ export default function AdminProducts() {
       }));
 
       const normalized = buildProductState(full, inventory);
+      originalInventoryRef.current = inventory;
       setEditingProduct(normalized);
       setModalOpen(true);
     } catch (err) {
@@ -505,7 +532,11 @@ export default function AdminProducts() {
     await loadProducts(pagination.page);
   };
 
-  const handleSaveProduct = async ({ productPayload, stockLines }) => {
+  const handleSaveProduct = async ({
+    productPayload,
+    stockLines,
+    stockDirty = false,
+  }) => {
     // Stok sadece syncProductStocks üzerinden yazılır (stocksApi.replace → low-stock notification tetikler)
     const payloadWithStocks = { ...productPayload };
     let stockWarning = null;
@@ -524,7 +555,11 @@ export default function AdminProducts() {
         payloadWithStocks,
         BASE_LANG
       );
-      if (Array.isArray(stockLines)) {
+      if (
+        stockDirty &&
+        Array.isArray(stockLines) &&
+        hasStockChanged(stockLines, originalInventoryRef.current)
+      ) {
         const ownerId =
           resolveProductObjectId(updated) ||
           resolveProductObjectId(editingProduct) ||
@@ -532,6 +567,12 @@ export default function AdminProducts() {
         if (ownerId) {
           try {
             await syncProductStocks(ownerId, stockLines);
+            originalInventoryRef.current = stockLines.map((l) => ({
+              color: l.color ?? null,
+              size: l.size ?? null,
+              attributeValue: l.attributeValue ?? null,
+              stock: Number(l.qtyOnHand) || 0,
+            }));
           } catch (err) {
             stockWarning =
               extractMessage(err) ||
@@ -783,6 +824,7 @@ export default function AdminProducts() {
         onClose={() => {
           setModalOpen(false);
           setEditingProduct(null);
+          originalInventoryRef.current = null;
         }}
         onSubmit={handleSaveProduct} // ✅ artık product+stock ayrı gelecek
         initialProduct={editingProduct}

@@ -164,6 +164,13 @@ const PaynetSessionSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    providerOrderId: { type: String, default: null, trim: true, index: true },
+    providerXactId: { type: String, default: null, trim: true, index: true },
+    providerAuthorizationCode: {
+      type: String,
+      default: null,
+      trim: true,
+    },
     paymentUrl: { type: String, default: null, trim: true },
     addressSnapshot: { type: PaynetSessionAddressSchema, required: true },
     items: { type: [PaynetSessionItemSchema], default: [] },

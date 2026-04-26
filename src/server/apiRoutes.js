@@ -53,6 +53,10 @@ import {
   applyCoupon,
 } from "./controllers/couponController.js";
 import {
+  getCouponConfig,
+  updateCouponConfig,
+} from "./controllers/couponConfigController.js";
+import {
   listServiceRecords,
   createServiceRecord,
   updateServiceRecord,
@@ -554,9 +558,11 @@ export const routes = [
   route("PUT", ["stacked-discount", "manage"], [requireAuth, requireRole("admin"), upsertStackedDiscount]),
 
   // coupons
+  route("GET", ["coupons", "config"], [getCouponConfig]),
   route("POST", ["coupons", "apply"], [strictLimiter, requireAuth, applyCoupon]),
   route("GET", ["coupons", "mine"], [requireAuth, listMyCoupons]),
   route("GET", ["coupons"], [requireAuth, requireRole("admin"), listCoupons]),
+  route("PUT", ["coupons", "config"], [requireAuth, requireRole("admin"), updateCouponConfig]),
   route("POST", ["coupons"], [requireAuth, requireRole("admin"), createCoupon]),
   route("PATCH", ["coupons", ":id"], [requireAuth, requireRole("admin"), updateCoupon]),
   route("DELETE", ["coupons", ":id"], [requireAuth, requireRole("admin"), deleteCoupon]),

@@ -20,9 +20,14 @@ const currency = new Intl.NumberFormat("tr-TR", {
 export default function AdminCoupons() {
   const confirm = useConfirm();
   const [coupons, setCoupons] = useState([]);
+  const [couponConfig, setCouponConfig] = useState({
+    cartInputVisible: true,
+  });
   const [loading, setLoading] = useState(true);
   const [banner, setBanner] = useState(null);
   const [optionsLoading, setOptionsLoading] = useState(false);
+  const [configLoading, setConfigLoading] = useState(true);
+  const [configSaving, setConfigSaving] = useState(false);
   const [resourceOptions, setResourceOptions] = useState({
     users: [],
     products: [],
@@ -36,6 +41,7 @@ export default function AdminCoupons() {
 
   useEffect(() => {
     loadCoupons();
+    loadCouponConfig();
   }, []);
 
   const loadCoupons = async () => {
@@ -47,6 +53,25 @@ export default function AdminCoupons() {
       setBanner({ variant: "danger", message: extractMessage(error) });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCouponConfig = async () => {
+    setConfigLoading(true);
+    try {
+      const config = await couponApi.getConfig();
+      if (config) {
+        setCouponConfig({
+          cartInputVisible: config.cartInputVisible !== false,
+        });
+      }
+    } catch (error) {
+      setBanner((prev) => ({
+        variant: "danger",
+        message: extractMessage(error) || prev?.message,
+      }));
+    } finally {
+      setConfigLoading(false);
     }
   };
 
@@ -108,6 +133,30 @@ export default function AdminCoupons() {
       });
     } catch (error) {
       setBanner({ variant: "danger", message: extractMessage(error) });
+    }
+  };
+
+  const handleToggleCartCouponInput = async () => {
+    if (configSaving) return;
+    const nextValue = !(couponConfig?.cartInputVisible !== false);
+    setConfigSaving(true);
+    try {
+      const updated = await couponApi.updateConfig({
+        cartInputVisible: nextValue,
+      });
+      setCouponConfig({
+        cartInputVisible: updated?.cartInputVisible !== false,
+      });
+      setBanner({
+        variant: "success",
+        message: nextValue
+          ? "Sepette kupon alanı görünür yapıldı"
+          : "Sepette kupon alanı gizlendi",
+      });
+    } catch (error) {
+      setBanner({ variant: "danger", message: extractMessage(error) });
+    } finally {
+      setConfigSaving(false);
     }
   };
 
@@ -219,7 +268,33 @@ export default function AdminCoupons() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="inline-flex items-center gap-3 rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-medium text-[var(--color-text-admin)]">
+            <span>Sepette kupon alanı</span>
+            <span className="text-xs text-[var(--color-text-admin-muted)]">
+              {couponConfig?.cartInputVisible !== false ? "Açık" : "Kapalı"}
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={couponConfig?.cartInputVisible !== false}
+              onClick={handleToggleCartCouponInput}
+              disabled={configLoading || configSaving}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                couponConfig?.cartInputVisible !== false
+                  ? "bg-[var(--color-accent)]"
+                  : "bg-slate-300"
+              } disabled:cursor-not-allowed disabled:opacity-60`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                  couponConfig?.cartInputVisible !== false
+                    ? "translate-x-6"
+                    : "translate-x-1"
+                }`}
+              />
+            </button>
+          </label>
           <button
             onClick={loadCoupons}
             className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-admin)] px-4 py-2 text-sm font-semibold text-[var(--color-text-admin)] hover:bg-[var(--color-bg-hover)]"
