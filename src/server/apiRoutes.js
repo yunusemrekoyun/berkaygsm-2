@@ -94,6 +94,8 @@ import {
   trackOrder,
   listOrders,
   adminGetOrder,
+  uploadOrderInvoicePdf,
+  openOrderInvoicePdf,
   updateOrderStatus,
 } from "./controllers/orderController.js";
 import {
@@ -265,6 +267,12 @@ const serviceImageUploadLimits = {
   maxFileSizeMb: 3,
   maxFiles: 4,
   allowedMime: (mime) => mime.startsWith("image/"),
+};
+
+const pdfUploadLimits = {
+  maxFileSizeMb: 10,
+  allowedMime: (mime) =>
+    mime === "application/pdf" || mime === "application/octet-stream",
 };
 
 function route(method, path, handlers, options = {}) {
@@ -462,6 +470,20 @@ export const routes = [
   route("GET", ["orders", "track", ":idOrNumber"], [strictLimiter, trackOrder]),
   route("GET", ["orders", "admin"], [requireAuth, requireRole("admin"), listOrders]),
   route("GET", ["orders", "admin", ":id"], [requireAuth, requireRole("admin"), adminGetOrder]),
+  route(
+    "GET",
+    ["orders", "admin", ":id", "invoice-pdf"],
+    [requireAuth, requireRole("admin"), openOrderInvoicePdf]
+  ),
+  route(
+    "POST",
+    ["orders", "admin", ":id", "invoice-pdf"],
+    [requireAuth, requireRole("admin"), requireMediaWritesEnabled, uploadOrderInvoicePdf],
+    {
+      body: "form",
+      upload: { type: "single", field: "invoicePdf", limits: pdfUploadLimits },
+    }
+  ),
   route(
     "PATCH",
     ["orders", "admin", ":id", "status"],

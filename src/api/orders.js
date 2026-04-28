@@ -1,4 +1,41 @@
-import { http, toQueryString } from "./client.js";
+import {
+  clearAuthState,
+  getAccessToken,
+  http,
+  refreshAccessToken,
+  toQueryString,
+} from "./client.js";
+
+const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "/api").replace(/\/$/, "");
+
+async function fetchAdminPdfBlob(path, retry = true) {
+  const response = await fetch(BASE_URL + path, {
+    method: "GET",
+    headers: getAccessToken()
+      ? { Authorization: `Bearer ${getAccessToken()}` }
+      : {},
+    credentials: "include",
+  });
+
+  if (response.status === 401 && retry) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) return fetchAdminPdfBlob(path, false);
+    clearAuthState();
+  }
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    let message = text || `HTTP ${response.status}`;
+    try {
+      message = JSON.parse(text)?.message || message;
+    } catch {
+      // ignore non-json error body
+    }
+    throw new Error(message);
+  }
+
+  return response.blob();
+}
 
 export const orderApi = {
   async mine() {
@@ -29,5 +66,18 @@ export const orderApi = {
       auth: true,
     });
     return data.order || null;
+  },
+  async adminUploadInvoicePdf(id, file) {
+    const formData = new FormData();
+    formData.append("invoicePdf", file);
+    const data = await http(`/orders/admin/${id}/invoice-pdf`, {
+      method: "POST",
+      body: formData,
+      auth: true,
+    });
+    return data.order || null;
+  },
+  async adminGetInvoicePdfBlob(id) {
+    return fetchAdminPdfBlob(`/orders/admin/${id}/invoice-pdf`);
   },
 };

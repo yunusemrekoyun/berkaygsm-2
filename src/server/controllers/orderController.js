@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { promises as fs } from "fs";
 import mongoose from "mongoose";
 import Order from "../models/Order.js";
 import UserDetails from "../models/UserDetails.js";
@@ -31,6 +32,12 @@ import {
   shapePrintJob,
   syncPrintJobsForOrder,
 } from "../services/printJobService.js";
+import {
+  buildOrderInvoiceDownloadName,
+  removeStoredOrderInvoicePdf,
+  resolveOrderInvoicePdfPath,
+  saveOrderInvoicePdf,
+} from "../services/orderInvoicePdfService.js";
 import { maybeCreateLowStockNotification } from "../services/adminNotificationService.js";
 import {
   sendOrderShippedEmail,
@@ -187,6 +194,28 @@ function shapeOrder(doc, printJob = null) {
           type: DEFAULT_INVOICE_TYPE,
           taxOffice: DEFAULT_INVOICE_TAX_OFFICE,
         },
+    invoicePdf: doc.invoicePdf?.storagePath
+      ? {
+          uploaded: true,
+          originalName: doc.invoicePdf.originalName || "invoice.pdf",
+          filename: doc.invoicePdf.filename || "invoice.pdf",
+          mimeType: doc.invoicePdf.mimeType || "application/pdf",
+          bytes: Number(doc.invoicePdf.bytes || 0),
+          uploadedAt: doc.invoicePdf.uploadedAt || null,
+          uploadedBy:
+            doc.invoicePdf.uploadedBy?.toString?.() ||
+            doc.invoicePdf.uploadedBy ||
+            null,
+        }
+      : {
+          uploaded: false,
+          originalName: "",
+          filename: "",
+          mimeType: "",
+          bytes: 0,
+          uploadedAt: null,
+          uploadedBy: null,
+        },
     items: doc.items.map((i) => ({
       kind: i.kind,
       ref: i.ref?.toString?.() || i.ref,
@@ -322,6 +351,7 @@ function shapeCustomerOrder(doc) {
   const shaped = shapeOrder(doc, null);
   if (!shaped) return shaped;
   delete shaped.printJob;
+  delete shaped.invoicePdf;
   return shaped;
 }
 
@@ -2277,6 +2307,74 @@ export async function adminGetOrder(req, res) {
     res.json({ order: shapeOrder(order, printJob) });
   } catch (error) {
     res.status(500).json({ message: error.message || "Sipariş alınamadı" });
+  }
+}
+
+export async function uploadOrderInvoicePdf(req, res) {
+  try {
+    if (!req.file?.buffer) {
+      return res.status(400).json({ message: "PDF dosyası gerekli" });
+    }
+
+    const order = await findOrderByIdOrNumber(req.params.id);
+    if (!order) return res.status(404).json({ message: "Sipariş bulunamadı" });
+
+    const previousInvoicePdf =
+      order.invoicePdf?.toObject?.() || order.invoicePdf || null;
+    const invoicePdf = await saveOrderInvoicePdf({
+      order,
+      file: req.file,
+      uploadedBy: req.userId || null,
+    });
+
+    order.invoicePdf = invoicePdf;
+    await order.save();
+
+    if (previousInvoicePdf?.storagePath) {
+      await removeStoredOrderInvoicePdf(previousInvoicePdf).catch(() => {});
+    }
+
+    await order.populate("user", "firstName lastName email phone");
+    const printJob = await findLatestPrintJobForOrder(order._id);
+    res.status(201).json({ order: shapeOrder(order, printJob) });
+  } catch (error) {
+    const status = error?.status || 500;
+    res.status(status).json({
+      message: error.message || "Fatura PDF'i yüklenemedi",
+    });
+  }
+}
+
+export async function openOrderInvoicePdf(req, res) {
+  try {
+    const order = await findOrderByIdOrNumber(req.params.id);
+    if (!order) return res.status(404).json({ message: "Sipariş bulunamadı" });
+    if (!order.invoicePdf?.storagePath) {
+      return res.status(404).json({ message: "Fatura PDF'i bulunamadı" });
+    }
+
+    const absolutePath = resolveOrderInvoicePdfPath(order.invoicePdf);
+    const pdf = await fs.readFile(absolutePath);
+    const filename = buildOrderInvoiceDownloadName(order);
+
+    res
+      .status(200)
+      .setHeader("Content-Type", "application/pdf")
+      .setHeader("Content-Length", String(pdf.length))
+      .setHeader(
+        "Content-Disposition",
+        `inline; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`
+      )
+      .setHeader("Cache-Control", "private, no-store")
+      .send(pdf);
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return res.status(404).json({ message: "Fatura PDF'i bulunamadı" });
+    }
+    const status = error?.status || 500;
+    res.status(status).json({
+      message: error.message || "Fatura PDF'i açılamadı",
+    });
   }
 }
 

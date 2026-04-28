@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { orderApi } from "../../../api/orders";
 import AlertBanner from "../../ui/AlertBanner.jsx";
 import LoadingOverlay from "../../ui/LoadingOverlay.jsx";
@@ -6,6 +6,7 @@ import {
   ArrowLeftRight,
   RefreshCw,
   ReceiptText,
+  FileText,
   Search,
   Truck,
   User2,
@@ -63,6 +64,36 @@ function StatusBadge({ status }) {
   );
 }
 
+function hasInvoicePdf(order) {
+  return Boolean(order?.invoicePdf?.uploaded);
+}
+
+function mergeOrderForList(currentOrder, updatedOrder) {
+  if (!updatedOrder) return currentOrder;
+  return {
+    ...currentOrder,
+    ...updatedOrder,
+    user:
+      updatedOrder?.user && typeof updatedOrder.user === "object"
+        ? updatedOrder.user
+        : currentOrder.user,
+    items:
+      Array.isArray(updatedOrder?.items) && updatedOrder.items.length > 0
+        ? updatedOrder.items
+        : currentOrder.items,
+  };
+}
+
+function parseOrderError(error, fallback) {
+  let message = error?.message || fallback;
+  try {
+    message = JSON.parse(error.message)?.message || message;
+  } catch {
+    // ignore non-json error body
+  }
+  return message || fallback;
+}
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -72,8 +103,11 @@ export default function AdminOrdersPage() {
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [selectedInvoiceOrderId, setSelectedInvoiceOrderId] = useState(null);
   const [busyOrderId, setBusyOrderId] = useState(null);
+  const [invoiceBusyOrderId, setInvoiceBusyOrderId] = useState(null);
+  const [pendingInvoiceOrderId, setPendingInvoiceOrderId] = useState(null);
   const [banner, setBanner] = useState(null);
   const [showCustomerReceiptDesigner, setShowCustomerReceiptDesigner] = useState(false);
+  const invoiceInputRef = useRef(null);
 
   const fetchOrders = async (nextPage = page, nextFilters = filters) => {
     setLoading(true);
@@ -121,18 +155,7 @@ export default function AdminOrdersPage() {
       setOrders((prev) =>
         prev.map((order) =>
           order.id === updated.id || order.orderNumber === updated.orderNumber
-            ? {
-                ...order,
-                ...updated,
-                user:
-                  updated?.user && typeof updated.user === "object"
-                    ? updated.user
-                    : order.user,
-                items:
-                  Array.isArray(updated?.items) && updated.items.length > 0
-                    ? updated.items
-                    : order.items,
-              }
+            ? mergeOrderForList(order, updated)
             : order
         )
       );
@@ -144,6 +167,84 @@ export default function AdminOrdersPage() {
       });
     } finally {
       setBusyOrderId(null);
+    }
+  };
+
+  const onInvoiceClick = async (order) => {
+    if (!order?.id || invoiceBusyOrderId) return;
+
+    if (!hasInvoicePdf(order)) {
+      setPendingInvoiceOrderId(order.id);
+      if (invoiceInputRef.current) {
+        invoiceInputRef.current.value = "";
+        invoiceInputRef.current.click();
+      }
+      return;
+    }
+
+    let pdfWindow = null;
+    if (typeof window !== "undefined") {
+      pdfWindow = window.open("", "_blank");
+    }
+
+    setInvoiceBusyOrderId(order.id);
+    try {
+      const blob = await orderApi.adminGetInvoicePdfBlob(order.id);
+      const url = URL.createObjectURL(blob);
+      if (pdfWindow) {
+        pdfWindow.location.href = url;
+        pdfWindow.opener = null;
+      } else if (typeof window !== "undefined") {
+        window.open(url, "_blank");
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (error) {
+      if (pdfWindow) pdfWindow.close();
+      setBanner({
+        variant: "danger",
+        message: parseOrderError(error, "Fatura PDF'i açılamadı"),
+      });
+    } finally {
+      setInvoiceBusyOrderId(null);
+    }
+  };
+
+  const onInvoiceFileSelected = async (event) => {
+    const file = event.target.files?.[0] || null;
+    const orderId = pendingInvoiceOrderId;
+    setPendingInvoiceOrderId(null);
+    if (!file || !orderId) return;
+
+    const isPdf =
+      file.type === "application/pdf" ||
+      String(file.name || "").toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      setBanner({
+        variant: "danger",
+        message: "Yalnızca PDF dosyası yükleyebilirsiniz.",
+      });
+      return;
+    }
+
+    setInvoiceBusyOrderId(orderId);
+    try {
+      const updated = await orderApi.adminUploadInvoicePdf(orderId, file);
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === orderId || order.orderNumber === updated?.orderNumber
+            ? mergeOrderForList(order, updated)
+            : order
+        )
+      );
+      setBanner({ variant: "success", message: "Fatura PDF'i eklendi" });
+    } catch (error) {
+      setBanner({
+        variant: "danger",
+        message: parseOrderError(error, "Fatura PDF'i yüklenemedi"),
+      });
+    } finally {
+      setInvoiceBusyOrderId(null);
+      if (event.target) event.target.value = "";
     }
   };
 
@@ -285,9 +386,33 @@ export default function AdminOrdersPage() {
                     >
                       <td className="px-4 py-3 align-top" data-label="Sipariş">
                         <div className="flex flex-col">
-                          <span className="font-semibold text-[var(--color-text-admin)]">
-                            {order.orderNumber}
-                          </span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-[var(--color-text-admin)]">
+                              {order.orderNumber}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => onInvoiceClick(order)}
+                              disabled={invoiceBusyOrderId === order.id}
+                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 transition disabled:cursor-wait disabled:opacity-70 ${
+                                hasInvoicePdf(order)
+                                  ? "bg-emerald-50 text-emerald-700 ring-emerald-200 hover:bg-emerald-100"
+                                  : "bg-rose-50 text-rose-700 ring-rose-200 hover:bg-rose-100"
+                              }`}
+                              title={
+                                hasInvoicePdf(order)
+                                  ? "Fatura PDF'ini yeni sekmede aç"
+                                  : "Fatura PDF'i ekle"
+                              }
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                              {invoiceBusyOrderId === order.id
+                                ? "İşleniyor"
+                                : hasInvoicePdf(order)
+                                ? "Fatura eklendi"
+                                : "Fatura yüklenmedi"}
+                            </button>
+                          </div>
                           <span className="flex items-center gap-1 text-xs text-[var(--color-text-admin-muted)]">
                             <PackageCheck className="h-3.5 w-3.5" />
                             {order.items?.length || 0} ürün
@@ -413,6 +538,14 @@ export default function AdminOrdersPage() {
           admin
         />
       )}
+
+      <input
+        ref={invoiceInputRef}
+        type="file"
+        accept="application/pdf,.pdf"
+        className="hidden"
+        onChange={onInvoiceFileSelected}
+      />
     </div>
   );
 }

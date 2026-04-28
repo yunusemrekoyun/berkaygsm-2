@@ -152,6 +152,23 @@ const OrderInvoiceSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const OrderInvoicePdfSchema = new mongoose.Schema(
+  {
+    storagePath: { type: String, default: "" },
+    originalName: { type: String, default: "" },
+    filename: { type: String, default: "invoice.pdf" },
+    mimeType: { type: String, default: "application/pdf" },
+    bytes: { type: Number, default: 0 },
+    uploadedAt: { type: Date, default: null },
+    uploadedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+  },
+  { _id: false }
+);
+
 const PayerSchema = new mongoose.Schema(
   {
     email: { type: String, default: null },
@@ -223,6 +240,7 @@ const OrderSchema = new mongoose.Schema(
     },
     customer: { type: CustomerSnapshotSchema, default: () => ({}) },
     invoice: { type: OrderInvoiceSchema, default: () => ({}) },
+    invoicePdf: { type: OrderInvoicePdfSchema, default: null },
 
     items: { type: [OrderItemSchema], default: [] },
 
