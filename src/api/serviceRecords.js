@@ -17,6 +17,9 @@ function appendRecordFields(form, payload = {}) {
   if (payload.operationDetails !== undefined) {
     form.append("operationDetails", String(payload.operationDetails || "").trim());
   }
+  if (payload.price !== undefined) {
+    form.append("price", String(payload.price));
+  }
   if (payload.warrantyMonths !== undefined) {
     form.append("warrantyMonths", String(payload.warrantyMonths));
   }

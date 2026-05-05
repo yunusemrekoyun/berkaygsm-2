@@ -2,13 +2,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useStaticTranslation } from "../../i18n/staticContent.js";
 
+const DEFAULT_MAP_SRC =
+  "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3081.985992063857!2d29.97270607557561!3d39.42444121543542!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14c948754a4be47f%3A0xed261a60f69cbf0f!2sBerkay%20Gsm-Teknik%20Servis!5e0!3m2!1str!2str!4v1777981350192!5m2!1str!2str";
+
 export default function HomeContact({
   title,
   description,
   storeName,
   address,
   hours,
-  mapSrc = "https://www.google.com/maps?q=Ba%C4%9Fdat%20Caddesi%20123%2C%20%C4%B0stanbul&output=embed",
+  mapSrc = DEFAULT_MAP_SRC,
 }) {
   const t = useStaticTranslation();
   const copy = t("homeContact") || {};

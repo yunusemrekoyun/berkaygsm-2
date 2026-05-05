@@ -51,6 +51,7 @@ export default function ServiceRecordForm({
   const [customerLastName, setCustomerLastName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [operationDetails, setOperationDetails] = useState("");
+  const [price, setPrice] = useState("0");
   const [warrantyMonths, setWarrantyMonths] = useState("6");
   const [intakeDate, setIntakeDate] = useState("");
   const [completionDate, setCompletionDate] = useState("");
@@ -71,6 +72,7 @@ export default function ServiceRecordForm({
     setCustomerLastName(initialRecord?.customerLastName || "");
     setCustomerPhone(formatTrPhoneForInput(initialRecord?.customerPhone || ""));
     setOperationDetails(initialRecord?.operationDetails || "");
+    setPrice(String(initialRecord?.price ?? 0));
     setWarrantyMonths(String(initialRecord?.warrantyMonths ?? 6));
     setIntakeDate(toDateInput(initialRecord?.intakeDate));
     setCompletionDate(toDateInput(initialRecord?.completionDate));
@@ -176,6 +178,11 @@ export default function ServiceRecordForm({
       setError("Garanti ayı 0-120 aralığında olmalıdır.");
       return;
     }
+    const normalizedPrice = Number(String(price || "0").replace(",", "."));
+    if (!Number.isFinite(normalizedPrice) || normalizedPrice < 0) {
+      setError("Fiyat 0 veya daha büyük bir sayı olmalıdır.");
+      return;
+    }
 
     setError("");
     onSubmit?.({
@@ -183,6 +190,7 @@ export default function ServiceRecordForm({
       customerLastName: customerLastName.trim(),
       customerPhone: normalizedPhone,
       operationDetails: operationDetails.trim(),
+      price: Math.round(normalizedPrice * 100) / 100,
       warrantyMonths: Math.floor(warranty),
       intakeDate,
       completionDate: completionDate || null,
@@ -263,6 +271,19 @@ export default function ServiceRecordForm({
               autoComplete="tel"
               className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2 text-sm outline-none focus:border-[var(--color-text-admin)]"
               placeholder="+90 5xx xxx xx xx"
+            />
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-sm font-medium text-[var(--color-text-admin)]">Fiyat</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={price}
+              onChange={(event) => setPrice(event.target.value)}
+              className="w-full rounded-xl border border-[var(--color-border-admin)] bg-[var(--color-bg-card)] px-3 py-2 text-sm outline-none focus:border-[var(--color-text-admin)]"
+              placeholder="0.00"
             />
           </label>
 

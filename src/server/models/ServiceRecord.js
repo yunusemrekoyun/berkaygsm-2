@@ -36,6 +36,7 @@ const ServiceRecordSchema = new mongoose.Schema(
     customerLastName: { type: String, required: true, trim: true },
     customerPhone: { type: String, required: true, trim: true, index: true },
     operationDetails: { type: String, required: true, trim: true },
+    price: { type: Number, default: 0, min: 0 },
     warrantyMonths: { type: Number, default: 0, min: 0, max: 120 },
     intakeDate: { type: Date, required: true, index: true },
     completionDate: { type: Date, default: null, index: true },

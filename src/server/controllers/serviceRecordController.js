@@ -44,6 +44,23 @@ function parseIntegerInRange(
   return Math.floor(parsed);
 }
 
+function roundCurrency(value) {
+  return Math.round(Number(value || 0) * 100) / 100;
+}
+
+function parsePrice(value, fieldName = "Fiyat", { fallback = 0 } = {}) {
+  if (value === undefined || value === null || value === "") {
+    return fallback;
+  }
+  const normalized =
+    typeof value === "string" ? value.trim().replace(",", ".") : value;
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(`${fieldName} 0 veya daha büyük bir sayı olmalı`);
+  }
+  return roundCurrency(parsed);
+}
+
 function parseDate(value, fieldName, { required = false } = {}) {
   if (value === undefined || value === null || value === "") {
     if (required) {
@@ -190,6 +207,7 @@ function shapeRecord(doc) {
     customerFullName: `${plain.customerFirstName || ""} ${plain.customerLastName || ""}`.trim(),
     customerPhone: plain.customerPhone,
     operationDetails: plain.operationDetails || "",
+    price: roundCurrency(plain.price ?? 0),
     warrantyMonths: Number(plain.warrantyMonths || 0),
     intakeDate: plain.intakeDate || null,
     completionDate: plain.completionDate || null,
@@ -331,6 +349,11 @@ function parseUpdatePayload(body = {}, existing = null) {
       { required: true, max: 2000 }
     );
   }
+  if (source.price !== undefined) {
+    payload.price = parsePrice(source.price, "Fiyat", {
+      fallback: existing?.price ?? 0,
+    });
+  }
   if (source.warrantyMonths !== undefined) {
     payload.warrantyMonths = parseIntegerInRange(
       source.warrantyMonths,
@@ -440,6 +463,7 @@ export async function createServiceRecord(req, res) {
       customerLastName,
       customerPhone,
       operationDetails,
+      price,
       warrantyMonths,
       intakeDate,
       completionDate,
@@ -464,6 +488,7 @@ export async function createServiceRecord(req, res) {
         required: true,
         max: 2000,
       }),
+      price: parsePrice(price, "Fiyat", { fallback: 0 }),
       warrantyMonths: parseIntegerInRange(warrantyMonths, "Garanti ayı", {
         min: 0,
         max: 120,

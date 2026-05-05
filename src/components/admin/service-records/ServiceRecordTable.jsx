@@ -41,6 +41,13 @@ const formatDate = (value) => {
   }).format(date);
 };
 
+const formatMoney = (value) =>
+  new Intl.NumberFormat("tr-TR", {
+    style: "currency",
+    currency: "TRY",
+    minimumFractionDigits: 2,
+  }).format(Number(value || 0));
+
 function Badge({ label, className }) {
   return (
     <span
@@ -67,6 +74,7 @@ export default function ServiceRecordTable({
               <th className="px-4 py-3 font-medium">Takip No</th>
               <th className="px-4 py-3 font-medium">Müşteri</th>
               <th className="px-4 py-3 font-medium">Durum / Sonuç</th>
+              <th className="px-4 py-3 font-medium">Fiyat</th>
               <th className="px-4 py-3 font-medium">Garanti</th>
               <th className="px-4 py-3 font-medium">Tarih</th>
               <th className="px-4 py-3 font-medium text-right">İşlemler</th>
@@ -75,13 +83,13 @@ export default function ServiceRecordTable({
           <tbody className="divide-y divide-[var(--color-border-admin)]/50">
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-sm">
+                <td colSpan={7} className="px-4 py-10 text-center text-sm">
                   Servis kayıtları yükleniyor...
                 </td>
               </tr>
             ) : records.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-sm">
+                <td colSpan={7} className="px-4 py-10 text-center text-sm">
                   Kayıt bulunamadı.
                 </td>
               </tr>
@@ -127,6 +135,11 @@ export default function ServiceRecordTable({
                         {outcomeLabels[record.repairOutcome] || "—"}
                       </span>
                     </div>
+                  </td>
+                  <td data-label="Fiyat" className="px-4 py-3 align-top">
+                    <p className="font-semibold text-[var(--color-text-admin)]">
+                      {formatMoney(record.price)}
+                    </p>
                   </td>
                   <td data-label="Garanti" className="px-4 py-3 align-top">
                     <div className="space-y-1">

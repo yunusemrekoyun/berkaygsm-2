@@ -164,7 +164,7 @@ const STATIC_CONTENT = {
       description:
         "Visit our store to try cases, grips, and chargers in person. We will help you find the right fit for your device.",
       storeName: "CepLife",
-      address: "Kurfürstendamm 123, 10711 Berlin, Germany",
+      address: OFFICIAL_ADDRESS,
       hoursLabel: "Opening Hours:",
       hours: [
         { k: "Mon - Sat", v: "10:00 - 20:00" },
@@ -1327,7 +1327,7 @@ const STATIC_CONTENT = {
       description:
         "Erleben Sie unsere Kollektionen persönlich in unserem Flagship-Store in Berlin. Unser Team hilft Ihnen gerne dabei, die perfekten Stücke für Ihre Aussteuer zu finden.",
       storeName: "CepLife",
-      address: "Kurfürstendamm 123, 10711 Berlin, Deutschland",
+      address: OFFICIAL_ADDRESS,
       hoursLabel: "Öffnungszeiten:",
       hours: [
         { k: "Mo - Sa", v: "10:00 - 20:00" },
