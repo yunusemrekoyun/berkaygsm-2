@@ -8,6 +8,7 @@ import SetModel from "../models/Set.js";
 import ShippingConfig from "../models/ShippingConfig.js";
 import StockItem from "../models/StockItem.js";
 import PrintJob from "../models/PrintJob.js";
+import { connectDB } from "../config/db.js";
 import {
   consumeCouponAfterSuccess,
   normalizeCouponCodeInput,
@@ -82,6 +83,7 @@ function toBoolean(value) {
 }
 
 async function runInMongoTransaction(work) {
+  await connectDB();
   const session = await mongoose.startSession();
   let result = null;
   try {

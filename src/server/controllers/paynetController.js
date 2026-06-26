@@ -499,6 +499,10 @@ function buildInvoiceSnapshot(identityNumber) {
 // ─── exported handlers ────────────────────────────────────────────────────────
 
 export async function initializePaynetPayment(req, res) {
+  let referanceNo = "";
+  let fingerprintKey = "";
+  let paynetResult = null;
+
   try {
     const config = assertPaynetConfigured();
     const identityNumber = String(req.body?.identityNumber || "").trim();
@@ -528,7 +532,7 @@ export async function initializePaynetPayment(req, res) {
     });
 
     const sessionItems = normalizeSessionItems(prepared.details.orderItems);
-    const fingerprintKey = buildFingerprintKey({
+    fingerprintKey = buildFingerprintKey({
       userId: req.userId || null,
       customerSnapshot: guestCustomer,
       addressSnapshot: prepared.details.addressSnap,
@@ -587,7 +591,7 @@ export async function initializePaynetPayment(req, res) {
     // Proactively clear fingerprintKeys on expired sessions so users can retry.
     await expireOldPendingSessions(now);
 
-    const referanceNo = buildReferanceNo();
+    referanceNo = buildReferanceNo();
     const confirmationUrl = getPaynetCallbackUrl();
     const returnUrl = getPaynetReturnUrl();
     const successUrl = buildPaynetReturnUrl(resolvePublicBaseUrl(), referanceNo, "success");
@@ -596,7 +600,7 @@ export async function initializePaynetPayment(req, res) {
     // Call Paynet API BEFORE the MongoDB transaction. External HTTP calls must
     // not be made inside a transaction because they extend lock duration and
     // cannot be rolled back on DB error.
-    const paynetResult = await createPaynetMailOrder({
+    paynetResult = await createPaynetMailOrder({
       referenceNo: referanceNo,
       referanceNo,
       amount: prepared.summary.total,
@@ -701,6 +705,27 @@ export async function initializePaynetPayment(req, res) {
       summary: prepared.summary,
     });
   } catch (error) {
+    const status = error?.status || 500;
+    const logPayload = {
+      err: {
+        name: error?.name || "Error",
+        message: error?.message || String(error),
+        code: error?.code || null,
+        stack: error?.stack || null,
+      },
+      status,
+      referanceNo: referanceNo || null,
+      userId: req.userId || null,
+      isGuestCheckout: !req.userId,
+      fingerprintKey: fingerprintKey || null,
+      paynetPaymentUrlObtained: Boolean(paynetResult?.paymentUrl),
+    };
+    if (status >= 500 || paynetResult?.paymentUrl) {
+      logger.error(logPayload, "paynet: initialize failed");
+    } else {
+      logger.warn(logPayload, "paynet: initialize rejected");
+    }
+
     if (error?.status) {
       const payload = { message: error.message || "Ödeme başlatılamadı" };
       if (error.extra) payload.details = error.extra;
