@@ -1,33 +1,72 @@
 import { assertPaynetConfigured } from "../config/paynet.js";
 import { logger } from "../utils/logger.js";
 
+const PAYNET_REQUEST_TIMEOUT_MS = 30_000;
+
 function truncate(value, max) {
   const raw = String(value || "").trim();
   return raw.length > max ? raw.slice(0, max) : raw;
 }
 
-async function parsePaynetJsonResponse(response, referanceNo, errorMessage) {
-  let data;
-  let rawText = "";
-
+async function requestPaynetJson({ endpoint, secretKey, payload, referanceNo, xactId = null }) {
+  const controller = new AbortController();
+  const startedAt = Date.now();
+  // Cover both response headers and the complete body, not just connection setup.
+  const timer = setTimeout(() => controller.abort(), PAYNET_REQUEST_TIMEOUT_MS);
+  let response;
+  let phase = "request";
   try {
-    rawText = await response.text();
-    data = JSON.parse(rawText);
-  } catch {
+    // Never automatically retry: a lost response does not mean Paynet rejected
+    // the mailorder, and repeating the POST could create another payment link.
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: buildPaynetAuthHeaders(secretKey),
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    phase = "read_body";
+    const rawText = await response.text();
+    phase = "parse_json";
+    const data = JSON.parse(rawText);
+    return { response, data };
+  } catch (error) {
+    const timedOut = controller.signal.aborted;
+    const code = timedOut
+      ? "PAYNET_TIMEOUT"
+      : phase === "parse_json"
+        ? "PAYNET_INVALID_RESPONSE"
+        : "PAYNET_NETWORK_ERROR";
+    const url = URL.canParse(endpoint) ? new URL(endpoint) : null;
     logger.error(
       {
         referanceNo,
-        status: response.status,
-        rawText: rawText.slice(0, 500),
+        xactId,
+        endpoint: url ? `${url.origin}${url.pathname}` : "invalid-url",
+        phase,
+        status: response?.status || null,
+        code,
+        errorName: error?.name || null,
+        errorCode: error?.code || null,
+        causeCode: error?.cause?.code || null,
+        elapsedMs: Date.now() - startedAt,
+        timeoutMs: PAYNET_REQUEST_TIMEOUT_MS,
       },
-      errorMessage
+      "paynet: API request failed"
     );
-    throw new Error(
-      `Paynet API yanıtı okunamadı: HTTP ${response.status} — ${rawText.slice(0, 200)}`
-    );
+    // Do not propagate raw provider bodies or network messages to customers or
+    // downstream loggers: they can contain payment tokens or personal data.
+    const message = timedOut
+      ? "Ödeme sağlayıcısından zamanında yanıt alınamadı."
+      : phase === "parse_json"
+        ? "Ödeme sağlayıcısından geçerli bir yanıt alınamadı."
+        : "Ödeme sağlayıcısıyla iletişim kurulamadı.";
+    throw Object.assign(new Error(message), {
+      code,
+      status: timedOut ? 504 : 502,
+    });
+  } finally {
+    clearTimeout(timer);
   }
-
-  return data;
 }
 
 function buildPaynetAuthHeaders(secretKey) {
@@ -165,24 +204,18 @@ export async function createPaynetMailOrder({
     "paynet: sending mailorder create request"
   );
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: buildPaynetAuthHeaders(config.secretKey),
-    body: JSON.stringify(payload),
+  const { response, data } = await requestPaynetJson({
+    endpoint,
+    secretKey: config.secretKey,
+    payload,
+    referanceNo: resolvedReferenceNo,
   });
-
-  const data = await parsePaynetJsonResponse(
-    response,
-    resolvedReferenceNo,
-    "paynet: failed to parse API response"
-  );
 
   logger.info(
     {
       referanceNo: resolvedReferenceNo,
       status: response.status,
       responseKeys: Object.keys(data || {}),
-      data,
     },
     "paynet: received mailorder create response"
   );
@@ -198,14 +231,11 @@ export async function createPaynetMailOrder({
   ).trim();
 
   if (!paymentUrl) {
-    throw new Error(
-      "Paynet ödeme sayfası URL'si alınamadı. Tam API yanıtı: " +
-        JSON.stringify(data).slice(0, 500)
-    );
+    throw new Error("Paynet ödeme sayfası URL'si alınamadı.");
   }
 
   logger.info(
-    { referanceNo: resolvedReferenceNo, paymentUrl },
+    { referanceNo: resolvedReferenceNo },
     "paynet: payment URL obtained"
   );
 
@@ -238,17 +268,13 @@ export async function checkPaynetTransaction({
     "paynet: sending transaction check request"
   );
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: buildPaynetAuthHeaders(config.secretKey),
-    body: JSON.stringify(payload),
+  const { response, data } = await requestPaynetJson({
+    endpoint,
+    secretKey: config.secretKey,
+    payload,
+    referanceNo: resolvedReferenceNo || null,
+    xactId: resolvedXactId || null,
   });
-
-  const data = await parsePaynetJsonResponse(
-    response,
-    resolvedReferenceNo || resolvedXactId,
-    "paynet: failed to parse transaction check response"
-  );
 
   logger.info(
     {
