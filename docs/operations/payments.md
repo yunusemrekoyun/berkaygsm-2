@@ -64,7 +64,9 @@ settings to work around an unconfirmed cause.
 ## Deployment and rollback
 
 The production workflow is `.github/workflows/deploy-production.yml`.
-Pushes to `pc` or `main` trigger a deployment. It also supports manual dispatch.
+`main` is the default branch. Pushes to `main` trigger a deployment; the workflow
+also supports manual dispatch. Vercel Git deployments are disabled in
+`vercel.json`; production hosting uses the VPS workflow.
 The checked-out source is copied to `/home/ceplife/app-src`, then
 `ops/vps/deploy.sh` builds a new release under `/srv/ceplife/releases`.
 

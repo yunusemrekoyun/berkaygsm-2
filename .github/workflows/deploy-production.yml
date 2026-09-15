@@ -3,7 +3,6 @@ name: Deploy Production
 on:
   push:
     branches:
-      - pc
       - main
   workflow_dispatch:
 
